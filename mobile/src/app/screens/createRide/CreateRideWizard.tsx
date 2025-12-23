@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { View } from "react-native";
-import { Button, Divider, Text } from "react-native-paper";
+import { Button, Divider, Text, useTheme } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 
 import { supabase } from "../../../lib/supabase";
@@ -17,6 +17,7 @@ type StepKey = "when" | "where" | "details" | "group" | "review";
 
 export default function CreateRideWizard() {
   const { t } = useTranslation();
+  const theme = useTheme();
 
   const steps: { key: StepKey; title: string }[] = useMemo(
     () => [
@@ -117,13 +118,15 @@ export default function CreateRideWizard() {
   }
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
+   <View style={{ flex: 1, padding: 16, backgroundColor: theme.colors.background }}>
       {/* Header */}
-      <Text variant="titleLarge">{stepTitle}</Text>
-      <Text style={{ opacity: 0.7, marginTop: 4 }}>
+      <Text variant="titleLarge" style={{ color: theme.colors.onBackground }}>
+        {stepTitle}
+        </Text>
+
+      <Text style={{ color: theme.colors.onBackground, opacity: 0.7, marginTop: 4 }}>
         Step {stepIndex + 1} / {steps.length}
       </Text>
-
       <Divider style={{ marginVertical: 12 }} />
 
       {/* Step body */}

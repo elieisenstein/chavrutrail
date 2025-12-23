@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabase";
 import { fetchMyProfile, updateMyDisplayName, Profile } from "../../lib/profile";
 import { useTranslation } from "react-i18next";
 import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "react-native-paper";
 
 
 
@@ -18,6 +19,7 @@ export default function ProfileScreen() {
   const [loadingProfile, setLoadingProfile] = useState<boolean>(false);
   const { t } = useTranslation();
   const nav = useNavigation<any>();
+  const theme = useTheme();
 
   const loadProfile = async () => {
     setErr(null);
@@ -53,8 +55,14 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={{ padding: 16, gap: 12, marginTop: 24 }}>
-      <Text variant="headlineSmall">{t("screens.profile.title")}</Text>
+    <View
+      style={{
+        flex: 1,
+        padding: 16,
+        gap: 12,
+        backgroundColor: theme.colors.background,
+      }}
+    >
 
 
       {err ? <Text style={{ color: "crimson" }}>{err}</Text> : null}
@@ -62,11 +70,7 @@ export default function ProfileScreen() {
       <Button mode="outlined" onPress={() => nav.navigate("Settings")}>
         {t("settings.title")}
       </Button>
-      <Button mode="outlined" onPress={loadProfile} loading={loadingProfile} disabled={loadingProfile}>
-        {t("common.refresh")}
-      </Button>
-
-<Text style={{ opacity: 0.8 }}>{t("common.displayName")}</Text>
+      
 
 <TextInput
   label={t("common.displayName")}

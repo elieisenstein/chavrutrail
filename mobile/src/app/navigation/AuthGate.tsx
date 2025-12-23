@@ -1,0 +1,106 @@
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { supabase } from "../../lib/supabase";
+import RequestOtp from "../auth/RequestOtp";
+import VerifyOtp from "../auth/VerifyOtp";
+
+type Stage = "loading" | "request" | "verify" | "signedin";
+
+const DEV_BYPASS = process.env.EXPO_PUBLIC_DEV_AUTH_BYPASS === "true";
+const DEV_EMAIL = process.env.EXPO_PUBLIC_DEV_EMAIL || "";
+const DEV_PASSWORD = process.env.EXPO_PUBLIC_DEV_PASSWORD || "";
+
+/**
+ * Hard safety: never allow bypass outside dev runtime.
+ * __DEV__ is a React Native global that is false in production builds.
+ */
+function assertBypassSafe() {
+  if (DEV_BYPASS && !__DEV__) {
+    throw new Error("DEV_AUTH_BYPASS is enabled in a non-dev build. Disable it immediately.");
+  }
+}
+
+export default function AuthGate({ children }: { children: React.ReactNode }) {
+  const [stage, setStage] = useState<Stage>("loading");
+  const [phone, setPhone] = useState<string>("");
+
+  useEffect(() => {
+    assertBypassSafe();
+
+    let isMounted = true;
+
+    const bootstrap = async () => {
+      // If already signed in, go straight to app
+      const { data } = await supabase.auth.getSession();
+      if (!isMounted) return;
+
+      if (data.session) {
+        setStage("signedin");
+        return;
+      }
+
+      // DEV bypass: sign in using email/password
+      if (DEV_BYPASS) {
+        if (!DEV_EMAIL || !DEV_PASSWORD) {
+          setStage("request");
+          return;
+        }
+
+        const { error } = await supabase.auth.signInWithPassword({
+          email: DEV_EMAIL,
+          password: DEV_PASSWORD,
+        });
+
+        if (!isMounted) return;
+
+        if (error) {
+          // Fall back to normal flow if dev login fails
+          console.log("DEV bypass login failed:", error.message);
+          setStage("request");
+        } else {
+          setStage("signedin");
+        }
+        return;
+      }
+
+      // Normal flow
+      setStage("request");
+    };
+
+    bootstrap();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setStage(session ? "signedin" : "request");
+    });
+
+    return () => {
+      isMounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  if (stage === "loading") {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (stage === "request") {
+    return (
+      <RequestOtp
+        onSent={(p) => {
+          setPhone(p);
+          setStage("verify");
+        }}
+      />
+    );
+  }
+
+  if (stage === "verify") {
+    return <VerifyOtp phone={phone} onDone={() => setStage("signedin")} />;
+  }
+
+  return <>{children}</>;
+}

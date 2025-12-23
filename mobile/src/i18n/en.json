@@ -1,0 +1,32 @@
+{
+  "tabs": {
+    "feed": "Feed",
+    "create": "Create",
+    "profile": "Profile"
+  },
+  "screens": {
+    "feed": { "title": "Ride Feed" },
+    "create": { "title": "Create Ride" },
+    "profile": { "title": "Profile" }
+  },
+  "common": {
+    "refresh": "Refresh",
+    "save": "Save",
+    "signOut": "Sign out",
+    "displayName": "Display name"
+  },
+  "auth": {
+    "title": "Sign in",
+    "phoneLabel": "Phone number",
+    "sendCode": "Send code",
+    "verifyTitle": "Verify code",
+    "codeLabel": "Code",
+    "verify": "Verify"
+  },
+  "settings": {
+  "title": "Settings",
+  "theme": { "title": "Appearance", "system": "System", "light": "Light", "dark": "Dark" },
+  "language": { "title": "Language", "he": "Hebrew", "en": "English" }
+}
+
+}

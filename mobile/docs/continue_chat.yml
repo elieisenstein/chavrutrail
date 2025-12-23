@@ -1,0 +1,24 @@
+
+---
+
+## How to resume in a new Chat (IMPORTANT)
+When starting a new conversation, paste:
+
+- `CHAVRUTRAIL_SPEC.md`
+- `DECISIONS.md`
+- `STATUS.md`
+
+Then say:
+> “Continue from STATUS → Next Steps. Do not re-ask resolved questions.”
+
+That’s the cleanest way to “load context”.
+
+---
+
+### Next technical step (when ready)
+We’ll now:
+- fetch `profiles` after login
+- display `display_name`
+- update it from the app
+
+Say **“Continue to profile read/update”** when you’re ready.

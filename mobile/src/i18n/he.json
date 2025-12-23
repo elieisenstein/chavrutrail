@@ -1,0 +1,31 @@
+{
+  "tabs": {
+    "feed": "ריידים",
+    "create": "יצירה",
+    "profile": "פרופיל"
+  },
+  "screens": {
+    "feed": { "title": "פיד ריידים" },
+    "create": { "title": "יצירת רייד" },
+    "profile": { "title": "פרופיל" }
+  },
+  "common": {
+    "refresh": "רענן",
+    "save": "שמור",
+    "signOut": "התנתק",
+    "displayName": "שם תצוגה"
+  },
+  "auth": {
+    "title": "התחברות",
+    "phoneLabel": "מספר טלפון",
+    "sendCode": "שלח קוד",
+    "verifyTitle": "אימות קוד",
+    "codeLabel": "קוד",
+    "verify": "אמת"
+  },
+  "settings": {
+  "title": "הגדרות",
+  "theme": { "title": "תצוגה", "system": "לפי מערכת", "light": "בהיר", "dark": "כהה" },
+  "language": { "title": "שפה", "he": "עברית", "en": "אנגלית" }
+}
+}

@@ -8,9 +8,9 @@
 ---
 
 ## Repo Layout
-- mobile/  → Expo React Native app
-- backend/ → reserved (FastAPI later)
-- docs/    → specs and status
+- mobile/   → Expo React Native app
+- backend/  → reserved (FastAPI later)
+- docs/     → specs and status
 
 ---
 
@@ -32,7 +32,7 @@
 - public.profiles table created
 - RLS policies applied
 - Trigger auto-creates profile on new auth user
-- Existing user backfilled
+- Existing users backfilled
 - Profile CRUD works from app
 
 ### Checkpoint 4 – Navigation & Settings
@@ -43,6 +43,24 @@
 - Language switch (Hebrew / English) implemented
 - Preferences persisted via AsyncStorage
 
+### Checkpoint 5 – Rides (Core MVP)
+- public.rides table created (timestamptz, location, ride metadata)
+- public.ride_participants table created
+- RLS policies applied
+- Trigger auto-creates owner participation row
+- Create Ride wizard implemented:
+  - When (date/time)
+  - Where (map pin via react-native-maps + GPS)
+  - Ride details (type, skill, distance, elevation)
+  - Group settings (express / approval, max participants)
+  - Review & publish
+- Correct UTC storage with local (Israel) time display
+- Feed screen lists upcoming published rides
+- Feed ordered by start time
+- Ride Details screen implemented (tap from Feed)
+- End-to-end flow verified:
+  Auth → Create → Persist → Feed → Ride Details
+
 ---
 
 ## How to Run
@@ -50,5 +68,7 @@
 cd mobile
 npx expo start -c
 
+
 Known UI TODO
+
 - Screen background styling in dark mode (Paper theme usage)

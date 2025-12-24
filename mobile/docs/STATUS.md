@@ -68,7 +68,3 @@
 cd mobile
 npx expo start -c
 
-
-Known UI TODO
-
-- Screen background styling in dark mode (Paper theme usage)

@@ -1,10 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+// Production credentials - hardcoded for build
+const url = "https://qurojlswvvceqmyjkmeh.supabase.co";
+const anon = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1cm9qbHN3dnZjZXFteWprbWVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0Nzc1MjIsImV4cCI6MjA4MjA1MzUyMn0.mnxG79DhXX52QPud-HJGFbtR1zMAwWfkpwWq4cxiq_w";
 
 if (!url || !anon) {
-  throw new Error("Missing Supabase env vars. Check mobile/.env");
+  throw new Error("Missing Supabase credentials");
 }
 
 export const supabase = createClient(url, anon, {

@@ -7,8 +7,11 @@ import VerifyOtp from "../auth/VerifyOtp";
 type Stage = "loading" | "request" | "verify" | "signedin";
 
 const DEV_BYPASS = process.env.EXPO_PUBLIC_DEV_AUTH_BYPASS === "true";
-const DEV_EMAIL = process.env.EXPO_PUBLIC_DEV_EMAIL || "";
-const DEV_PASSWORD = process.env.EXPO_PUBLIC_DEV_PASSWORD || "";
+
+// User switcher logic
+const DEV_USER = process.env.EXPO_PUBLIC_DEV_USER || "1";
+const DEV_EMAIL = process.env[`EXPO_PUBLIC_DEV_USER_${DEV_USER}_EMAIL`] || "";
+const DEV_PASSWORD = process.env[`EXPO_PUBLIC_DEV_USER_${DEV_USER}_PASSWORD`] || "";
 
 /**
  * Hard safety: never allow bypass outside dev runtime.

@@ -45,6 +45,26 @@ export type RideParticipant = {
   created_at: string;
 };
 
+/**
+ * Participant with display name for showing in UI
+ */
+export type ParticipantWithName = {
+  user_id: string;
+  display_name: string;
+  status: ParticipantStatus;
+  role: ParticipantRole;
+};
+
+// ============ FILTER TYPES FOR M1 ============
+export type RideFilters = {
+  rideTypes: string[]; // e.g., ["XC", "Trail"]
+  skillLevels: string[]; // e.g., ["Beginner", "Intermediate"]
+  maxDays: number; // e.g., 7 for "next 7 days"
+  locationRadius?: number; // kilometers, undefined = no location filter
+  userLat?: number;
+  userLng?: number;
+};
+
 export async function createRide(input: CreateRideInput): Promise<Ride> {
   const { data, error } = await supabase
     .from("rides")
@@ -69,6 +89,80 @@ export async function listPublishedUpcomingRides(limit = 50): Promise<Ride[]> {
 
   if (error) throw new Error(error.message);
   return (data ?? []) as Ride[];
+}
+
+// ============ NEW: FILTERED RIDE LISTING ============
+/**
+ * List rides with filters applied
+ * Note: Location filtering is done client-side since we don't have PostGIS
+ */
+export async function listFilteredRides(filters: RideFilters, limit = 50): Promise<Ride[]> {
+  const nowIso = new Date().toISOString();
+  
+  // Calculate max date based on maxDays
+  const maxDate = new Date();
+  maxDate.setDate(maxDate.getDate() + filters.maxDays);
+  const maxDateIso = maxDate.toISOString();
+
+  // Build query
+  let query = supabase
+    .from("rides")
+    .select("*")
+    .eq("status", "published")
+    .gte("start_at", nowIso)
+    .lte("start_at", maxDateIso)
+    .order("start_at", { ascending: true })
+    .limit(limit);
+
+  // Apply ride type filter if not all types
+  if (filters.rideTypes.length > 0) {
+    query = query.in("ride_type", filters.rideTypes);
+  }
+
+  // Apply skill level filter if not all levels
+  if (filters.skillLevels.length > 0) {
+    query = query.in("skill_level", filters.skillLevels);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw new Error(error.message);
+
+  let rides = (data ?? []) as Ride[];
+
+  // Client-side location filtering (if radius specified)
+  if (filters.locationRadius && filters.userLat !== undefined && filters.userLng !== undefined) {
+    rides = rides.filter(ride => {
+      const distance = calculateDistance(
+        filters.userLat!,
+        filters.userLng!,
+        ride.start_lat,
+        ride.start_lng
+      );
+      return distance <= filters.locationRadius!;
+    });
+  }
+
+  return rides;
+}
+
+/**
+ * Calculate distance between two points using Haversine formula
+ * Returns distance in kilometers
+ */
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function toRad(degrees: number): number {
+  return degrees * (Math.PI / 180);
 }
 
 /**
@@ -136,4 +230,79 @@ export async function getRideParticipantCount(rideId: string): Promise<number> {
 
   if (error) throw new Error(error.message);
   return count ?? 0;
+}
+
+/**
+ * Fetch all participants for a ride with their display names
+ * Returns both joined and requested participants
+ */
+export async function getRideParticipants(rideId: string): Promise<ParticipantWithName[]> {
+  const { data, error } = await supabase
+    .from("ride_participants")
+    .select(`
+      user_id,
+      status,
+      role,
+      profiles!inner(display_name)
+    `)
+    .eq("ride_id", rideId)
+    .in("status", ["joined", "requested"]);
+
+  if (error) throw new Error(error.message);
+
+  // Transform the data to flatten the profiles join
+  return (data ?? []).map((p: any) => ({
+    user_id: p.user_id,
+    display_name: p.profiles?.display_name ?? "Unknown",
+    status: p.status as ParticipantStatus,
+    role: p.role as ParticipantRole,
+  }));
+}
+
+/**
+ * Approve a join request (owner only)
+ * Changes status from 'requested' to 'joined'
+ */
+export async function approveJoinRequest(rideId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("ride_participants")
+    .update({ status: "joined" })
+    .eq("ride_id", rideId)
+    .eq("user_id", userId)
+    .eq("status", "requested");
+
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Reject a join request (owner only)
+ * Changes status from 'requested' to 'rejected'
+ */
+export async function rejectJoinRequest(rideId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("ride_participants")
+    .update({ status: "rejected" })
+    .eq("ride_id", rideId)
+    .eq("user_id", userId)
+    .eq("status", "requested");
+
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Cancel a ride (owner only)
+ * Changes ride status to 'cancelled' - ride won't appear in feed anymore
+ */
+export async function cancelRide(rideId: string): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+  if (!userId) throw new Error("Not signed in");
+
+  const { error } = await supabase
+    .from("rides")
+    .update({ status: "cancelled" })
+    .eq("id", rideId)
+    .eq("owner_id", userId); // Only owner can cancel
+
+  if (error) throw new Error(error.message);
 }

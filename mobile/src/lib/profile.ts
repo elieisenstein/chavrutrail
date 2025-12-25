@@ -4,10 +4,24 @@ export type Profile = {
   id: string;
   display_name: string | null;
   home_region: string | null;
+  ride_type: string | null; // Comma-separated, e.g., "XC,Trail"
+  skill: string | null; // "Beginner" | "Intermediate" | "Advanced"
+  pace: string | null; // "Slow" | "Moderate" | "Fast"
+  birth_year: number | null;
+  gender: string | null; // "Male" | "Female" | null (optional)
   preferred_ride_times: string | null;
 };
 
-export async function fetchMyProfile(): Promise<Profile> {
+export type ProfileUpdateInput = {
+  display_name?: string;
+  ride_type?: string;
+  skill?: string;
+  pace?: string;
+  birth_year?: number | null;
+  gender?: string | null;
+};
+
+export async function fetchMyProfile(): Promise<Profile | null> {
   const { data: userRes, error: userErr } = await supabase.auth.getUser();
   if (userErr) throw new Error(userErr.message);
   const user = userRes.user;
@@ -15,24 +29,39 @@ export async function fetchMyProfile(): Promise<Profile> {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, home_region, preferred_ride_times")
+    .select("id, display_name, home_region, ride_type, skill, pace, birth_year, gender, preferred_ride_times")
     .eq("id", user.id)
-    .single();
+    .maybeSingle(); // Allows 0 rows without error
 
   if (error) throw new Error(error.message);
-  return data as Profile;
+  return (data ?? null) as Profile | null;
 }
 
-export async function updateMyDisplayName(displayName: string): Promise<void> {
+export async function updateMyProfile(updates: ProfileUpdateInput): Promise<void> {
   const { data: userRes, error: userErr } = await supabase.auth.getUser();
   if (userErr) throw new Error(userErr.message);
   const user = userRes.user;
   if (!user) throw new Error("No authenticated user");
 
+  const payload = { id: user.id, ...updates };
+
   const { error } = await supabase
     .from("profiles")
-    .update({ display_name: displayName })
-    .eq("id", user.id);
+    .upsert(payload, { onConflict: "id" });
 
   if (error) throw new Error(error.message);
+}
+
+// Helper: Convert array of ride types to comma-separated string
+export function rideTypesToString(types: string[]): string {
+  return types.join(",");
+}
+
+// Helper: Convert comma-separated string to array of ride types
+export function stringToRideTypes(str: string | null): string[] {
+  if (!str) return [];
+  return str
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
 }

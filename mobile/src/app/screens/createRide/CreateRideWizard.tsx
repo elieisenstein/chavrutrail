@@ -111,7 +111,7 @@ export default function CreateRideWizard() {
 
       // For now: simple confirmation
       // Later: navigate to ride details or show snackbar
-      console.log("Ride created:", ride.id);
+      //console.log("Ride created:", ride.id);
     } finally {
       setSubmitting(false);
     }

@@ -443,3 +443,13 @@ eas build --platform android --profile preview
 
 **Status:** Ready for pilot testing! 🚀  
 **Next Step:** Deploy APK to 5-10 testers and gather feedback.
+
+Build:
+cd mobile
+npx expo run:android --variant release
+
+Minor Issue (Cosmetic) ⚠️
+
+Icons reverse in Hebrew (Profile left instead of right)
+Everything else works fine
+This is a known React Navigation + RTL limitation

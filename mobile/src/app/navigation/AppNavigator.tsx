@@ -1,6 +1,5 @@
 // AppNavigator.tsx
 import React from "react";
-import { I18nManager } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
@@ -10,8 +9,6 @@ import FeedScreen from "../screens/FeedScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import CreateRideWizard from "../screens/createRide/CreateRideWizard";
-
-// NEW
 import RideDetailsScreen from "../screens/RideDetailsScreen";
 
 export type AppTabsParamList = {
@@ -87,11 +84,11 @@ export default function AppNavigator() {
     <Tab.Navigator 
       screenOptions={{ 
         headerShown: false,
-        tabBarActiveTintColor: "#ff6b35", // Orange for active tab
-        tabBarInactiveTintColor: "#999", // Gray for inactive tabs
-        // Force LTR so tabs stay in same order: Feed, Create, Profile (left to right)
+        tabBarActiveTintColor: "#ff6b35",
+        tabBarInactiveTintColor: "#999",
+        // Force LTR so tabs always stay: Feed (left) → Create (middle) → Profile (right)
         tabBarStyle: { 
-          flexDirection: I18nManager.isRTL ? "row-reverse" : "row" 
+          direction: 'ltr' 
         }
       }}
     >

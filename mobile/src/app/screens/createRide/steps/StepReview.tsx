@@ -3,6 +3,7 @@ import { ScrollView } from "react-native";
 import { Text, Divider, useTheme } from "react-native-paper";
 import { CreateRideDraft } from "../createRideTypes";
 import { formatDateTimeLocal } from "../../../../lib/datetime";
+import IsraelHikingMapView from "../../../../components/IsraelHikingMapView";
 
 export default function StepReview({ draft }: { draft: CreateRideDraft }) {
   const theme = useTheme();
@@ -18,25 +19,7 @@ export default function StepReview({ draft }: { draft: CreateRideDraft }) {
       {/* When */}
       <Text style={{ color: theme.colors.onBackground }}>
         <Text style={{ fontWeight: "bold" }}>When: </Text>
-        {draft.start_at ? (() => {
-          const startDate = new Date(draft.start_at);
-          const endDate = new Date(startDate);
-          if (draft.duration_hours) {
-            endDate.setHours(endDate.getHours() + draft.duration_hours);
-          }
-          
-          const dateStr = startDate.toLocaleDateString('he-IL', { 
-            day: '2-digit',
-            month: '2-digit', 
-            year: 'numeric'
-          });
-          const startTime = startDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-          const endTime = endDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-          
-          return draft.duration_hours 
-            ? `${dateStr} ${startTime}-${endTime} (${draft.duration_hours}h)`
-            : formatDateTimeLocal(draft.start_at);
-        })() : "-"}
+        {draft.start_at ? formatDateTimeLocal(draft.start_at) : "-"}
       </Text>
 
       {/* Where */}
@@ -52,6 +35,24 @@ export default function StepReview({ draft }: { draft: CreateRideDraft }) {
           {draft.notes}
         </Text>
       )}
+
+      {/* Meeting Location Map */}
+      {draft.start_lat !== undefined && draft.start_lng !== undefined && (
+        <>
+          <Text style={{ color: theme.colors.onBackground, fontWeight: "bold", marginTop: 8 }}>
+            Meeting Location:
+          </Text>
+          <IsraelHikingMapView
+            center={[draft.start_lng, draft.start_lat]}
+            zoom={14}
+            height={200}
+            interactive={false}
+            markers={[{ coordinate: [draft.start_lng, draft.start_lat], id: 'meeting' }]}
+          />
+        </>
+      )}
+
+      <Divider style={{ marginTop: 12 }} />
 
       {/* Details */}
       <Text style={{ color: theme.colors.onBackground }}>

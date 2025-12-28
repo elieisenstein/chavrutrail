@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { ScrollView, View, Linking, Alert } from "react-native";
 import { ActivityIndicator, Button, Card, Text, useTheme, Divider } from "react-native-paper";
 import { RouteProp, useRoute } from "@react-navigation/native";
 
@@ -7,6 +7,7 @@ import { formatDateTimeLocal } from "../../lib/datetime";
 import { supabase } from "../../lib/supabase";
 import type { Ride } from "../../lib/rides";
 import type { FeedStackParamList } from "../navigation/AppNavigator";
+import IsraelHikingMapView from "../../components/IsraelHikingMapView";
 import { 
   joinOrRequestRide, 
   leaveRide, 
@@ -37,6 +38,34 @@ export default function RideDetailsScreen() {
   const [cancelling, setCancelling] = useState(false); // ← NEW state for cancel loading
   
   const theme = useTheme();
+
+  // Navigation function - opens Google Maps or Waze
+  function openNavigation(lat: number, lng: number, name: string) {
+    Alert.alert(
+      "Navigate to Meeting Point",
+      `Get directions to: ${name}`,
+      [
+        {
+          text: "Google Maps",
+          onPress: () => {
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+            Linking.openURL(url);
+          }
+        },
+        {
+          text: "Waze",
+          onPress: () => {
+            const url = `https://www.waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+            Linking.openURL(url);
+          }
+        },
+        {
+          text: "Cancel",
+          style: "cancel"
+        }
+      ]
+    );
+  }
 
   const loadRideData = async () => {
     try {
@@ -242,6 +271,39 @@ export default function RideDetailsScreen() {
           )}
 
           {ride.notes ? <Text style={{ opacity: 0.9 }}>{ride.notes}</Text> : null}
+
+          {/* ============ MEETING LOCATION MAP ============ */}
+          {(() => {
+            const lat = ride.start_lat;
+            const lng = ride.start_lng;
+            return lat !== undefined && lat !== null && 
+                   lng !== undefined && lng !== null ? (
+              <>
+                <Divider style={{ marginVertical: 12 }} />
+                <Text variant="titleMedium" style={{ color: theme.colors.onSurface, marginBottom: 8 }}>
+                  Meeting Location
+                </Text>
+                
+                <IsraelHikingMapView
+                  center={[lng, lat]}
+                  zoom={14}
+                  height={250}
+                  interactive={false}
+                  markers={[{ coordinate: [lng, lat], id: 'meeting' }]}
+                />
+
+                {/* Navigate Button */}
+                <Button
+                  mode="contained"
+                  icon="navigation"
+                  onPress={() => openNavigation(lat, lng, ride.start_name || "Meeting Point")}
+                  style={{ marginTop: 12 }}
+                >
+                  Get Directions to Meeting Point
+                </Button>
+              </>
+            ) : null;
+          })()}
 
           {/* ============ PARTICIPANTS LIST ============ */}
           <Divider style={{ marginVertical: 8 }} />

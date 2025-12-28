@@ -1,0 +1,4 @@
+Compile to generate apk
+
+npx expo run:android --variant release
+

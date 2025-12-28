@@ -7,6 +7,8 @@ export type CreateRideDraft = {
   start_at?: string; // ISO string
   duration_hours?: number; // Ride duration in hours (1-12)
   start_name?: string | null; // Meeting point description (required)
+  start_lat?: number; // Required - latitude of meeting point
+  start_lng?: number; // Required - longitude of meeting point
 
   ride_type?: RideType;
   skill_level?: SkillLevel;
@@ -25,8 +27,10 @@ export function draftIsStepValid(step: number, d: CreateRideDraft): boolean {
   switch (step) {
     case 0: // When
       return !!d.start_at && !!d.duration_hours;
-    case 1: // Where - only need meeting point text
-      return !!d.start_name && d.start_name.trim().length > 0;
+    case 1: // Where - need meeting point text AND coordinates
+      return !!d.start_name && d.start_name.trim().length > 0
+        && d.start_lat !== undefined && d.start_lng !== undefined
+        && d.start_lat !== 0 && d.start_lng !== 0;
     case 2: // Details
       return !!d.ride_type && !!d.skill_level;
     case 3: // Group

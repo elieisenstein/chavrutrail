@@ -3,11 +3,16 @@ import { NavigationContainer } from "@react-navigation/native";
 import { PaperProvider } from "react-native-paper";
 import { getLocales } from 'expo-localization';
 import { ActivityIndicator, View } from "react-native";
+import MapboxGL from '@rnmapbox/maps';
 
 import { initI18n } from "./src/i18n";
 import { AppSettingsProvider, useAppSettings } from "./src/app/state/AppSettingsContext";
 import AuthGate from "./src/app/navigation/AuthGate";
 import AppNavigator from "./src/app/navigation/AppNavigator";
+
+// Initialize Mapbox with your access token
+// Make sure you have EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN in your .env file
+MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '');
 
 function InnerApp() {
   const { resolvedTheme } = useAppSettings();

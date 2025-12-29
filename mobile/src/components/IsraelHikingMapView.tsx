@@ -1,4 +1,4 @@
-// src/components/MapView.tsx
+// src/components/IsraelHikingMapView.tsx
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
@@ -25,25 +25,22 @@ export default function IsraelHikingMapView({
   showUserLocation = false,
 }: MapViewProps) {
   const { i18n } = useTranslation();
+  
+  // We need BOTH baseTiles and trailTiles
   const { baseTiles, trailTiles } = getIsraelHikingTiles(
     i18n.language === 'he' ? 'he' : 'en'
   );
-
-  console.log("MAPBOX_ACCESS_TOKEN (process.env):", process.env.MAPBOX_ACCESS_TOKEN ? "SET" : "MISSING");
 
   return (
     <View style={[styles.container, { height }]}>
       <MapboxGL.MapView
         style={styles.map}
-        styleURL={MapboxGL.StyleURL.Outdoors}
+        // Using Light style allows our raster tiles to be the primary focus
+        styleURL={MapboxGL.StyleURL.Light}
         onPress={(e) => {
           if (onMapPress && interactive) {
             const g = e.geometry;
-            
-            // Only handle Point geometry which has coordinates
             if (!g || g.type !== "Point") return;
-            
-            // Now TypeScript knows coordinates exists
             const [lng, lat] = g.coordinates;
             onMapPress([lng, lat]);
           }
@@ -52,6 +49,9 @@ export default function IsraelHikingMapView({
         zoomEnabled={interactive}
         pitchEnabled={false}
         rotateEnabled={false}
+        logoEnabled={false}
+        attributionEnabled={false}
+        compassEnabled={false}
       >
         <MapboxGL.Camera
           zoomLevel={zoom}
@@ -59,33 +59,34 @@ export default function IsraelHikingMapView({
           animationDuration={0}
         />
 
-        {/* Israel Hiking Map Base Layer */}
+        {/* 1. BASE LAYER: The actual topographic map background */}
         <MapboxGL.RasterSource
           id="israel-hiking-base"
           tileUrlTemplates={[baseTiles]}
           tileSize={256}
         >
           <MapboxGL.RasterLayer
-            id="ihm-base-layer"
+            id="hiking-base-layer"
             sourceID="israel-hiking-base"
-            style={{ rasterOpacity: 1 }}
           />
         </MapboxGL.RasterSource>
 
-        {/* Israel Hiking Trails Overlay */}
+        {/* 2. TRAILS LAYER: The hiking/MTB trail overlays */}
         <MapboxGL.RasterSource
-          id="israel-trails"
+          id="israel-trails-overlay"
           tileUrlTemplates={[trailTiles]}
           tileSize={256}
+          maxZoomLevel={18}
+          minZoomLevel={7}
         >
           <MapboxGL.RasterLayer
-            id="trails-layer"
-            sourceID="israel-trails"
-            style={{ rasterOpacity: 0.85 }}
+            id="trails-overlay-layer"
+            sourceID="israel-trails-overlay"
+            style={{ rasterOpacity: 1.0 }}
           />
         </MapboxGL.RasterSource>
 
-        {/* User Location */}
+        {/* 3. USER LOCATION */}
         {showUserLocation && (
           <MapboxGL.UserLocation
             visible={true}
@@ -93,18 +94,31 @@ export default function IsraelHikingMapView({
           />
         )}
 
-        {/* Markers */}
-        {markers.map((marker) => (
-          <MapboxGL.PointAnnotation
-            key={marker.id}
-            id={marker.id}
-            coordinate={marker.coordinate}
+        {/* 4. MARKERS: Using ShapeSource for reliable rendering on raster tiles */}
+        {markers.length > 0 && (
+          <MapboxGL.ShapeSource
+            id="markers-source"
+            shape={{
+              type: "FeatureCollection",
+              features: markers.map((m) => ({
+                type: "Feature",
+                geometry: { type: "Point", coordinates: m.coordinate },
+                properties: { id: m.id },
+              })),
+            }}
           >
-            <View style={styles.markerContainer}>
-              <View style={styles.marker} />
-            </View>
-          </MapboxGL.PointAnnotation>
-        ))}
+            <MapboxGL.CircleLayer
+              id="markers-layer"
+              style={{
+                circleRadius: 8,
+                circleColor: "#ff4444",
+                circleStrokeWidth: 2,
+                circleStrokeColor: "#ffffff",
+                circlePitchAlignment: "map",
+              }}
+            />
+          </MapboxGL.ShapeSource>
+        )}
       </MapboxGL.MapView>
     </View>
   );
@@ -117,24 +131,5 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
-  },
-  markerContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 32,
-    height: 32,
-  },
-  marker: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#ff6b35',
-    borderWidth: 3,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
   },
 });

@@ -54,6 +54,7 @@
             "routeLabel": "Route Description (Optional)",
             "routePlaceholder": "Brief description of the route...",
             "routeHelp": "Example: Loop around Har Eitan, mostly flat, green views",
+            "locationInstruction": "Please drop a pin at the meeting point on the map to enable location-based search",
             "summaryMeeting": "Meeting Point:",
             "summaryRoute": "Route:"
         },

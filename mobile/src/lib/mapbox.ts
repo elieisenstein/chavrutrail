@@ -2,7 +2,15 @@
 import MapboxGL from '@rnmapbox/maps';
 
 // Initialize Mapbox with your access token
-MapboxGL.setAccessToken(process.env.MAPBOX_ACCESS_TOKEN || '');
+import Constants from "expo-constants";
+const token = Constants.expoConfig?.extra?.MAPBOX_ACCESS_TOKEN;
+
+console.log("MAPBOX_ACCESS_TOKEN (Constants.extra):", token ? "SET" : "MISSING");
+
+// Optional: only call setAccessToken if token exists
+if (token) {
+  MapboxGL.setAccessToken(token);
+}
 
 // Default map settings
 export const DEFAULT_MAP_STYLE = MapboxGL.StyleURL.Outdoors;

@@ -2,3 +2,15 @@ Compile to generate apk
 
 npx expo run:android --variant release
 
+
+
+Compile to generate apk debug
+npx expo prebuild --clean
+npx expo run:android --variant debug
+
+
+# For development build:
+npx expo run:android --variant debug
+
+# OR for release build (what you've been using):
+npx expo run:android --variant release

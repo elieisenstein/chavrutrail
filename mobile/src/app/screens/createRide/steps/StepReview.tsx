@@ -37,20 +37,24 @@ export default function StepReview({ draft }: { draft: CreateRideDraft }) {
       )}
 
       {/* Meeting Location Map */}
-      {draft.start_lat !== undefined && draft.start_lng !== undefined && (
-        <>
-          <Text style={{ color: theme.colors.onBackground, fontWeight: "bold", marginTop: 8 }}>
-            Meeting Location:
-          </Text>
-          <IsraelHikingMapView
-            center={[draft.start_lng, draft.start_lat]}
-            zoom={14}
-            height={200}
-            interactive={false}
-            markers={[{ coordinate: [draft.start_lng, draft.start_lat], id: 'meeting' }]}
-          />
-        </>
-      )}
+      {(() => {
+        const lat = draft.start_lat;
+        const lng = draft.start_lng;
+        return lat !== undefined && lng !== undefined ? (
+          <>
+            <Text style={{ color: theme.colors.onBackground, fontWeight: "bold", marginTop: 8 }}>
+              Meeting Location:
+            </Text>
+            <IsraelHikingMapView
+              center={[lng, lat]}
+              zoom={14}
+              height={200}
+              interactive={false}
+              markers={[{ coordinate: [lng, lat], id: "meeting" }]}
+            />
+          </>
+        ) : null;
+      })()}
 
       <Divider style={{ marginTop: 12 }} />
 

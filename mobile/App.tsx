@@ -11,8 +11,9 @@ import AuthGate from "./src/app/navigation/AuthGate";
 import AppNavigator from "./src/app/navigation/AppNavigator";
 
 // Initialize Mapbox with your access token
-// Make sure you have EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN in your .env file
-MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '');
+// TEMPORARY: Replace with your actual token for testing
+MapboxGL.setAccessToken("pk.eyJ1IjoiZWxpZWlzZW5zdGVpbiIsImEiOiJjbWpwc21iOXEzaHZzM2Nxemhzb2VtNHA3In0.NCwfmHYdr7JE0vvKRL9pFw");
+MapboxGL.setTelemetryEnabled(false);
 
 function InnerApp() {
   const { resolvedTheme } = useAppSettings();

@@ -101,9 +101,8 @@ export default function CreateRideWizard() {
 
         start_at: draft.start_at!,
         duration_hours: draft.duration_hours!,
-        // Use dummy coordinates (0,0) since we're using text description only
-        start_lat: 0,
-        start_lng: 0,
+        start_lat: draft.start_lat!,  // ← USE ACTUAL COORDINATES
+        start_lng: draft.start_lng!,  // ← USE ACTUAL COORDINATES
         start_name: draft.start_name!,
 
         ride_type: draft.ride_type!,

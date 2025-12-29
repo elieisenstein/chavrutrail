@@ -273,37 +273,38 @@ export default function RideDetailsScreen() {
           {ride.notes ? <Text style={{ opacity: 0.9 }}>{ride.notes}</Text> : null}
 
           {/* ============ MEETING LOCATION MAP ============ */}
-          {(() => {
-            const lat = ride.start_lat;
-            const lng = ride.start_lng;
-            return lat !== undefined && lat !== null && 
-                   lng !== undefined && lng !== null ? (
-              <>
-                <Divider style={{ marginVertical: 12 }} />
-                <Text variant="titleMedium" style={{ color: theme.colors.onSurface, marginBottom: 8 }}>
-                  Meeting Location
-                </Text>
-                
-                <IsraelHikingMapView
-                  center={[lng, lat]}
-                  zoom={14}
-                  height={250}
-                  interactive={false}
-                  markers={[{ coordinate: [lng, lat], id: 'meeting' }]}
-                />
+          {ride.start_lat != null && ride.start_lng != null ? (
+            <>
+              <Divider style={{ marginVertical: 12 }} />
+              <Text variant="titleMedium" style={{ color: theme.colors.onSurface, marginBottom: 8 }}>
+                Meeting Location
+              </Text>
+              
+              <IsraelHikingMapView
+                // Ensure key is unique to this ride and location to force a fresh mount
+                key={`map-${ride.id}-${ride.start_lat}-${ride.start_lng}`}
+                idPrefix={`rd-${ride.id.substring(0, 5)}`}
+                // Explicitly cast to numbers to prevent [string, string] issues
+                center={[Number(ride.start_lng), Number(ride.start_lat)]}
+                zoom={13} // Set a mid-range zoom level
+                height={250}
+                interactive={false}
+                markers={[{ 
+                  coordinate: [Number(ride.start_lng), Number(ride.start_lat)], 
+                  id: "meeting" 
+                }]}
+              />
 
-                {/* Navigate Button */}
-                <Button
-                  mode="contained"
-                  icon="navigation"
-                  onPress={() => openNavigation(lat, lng, ride.start_name || "Meeting Point")}
-                  style={{ marginTop: 12 }}
-                >
-                  Get Directions to Meeting Point
-                </Button>
-              </>
-            ) : null;
-          })()}
+              <Button
+                mode="contained"
+                icon="navigation"
+                onPress={() => openNavigation(ride.start_lat, ride.start_lng, ride.start_name || "Meeting Point")}
+                style={{ marginTop: 12 }}
+              >
+                Get Directions to Meeting Point
+              </Button>
+            </>
+          ) : null}
 
           {/* ============ PARTICIPANTS LIST ============ */}
           <Divider style={{ marginVertical: 8 }} />

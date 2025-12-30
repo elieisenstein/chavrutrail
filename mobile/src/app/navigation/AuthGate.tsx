@@ -23,9 +23,18 @@ function assertBypassSafe() {
   }
 }
 
+type PendingOtp = { method: "email" | "phone"; identifier: string };
+
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [stage, setStage] = useState<Stage>("loading");
-  const [phone, setPhone] = useState<string>("");
+  const [pending, setPending] = useState<PendingOtp | null>(null);
+
+  // Clear any previous pending payload whenever we go back to the request stage
+  useEffect(() => {
+    if (stage === "request") {
+      setPending(null);
+    }
+  }, [stage]);
 
   useEffect(() => {
     assertBypassSafe();
@@ -73,7 +82,9 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     bootstrap();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setStage(session ? "signedin" : "request");
+      // Only promote to signed-in when we actually have a session.
+      // Do NOT force back to "request" here; that can interrupt the verify flow.
+      if (session) setStage("signedin");
     });
 
     return () => {
@@ -93,8 +104,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   if (stage === "request") {
     return (
       <RequestOtp
-        onSent={(p) => {
-          setPhone(p);
+        onSent={(payload) => {
+          setPending(payload);
           setStage("verify");
         }}
       />
@@ -102,7 +113,25 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (stage === "verify") {
-    return <VerifyOtp phone={phone} onDone={() => setStage("signedin")} />;
+    // Safety: if user somehow reached verify without payload, restart flow
+    if (!pending) {
+      return (
+        <RequestOtp
+          onSent={(payload) => {
+            setPending(payload);
+            setStage("verify");
+          }}
+        />
+      );
+    }
+
+    return (
+      <VerifyOtp
+        method={pending.method}
+        identifier={pending.identifier}
+        onDone={() => setStage("signedin")}
+      />
+    );
   }
 
   return <>{children}</>;

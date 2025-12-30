@@ -1,6 +1,5 @@
 import "dotenv/config";
 
-// Remove the "expo:" wrapper
 export default {
   name: "ChavruTrail",
   slug: "chavrutrail",
@@ -9,6 +8,7 @@ export default {
   icon: "./assets/logo.png",
   userInterfaceStyle: "dark",
   newArchEnabled: true,
+  scheme: "chavrutrail", // ← NEW: Deep linking scheme
 
   splash: {
     image: "./assets/logo.png",
@@ -18,6 +18,7 @@ export default {
 
   ios: {
     supportsTablet: true,
+    bundleIdentifier: "com.elieisenstein.chavrutrail",
   },
 
   android: {
@@ -28,6 +29,25 @@ export default {
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
+    // ← NEW: Intent filters for deep linking
+    intentFilters: [
+      {
+        action: "VIEW",
+        autoVerify: true,
+        data: [
+          {
+            scheme: "chavrutrail",
+            host: "*",
+          },
+          {
+            scheme: "https",
+            host: "chavrutrail.app",
+            pathPrefix: "/ride",
+          },
+        ],
+        category: ["BROWSABLE", "DEFAULT"],
+      },
+    ],
   },
 
   web: {

@@ -6,17 +6,38 @@
     "profile": "פרופיל"
   },
   "screens": {
-    "feed": { "title": "הפיד" },
-    "create": { "title": "חדש" },
-    "profile": { "title": "פרופיל" }
+    "feed": {
+      "title": "רכיבות"
+    },
+    "myRides": {
+      "title": "הרכיבות שלי"
+    },
+    "rideDetails": {
+      "title": "פרטי רכיבה"
+    },
+    "create": {
+      "title": "רכיבה חדשה"
+    },
+    "profile": {
+      "title": "פרופיל"
+    }
   },
   "common": {
     "refresh": "רענן",
     "save": "שמור",
     "signOut": "התנתק",
-    "displayName": "כינוי",
-    "aboutMe": "נעים להכיר (אופציונלי)",
-    "aboutMePlaceholder": "ספר לאחרים על עצמך, סגנון הרכיבה שלך, שבילים אהובים..."
+    "displayName": "שם תצוגה",
+    "aboutMe": "קצת עליי (אופציונלי)",
+    "aboutMePlaceholder": "ספר על עצמך, סגנון הרכיבה שלך, שבילים אהובים...",
+    "loading": "טוען...",
+    "error": "שגיאה",
+    "cancel": "ביטול",
+    "confirm": "אישור",
+    "reset": "אפס",
+    "apply": "החל",
+    "edit": "ערוך",
+    "back": "הקודם",
+    "next": "הבא"
   },
   "auth": {
     "title": "התחברות",
@@ -25,54 +46,231 @@
     "verifyTitle": "אימות קוד",
     "codeLabel": "קוד",
     "verify": "אמת",
-     "welcomeBack": "ברוכים הבאים ל-Chavrutrail",
-    "signInToContinue": "היכנס כדי למצוא שותפים לרכיבה",
+    "welcomeBack": "ברוכים הבאים ל-Chavrutrail",
+    "signInToContinue": "התחבר כדי למצוא שותפים לרכיבה",
     "emailLabel": "אימייל",
     "passwordLabel": "סיסמה",
     "signIn": "התחבר",
     "forgotPassword": "שכחת סיסמה?",
-    "betaAccess": "גרסת ביתא - גישה מוגבלת",
+    "betaAccess": "גרסת בטא - גישה מוגבלת",
     "invalidCredentials": "אימייל או סיסמה שגויים",
     "emailNotConfirmed": "אנא אמת את האימייל שלך תחילה",
     "loginFailed": "ההתחברות נכשלה",
     "resetPassword": "איפוס סיסמה",
-    "resetInstructions": "הזן את האימייל שלך ונשלח לך הוראות לאיפוס הסיסמה.",
+    "resetInstructions": "הזן את האימייל שלך ונשלח לך הוראות לאיפוס הסיסמה",
     "sendResetLink": "שלח קישור לאיפוס",
     "backToLogin": "חזרה להתחברות",
     "checkEmail": "בדוק את האימייל שלך",
-    "resetEmailSent": "אם קיים חשבון עם אימייל זה, שלחנו הוראות לאיפוס סיסמה.",
-    "checkSpam": "לא רואה? בדוק בתיקיית הספאם.",
+    "resetEmailSent": "אם קיים חשבון עם אימייל זה, שלחנו הוראות לאיפוס סיסמה",
+    "checkSpam": "לא רואה? בדוק בתיקיית הספאם",
     "rateLimitWarning": "שליחת אימייל מוגבלת (2 לשעה)",
-    "rateLimitError": "יותר מדי בקשות. נסה שוב מאוחר יותר.",
+    "rateLimitError": "יותר מדי בקשות. נסה שוב מאוחר יותר",
     "resetFailed": "שליחת אימייל האיפוס נכשלה"
   },
   "settings": {
     "title": "הגדרות",
-    "theme": { "title": "תצוגה", "system": "לפי מערכת", "light": "בהיר", "dark": "כהה" },
-    "language": { "title": "שפה", "he": "עברית", "en": "אנגלית" }
-  },
-  "createRide": {
-    "where": {
-      "title": "איפה רוכבים ייפגשו?",
-      "meetingPointLabel": "נקודת מפגש *",
-      "meetingPointPlaceholder": "לדוגמה, חניון בכניסה לסטף",
-      "meetingPointHelp": "איפה בדיוק אנשים צריכים לפגוש אותך? היה ספציפי!",
-      "routeLabel": "תיאור מסלול (אופציונלי)",
-      "routePlaceholder": "תיאור קצר של המסלול...",
-      "routeHelp": "לדוגמה: סובב הר איתן, שטוח למדי, נוף ירוק",
-      "locationInstruction": "נא סמן את נקודת המפגש על המפה כדי שאחרים יוכלו למצוא את האירוע שלך לפי מיקום",
-      "summaryMeeting": "נקודת מפגש:",
-      "summaryRoute": "מסלול:"
+    "theme": {
+      "title": "תצוגה",
+      "system": "לפי מערכת",
+      "light": "בהיר",
+      "dark": "כהה"
     },
-    "navigation": {
-      "back": "הקודם",
-      "next": "הבא",
-      "publish": "פרסם"
+    "language": {
+      "title": "שפה",
+      "he": "עברית",
+      "en": "English"
+    }
+  },
+  "feed": {
+    "filters": "סינון",
+    "filterSummary": {
+      "allTypes": "כל הסוגים",
+      "allSkills": "כל הרמות",
+      "today": "היום"
+    },
+    "filterModal": {
+      "title": "סינון רכיבות",
+      "rideTypes": "סוגי רכיבה",
+      "rideTypesHelp": "אל תבחר כלום כדי לראות הכל",
+      "skillLevel": "רמת מיומנות",
+      "skillLevelHelp": "בחר רמה אחת או השאר ריק להכל",
+      "timeRange": "טווח זמן"
+    },
+    "noRides": {
+      "title": "לא נמצאו רכיבות",
+      "message": "נסה לשנות את הסינון או היה הראשון ליצור רכיבה!",
+      "adjustFilters": "שנה סינון"
+    },
+    "rideCard": {
+      "when": "מתי",
+      "where": "איפה",
+      "group": "קבוצה",
+      "max": "עד",
+      "route": "מסלול"
     }
   },
   "myRides": {
     "organizing": "מארגן",
     "joined": "משתתף",
-    "requested": "ממתין"
+    "requested": "ממתין לאישור",
+    "statusLabels": {
+      "owner": "מארגן",
+      "joined": "משתתף",
+      "requested": "ממתין"
+    },
+    "emptyStates": {
+      "organizing": "עדיין לא יצרת אף רכיבה",
+      "joined": "עדיין לא הצטרפת לאף רכיבה",
+      "requested": "אין בקשות ממתינות"
+    }
+  },
+  "rideDetails": {
+    "when": "מתי",
+    "where": "איפה",
+    "group": "קבוצה",
+    "max": "עד",
+    "participants": "משתתפים",
+    "meetingLocation": "נקודת מפגש",
+    "getDirections": "ניווט לנקודת המפגש",
+    "pendingRequests": "בקשות ממתינות",
+    "approve": "אשר",
+    "reject": "דחה",
+    "share": "שתף רכיבה",
+    "shareWhatsApp": "שתף ב-WhatsApp",
+    "actions": {
+      "join": "הצטרף",
+      "askToJoin": "בקש להצטרף",
+      "joined": "הצטרפת",
+      "requested": "ממתין לאישור",
+      "leave": "עזוב",
+      "cancelRide": "בטל רכיבה",
+      "cancelled": "בוטלה"
+    },
+    "status": {
+      "waitingForOthers": "מחכה שאחרים יצטרפו...",
+      "beTheFirst": "עדיין אף אחד לא הצטרף. היה הראשון!"
+    },
+    "notFound": "הרכיבה לא נמצאה (או שאין לך הרשאה)",
+    "navigation": {
+      "title": "ניווט לנקודת מפגש",
+      "message": "קבל הוראות הגעה אל:",
+      "googleMaps": "Google Maps",
+      "waze": "Waze"
+    }
+  },
+  "profile": {
+    "title": "פרופיל",
+    "displayName": "שם תצוגה",
+    "aboutMe": "קצת עליי (אופציונלי)",
+    "aboutMePlaceholder": "ספר על עצמך, סגנון הרכיבה שלך, שבילים אהובים...",
+    "rideTypes": "סוגי רכיבה",
+    "rideTypesHelp": "בחר את כל הסוגים הרלוונטיים",
+    "skillLevel": "רמת מיומנות",
+    "pace": "קצב מועדף",
+    "birthYear": "שנת לידה",
+    "birthYearPlaceholder": "שנה (לדוגמה, 1990)",
+    "gender": "מין (אופציונלי)",
+    "genderOptions": {
+      "male": "זכר",
+      "female": "נקבה",
+      "skip": "דלג"
+    },
+    "saveProfile": "שמור פרופיל",
+    "loadingProfile": "טוען פרופיל..."
+  },
+  "createRide": {
+    "steps": {
+      "when": "מתי",
+      "where": "איפה",
+      "details": "פרטים",
+      "group": "קבוצה",
+      "review": "סיכום"
+    },
+    "stepCounter": "שלב {{current}} מתוך {{total}}",
+    "when": {
+      "title": "מתי הרכיבה מתחילה?",
+      "chooseDateTime": "בחר תאריך ושעה:",
+      "selected": "נבחר:",
+      "duration": "כמה זמן הרכיבה תימשך?",
+      "endsAt": "הרכיבה מסתיימת ב-{{time}} ({{hours}} שעות)",
+      "pastError": "לא ניתן ליצור רכיבות בעבר. בחר תאריך ושעה עתידיים"
+    },
+    "where": {
+      "title": "איפה הרוכבים ייפגשו?",
+      "meetingPointLabel": "נקודת מפגש *",
+      "meetingPointPlaceholder": "לדוגמה, חניון בכניסה לשביל סטף",
+      "meetingPointHelp": "איפה בדיוק אנשים צריכים לפגוש אותך? היה ספציפי!",
+      "routeLabel": "תיאור מסלול (אופציונלי)",
+      "routePlaceholder": "תיאור קצר של המסלול...",
+      "routeHelp": "לדוגמה: סיבוב הר איתן, שטוח למדי, נוף ירוק",
+      "locationInstruction": "סמן את נקודת המפגש על המפה כדי שאחרים יוכלו למצוא את הרכיבה שלך לפי מיקום",
+      "useCurrentLocation": "🎯 השתמש במיקום הנוכחי",
+      "chooseOnMap": "🗺 בחר על המפה",
+      "summaryMeeting": "נקודת מפגש:",
+      "summaryRoute": "מסלול:",
+      "locationDenied": "הגישה למיקום נדחתה",
+      "locationFailed": "שליפת המיקום נכשלה. נסה שוב"
+    },
+    "details": {
+      "rideType": "סוג רכיבה",
+      "skillLevel": "רמת מיומנות",
+      "distance": "מרחק (ק\"מ) - אופציונלי",
+      "elevation": "עליה (מ') - אופציונלי"
+    },
+    "group": {
+      "joinMode": "מצב הצטרפות",
+      "joinModes": {
+        "express": "מהיר (הצטרפות אוטומטית)",
+        "approval": "באישור (המארגן מאשר)"
+      },
+      "maxParticipants": "מספר משתתפים מקסימלי (1-6)",
+      "recommendation": "מומלץ: קבוצה קטנה (4) לקלות בתיאום"
+    },
+    "review": {
+      "title": "סקור את פרטי הרכיבה",
+      "when": "מתי:",
+      "where": "איפה:",
+      "route": "מסלול:",
+      "meetingLocation": "נקודת מפגש:",
+      "type": "סוג:",
+      "skill": "רמה:",
+      "pace": "קצב:",
+      "distance": "מרחק:",
+      "elevation": "עליה:",
+      "groupMode": "מצב קבוצה:",
+      "groupModeExpress": "מהיר (הצטרפות אוטומטית)",
+      "groupModeApproval": "דורש אישור",
+      "maxParticipants": "מספר משתתפים מקסימלי:",
+      "publishPrompt": "לחץ על \"פרסם\" כדי ליצור את הרכיבה!"
+    },
+    "navigation": {
+      "back": "הקודם",
+      "next": "הבא",
+      "publish": "פרסם"
+    },
+    "validation": {
+      "notSignedIn": "לא מחובר"
+    }
+  },
+  "rideTypes": {
+    "xc": "XC",
+    "trail": "Trail",
+    "enduro": "Enduro",
+    "gravel": "Gravel",
+    "road": "Road"
+  },
+  "skillLevels": {
+    "beginner": "מתחיל",
+    "intermediate": "בינוני",
+    "advanced": "מתקדם"
+  },
+  "paceOptions": {
+    "slow": "איטי",
+    "moderate": "בינוני",
+    "fast": "מהיר"
+  },
+  "timeRanges": {
+    "today": "היום",
+    "days": "{{count}} ימים"
   }
 }

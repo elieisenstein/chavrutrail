@@ -1,9 +1,11 @@
 // AppNavigator.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import { Icon } from "react-native-paper";
+import * as Linking from 'expo-linking'; // ← NEW
+import { useNavigation } from '@react-navigation/native'; // ← NEW
 
 import FeedScreen from "../screens/FeedScreen";
 import ProfileScreen from "../screens/ProfileScreen";
@@ -14,7 +16,7 @@ import MyRidesScreen from "../screens/MyRidesScreen";
 
 export type AppTabsParamList = {
   FeedStack: undefined;
-  MyRidesStack: undefined; // Changed from MyRidesTab
+  MyRidesStack: undefined;
   CreateStack: undefined;
   ProfileStack: undefined;
 };
@@ -103,8 +105,50 @@ function CreateStack() {
   );
 }
 
+// ← NEW: Deep link handler hook
+function useDeepLinkHandler() {
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    // Handle initial URL (app opened via link)
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink(url, navigation);
+      }
+    });
+
+    // Handle subsequent links (app already open)
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      handleDeepLink(url, navigation);
+    });
+
+    return () => subscription.remove();
+  }, [navigation]);
+}
+
+// ← NEW: Deep link parsing function
+function handleDeepLink(url: string, navigation: any) {
+  const { path } = Linking.parse(url);
+  
+  console.log('Deep link received:', url, 'path:', path);
+  
+  if (path?.includes('ride/')) {
+    const rideId = path.split('ride/')[1];
+    if (rideId) {
+      // Navigate to FeedStack > RideDetails
+      navigation.navigate('FeedStack', {
+        screen: 'RideDetails',
+        params: { rideId },
+      });
+    }
+  }
+}
+
 export default function AppNavigator() {
   const { t } = useTranslation();
+  
+  // ← NEW: Enable deep link handling
+  useDeepLinkHandler();
 
   return (
     <Tab.Navigator 
@@ -112,13 +156,11 @@ export default function AppNavigator() {
         headerShown: false,
         tabBarActiveTintColor: "#ff6b35",
         tabBarInactiveTintColor: "#999",
-        // Force LTR so tabs always stay: Feed → My Rides → Create → Profile
         tabBarStyle: { 
           direction: 'ltr' 
         }
       }}
     >
-      {/* Feed Tab */}
       <Tab.Screen 
         name="FeedStack" 
         component={FeedStack} 
@@ -130,7 +172,6 @@ export default function AppNavigator() {
         }} 
       />
 
-      {/* My Rides Tab */}
       <Tab.Screen
         name="MyRidesStack"
         component={MyRidesStack}
@@ -142,7 +183,6 @@ export default function AppNavigator() {
         }}
       />
 
-      {/* Create Tab */}
       <Tab.Screen 
         name="CreateStack" 
         component={CreateStack} 
@@ -154,7 +194,6 @@ export default function AppNavigator() {
         }} 
       />
 
-      {/* Profile Tab */}
       <Tab.Screen 
         name="ProfileStack" 
         component={ProfileStack} 

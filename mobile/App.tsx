@@ -11,6 +11,7 @@ import { AppSettingsProvider, useAppSettings } from "./src/app/state/AppSettings
 import { supabase } from "./src/lib/supabase";
 import AuthScreen from "./src/app/auth/AuthScreen";
 import AppNavigator from "./src/app/navigation/AppNavigator";
+import { linking } from "./src/app/navigation/linking"; // ← NEW
 
 // Initialize Mapbox with your access token
 MapboxGL.setAccessToken("pk.eyJ1IjoiZWxpZWlzZW5zdGVpbiIsImEiOiJjbWpwc21iOXEzaHZzM2Nxemhzb2VtNHA3In0.NCwfmHYdr7JE0vvKRL9pFw");
@@ -62,7 +63,7 @@ function InnerApp() {
 
   return (
     <PaperProvider theme={resolvedTheme}>
-      <NavigationContainer>
+      <NavigationContainer linking={linking}> {/* ← MODIFIED: Added linking prop */}
         {session ? (
           <AppNavigator />
         ) : (

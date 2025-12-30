@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import { ScrollView, View, Linking, Alert } from "react-native";
 import { ActivityIndicator, Button, Card, Text, useTheme, Divider } from "react-native-paper";
 import { RouteProp, useRoute } from "@react-navigation/native";
+import { useTranslation } from "react-i18next"; // ← NEW
 
 import { formatDateTimeLocal } from "../../lib/datetime";
 import { supabase } from "../../lib/supabase";
 import type { Ride } from "../../lib/rides";
 import type { FeedStackParamList } from "../navigation/AppNavigator";
 import IsraelHikingMapView from "../../components/IsraelHikingMapView";
+import { ShareRideButton } from "../../components/ShareRideButton"; // ← NEW
 import { 
   joinOrRequestRide, 
   leaveRide, 
@@ -16,7 +18,7 @@ import {
   getRideParticipants,
   approveJoinRequest,
   rejectJoinRequest,
-  cancelRide, // ← NEW for owner cancellation
+  cancelRide,
   type ParticipantWithName,
   type ParticipantStatus 
 } from "../../lib/rides";
@@ -26,6 +28,8 @@ type RideDetailsRoute = RouteProp<FeedStackParamList, "RideDetails">;
 export default function RideDetailsScreen() {
   const route = useRoute<RideDetailsRoute>();
   const { rideId } = route.params;
+  const { i18n } = useTranslation(); // ← NEW
+  const isHebrew = i18n.language === 'he'; // ← NEW
 
   const [ride, setRide] = useState<Ride | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +39,7 @@ export default function RideDetailsScreen() {
   const [participants, setParticipants] = useState<ParticipantWithName[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [approvingUserId, setApprovingUserId] = useState<string | null>(null);
-  const [cancelling, setCancelling] = useState(false); // ← NEW state for cancel loading
+  const [cancelling, setCancelling] = useState(false);
   
   const theme = useTheme();
 
@@ -143,7 +147,6 @@ export default function RideDetailsScreen() {
     }
   }
 
-  // ============ NEW FUNCTION: Cancel Ride (Owner Only) ============
   async function handleCancelRide() {
     if (!ride) return;
 
@@ -221,6 +224,9 @@ export default function RideDetailsScreen() {
   const pendingRequests = participants.filter(p => p.status === 'requested');
   const isOwner = currentUserId === ride.owner_id;
 
+  // ← NEW: Generate share title
+  const shareTitle = `${ride.ride_type} · ${ride.skill_level}`;
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.colors.background }}
@@ -272,6 +278,14 @@ export default function RideDetailsScreen() {
 
           {ride.notes ? <Text style={{ opacity: 0.9 }}>{ride.notes}</Text> : null}
 
+          {/* ============ SHARE BUTTONS (NEW) ============ */}
+          <Divider style={{ marginVertical: 12 }} />
+          <ShareRideButton 
+            rideId={ride.id}
+            rideTitle={shareTitle}
+            isHebrew={isHebrew}
+          />
+
           {/* ============ MEETING LOCATION MAP ============ */}
           {ride.start_lat != null && ride.start_lng != null ? (
             <>
@@ -281,12 +295,9 @@ export default function RideDetailsScreen() {
               </Text>
               
               <IsraelHikingMapView
-                // Ensure key is unique to this ride and location to force a fresh mount
                 key={`map-${ride.id}-${ride.start_lat}-${ride.start_lng}`}
-                idPrefix={`rd-${ride.id.substring(0, 5)}`}
-                // Explicitly cast to numbers to prevent [string, string] issues
                 center={[Number(ride.start_lng), Number(ride.start_lat)]}
-                zoom={13} // Set a mid-range zoom level
+                zoom={13}
                 height={250}
                 interactive={false}
                 markers={[{ 
@@ -316,7 +327,6 @@ export default function RideDetailsScreen() {
               • {p.display_name} {p.role === 'owner' ? '(Owner)' : ''}
             </Text>
           ))}
-          {/* Show encouraging message when only owner has joined */}
           {joinedParticipants.length === 1 && joinedParticipants[0]?.role === 'owner' && (
             <Text style={{ opacity: 0.6, paddingLeft: 8, fontStyle: 'italic', marginTop: 4 }}>
               {isOwner 
@@ -368,9 +378,8 @@ export default function RideDetailsScreen() {
             </>
           )}
 
-          {/* ============ UPDATED: JOIN/LEAVE/CANCEL BUTTONS ============ */}
+          {/* ============ JOIN/LEAVE/CANCEL BUTTONS ============ */}
           <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
-            {/* Join/Request Button (for non-owners) */}
             {!isOwner && (
               <Button
                 mode="contained"
@@ -389,7 +398,6 @@ export default function RideDetailsScreen() {
               </Button>
             )}
 
-            {/* Leave Button (for non-owner participants) */}
             {!isOwner && (
               <Button
                 mode="outlined"
@@ -406,7 +414,6 @@ export default function RideDetailsScreen() {
               </Button>
             )}
 
-            {/* Cancel Ride Button (for owner only) */}
             {isOwner && (
               <Button
                 mode="contained"

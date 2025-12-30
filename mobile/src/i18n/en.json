@@ -1,93 +1,276 @@
 {
-    "tabs": {
-        "feed": "Feed",
-        "myRides": "My Rides",
-        "create": "New",
-        "profile": "Profile"
-    },
-    "screens": {
-        "feed": {
-            "title": "Ride Feed"
-        },
-        "create": {
-            "title": "New"
-        },
-        "profile": {
-            "title": "Profile"
-        }
-    },
-    "common": {
-        "refresh": "Refresh",
-        "save": "Save",
-        "signOut": "Sign out",
-        "displayName": "Display name",
-        "aboutMe": "About Me (Optional)",
-        "aboutMePlaceholder": "Tell others about yourself, your riding style, favorite trails..."
-    },
-    "auth": {
-        "title": "Sign in",
-        "phoneLabel": "Phone number",
-        "sendCode": "Send code",
-        "verifyTitle": "Verify code",
-        "codeLabel": "Code",
-        "verify": "Verify",
-        "welcomeBack": "Welcome to Chavrutrail",
-        "signInToContinue": "Sign in to find your riding partners",
-        "emailLabel": "Email",
-        "passwordLabel": "Password",
-        "signIn": "Sign In",
-        "forgotPassword": "Forgot password?",
-        "betaAccess": "Currently in beta - limited access",
-        "invalidCredentials": "Invalid email or password",
-        "emailNotConfirmed": "Please verify your email first",
-        "loginFailed": "Failed to log in",
-        "resetPassword": "Reset password",
-        "resetInstructions": "Enter your email and we'll send you instructions to reset your password.",
-        "sendResetLink": "Send reset link",
-        "backToLogin": "Back to login",
-        "checkEmail": "Check your email",
-        "resetEmailSent": "If an account exists with that email, we've sent password reset instructions.",
-        "checkSpam": "Don't see it? Check your spam folder.",
-        "rateLimitWarning": "Email sending is rate limited (2/hour)",
-        "rateLimitError": "Too many requests. Please try again later.",
-        "resetFailed": "Failed to send reset email"
-    },
-    "settings": {
-        "title": "Settings",
-        "theme": {
-            "title": "Appearance",
-            "system": "System",
-            "light": "Light",
-            "dark": "Dark"
-        },
-        "language": {
-            "title": "Language",
-            "he": "Hebrew",
-            "en": "English"
-        }
-    },
-    "createRide": {
-        "where": {
-            "title": "Where should riders meet?",
-            "meetingPointLabel": "Meeting Point *",
-            "meetingPointPlaceholder": "e.g., Parking lot at Sataf trailhead",
-            "meetingPointHelp": "Where exactly should people meet you? Be specific!",
-            "routeLabel": "Route Description (Optional)",
-            "routePlaceholder": "Brief description of the route...",
-            "routeHelp": "Example: Loop around Har Eitan, mostly flat, green views",
-            "locationInstruction": "Please drop a pin at the meeting point on the map to enable location-based search",
-            "summaryMeeting": "Meeting Point:",
-            "summaryRoute": "Route:"
-        },
-        "navigation": {
-            "back": "Back",
-            "next": "Next",
-            "publish": "Publish"
-        }
+  "tabs": {
+    "feed": "Feed",
+    "myRides": "My Rides",
+    "create": "New",
+    "profile": "Profile"
+  },
+  "screens": {
+    "feed": {
+      "title": "Ride Feed"
     },
     "myRides": {
-        "organizing": "Organizing",
-        "joined": "Joined",
-        "requested": "Requested"
+      "title": "My Rides"
+    },
+    "rideDetails": {
+      "title": "Ride Details"
+    },
+    "create": {
+      "title": "New Ride"
+    },
+    "profile": {
+      "title": "Profile"
     }
+  },
+  "common": {
+    "refresh": "Refresh",
+    "save": "Save",
+    "signOut": "Sign Out",
+    "displayName": "Display Name",
+    "aboutMe": "About Me (Optional)",
+    "aboutMePlaceholder": "Tell others about yourself, your riding style, favorite trails...",
+    "loading": "Loading...",
+    "error": "Error",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "reset": "Reset",
+    "apply": "Apply",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next"
+  },
+  "auth": {
+    "title": "Sign In",
+    "phoneLabel": "Phone Number",
+    "sendCode": "Send Code",
+    "verifyTitle": "Verify Code",
+    "codeLabel": "Code",
+    "verify": "Verify",
+    "welcomeBack": "Welcome to Chavrutrail",
+    "signInToContinue": "Sign in to find your riding partners",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "signIn": "Sign In",
+    "forgotPassword": "Forgot password?",
+    "betaAccess": "Currently in beta - limited access",
+    "invalidCredentials": "Invalid email or password",
+    "emailNotConfirmed": "Please verify your email first",
+    "loginFailed": "Failed to log in",
+    "resetPassword": "Reset Password",
+    "resetInstructions": "Enter your email and we'll send you instructions to reset your password.",
+    "sendResetLink": "Send Reset Link",
+    "backToLogin": "Back to Login",
+    "checkEmail": "Check Your Email",
+    "resetEmailSent": "If an account exists with that email, we've sent password reset instructions.",
+    "checkSpam": "Don't see it? Check your spam folder.",
+    "rateLimitWarning": "Email sending is rate limited (2/hour)",
+    "rateLimitError": "Too many requests. Please try again later.",
+    "resetFailed": "Failed to send reset email"
+  },
+  "settings": {
+    "title": "Settings",
+    "theme": {
+      "title": "Appearance",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "language": {
+      "title": "Language",
+      "he": "עברית",
+      "en": "English"
+    }
+  },
+  "feed": {
+    "filters": "Filters",
+    "filterSummary": {
+      "allTypes": "All types",
+      "allSkills": "All skills",
+      "today": "Today"
+    },
+    "filterModal": {
+      "title": "Filter Rides",
+      "rideTypes": "Ride Types",
+      "rideTypesHelp": "Select none for all types",
+      "skillLevel": "Skill Level",
+      "skillLevelHelp": "Select one or leave blank for all",
+      "timeRange": "Time Range"
+    },
+    "noRides": {
+      "title": "No Rides Found",
+      "message": "Try adjusting your filters or be the first to create a ride!",
+      "adjustFilters": "Adjust Filters"
+    },
+    "rideCard": {
+      "when": "When",
+      "where": "Where",
+      "group": "Group",
+      "max": "max",
+      "route": "Route"
+    }
+  },
+  "myRides": {
+    "organizing": "Organizing",
+    "joined": "Joined",
+    "requested": "Requested",
+    "statusLabels": {
+      "owner": "OWNER",
+      "joined": "JOINED",
+      "requested": "REQUESTED"
+    },
+    "emptyStates": {
+      "organizing": "You haven't created any rides yet",
+      "joined": "You haven't joined any rides yet",
+      "requested": "No pending requests"
+    }
+  },
+  "rideDetails": {
+    "when": "When",
+    "where": "Where",
+    "group": "Group",
+    "max": "max",
+    "participants": "Participants",
+    "meetingLocation": "Meeting Location",
+    "getDirections": "Get Directions to Meeting Point",
+    "pendingRequests": "Pending Requests",
+    "approve": "Approve",
+    "reject": "Reject",
+    "share": "Share Ride",
+    "shareWhatsApp": "Share on WhatsApp",
+    "actions": {
+      "join": "Join",
+      "askToJoin": "Ask to Join",
+      "joined": "Joined",
+      "requested": "Requested",
+      "leave": "Leave",
+      "cancelRide": "Cancel Ride",
+      "cancelled": "Cancelled"
+    },
+    "status": {
+      "waitingForOthers": "Waiting for others to join...",
+      "beTheFirst": "No one else has joined yet. Be the first!"
+    },
+    "notFound": "Ride not found (or you don't have permission).",
+    "navigation": {
+      "title": "Navigate to Meeting Point",
+      "message": "Get directions to:",
+      "googleMaps": "Google Maps",
+      "waze": "Waze"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "displayName": "Display Name",
+    "aboutMe": "About Me (Optional)",
+    "aboutMePlaceholder": "Tell others about yourself, your riding style, favorite trails...",
+    "rideTypes": "Ride Types",
+    "rideTypesHelp": "Select all that apply",
+    "skillLevel": "Skill Level",
+    "pace": "Pace Preference",
+    "birthYear": "Birth Year",
+    "birthYearPlaceholder": "Year (e.g., 1990)",
+    "gender": "Gender (Optional)",
+    "genderOptions": {
+      "male": "Male",
+      "female": "Female",
+      "skip": "Skip"
+    },
+    "saveProfile": "Save Profile",
+    "loadingProfile": "Loading profile..."
+  },
+  "createRide": {
+    "steps": {
+      "when": "When",
+      "where": "Where",
+      "details": "Details",
+      "group": "Group",
+      "review": "Review"
+    },
+    "stepCounter": "Step {{current}} / {{total}}",
+    "when": {
+      "title": "When does the ride start?",
+      "chooseDateTime": "Choose date & time:",
+      "selected": "Selected:",
+      "duration": "How long will the ride be?",
+      "endsAt": "Ride ends at: {{time}} ({{hours}}h)",
+      "pastError": "Cannot create rides in the past. Please select a future date/time."
+    },
+    "where": {
+      "title": "Where should riders meet?",
+      "meetingPointLabel": "Meeting Point *",
+      "meetingPointPlaceholder": "e.g., Parking lot at Sataf trailhead",
+      "meetingPointHelp": "Where exactly should people meet you? Be specific!",
+      "routeLabel": "Route Description (Optional)",
+      "routePlaceholder": "Brief description of the route...",
+      "routeHelp": "Example: Loop around Har Eitan, mostly flat, green views",
+      "locationInstruction": "Please drop a pin at the meeting point on the map to enable location-based search",
+      "useCurrentLocation": "🎯 Use Current Location",
+      "chooseOnMap": "🗺 Choose on Map",
+      "summaryMeeting": "Meeting Point:",
+      "summaryRoute": "Route:",
+      "locationDenied": "Permission to access location was denied",
+      "locationFailed": "Failed to get location. Please try again."
+    },
+    "details": {
+      "rideType": "Ride Type",
+      "skillLevel": "Skill Level",
+      "distance": "Distance (km) - optional",
+      "elevation": "Elevation (m) - optional"
+    },
+    "group": {
+      "joinMode": "Join Mode",
+      "joinModes": {
+        "express": "Express (auto-join)",
+        "approval": "Approval (owner accepts)"
+      },
+      "maxParticipants": "Max Participants (1-6)",
+      "recommendation": "Recommendation: keep it small (4) for easier matching."
+    },
+    "review": {
+      "title": "Review your ride details",
+      "when": "When:",
+      "where": "Where:",
+      "route": "Route:",
+      "meetingLocation": "Meeting Location:",
+      "type": "Type:",
+      "skill": "Skill:",
+      "pace": "Pace:",
+      "distance": "Distance:",
+      "elevation": "Elevation:",
+      "groupMode": "Group mode:",
+      "groupModeExpress": "Express (auto-join)",
+      "groupModeApproval": "Approval required",
+      "maxParticipants": "Max participants:",
+      "publishPrompt": "Tap \"Publish\" to create your ride!"
+    },
+    "navigation": {
+      "back": "Back",
+      "next": "Next",
+      "publish": "Publish"
+    },
+    "validation": {
+      "notSignedIn": "Not signed in"
+    }
+  },
+  "rideTypes": {
+    "xc": "XC",
+    "trail": "Trail",
+    "enduro": "Enduro",
+    "gravel": "Gravel",
+    "road": "Road"
+  },
+  "skillLevels": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced"
+  },
+  "paceOptions": {
+    "slow": "Slow",
+    "moderate": "Moderate",
+    "fast": "Fast"
+  },
+  "timeRanges": {
+    "today": "Today",
+    "days": "{{count}}d"
+  }
 }

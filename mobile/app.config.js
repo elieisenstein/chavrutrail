@@ -1,14 +1,15 @@
 import "dotenv/config";
 
 export default {
-  name: "ChavruTrail",
-  slug: "chavrutrail",
+  name: "Bishvil",
+  slug: "bishvil",
+  owner: "elieisenstein",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/logo.png",
   userInterfaceStyle: "dark",
   newArchEnabled: true,
-  scheme: "chavrutrail", // ← NEW: Deep linking scheme
+  scheme: "bishvil", // ← NEW: Deep linking scheme
 
   splash: {
     image: "./assets/logo.png",
@@ -18,11 +19,11 @@ export default {
 
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.elieisenstein.chavrutrail",
+    bundleIdentifier: "com.elieisenstein.bishvil",
   },
 
   android: {
-    package: "com.elieisenstein.chavrutrail",
+    package: "com.elieisenstein.bishvil",
     googleServicesFile: "./google-services.json", // This tells Expo where to find your file
     permissions: [
       "NOTIFICATIONS",
@@ -41,12 +42,12 @@ export default {
         autoVerify: true,
         data: [
           {
-            scheme: "chavrutrail",
+            scheme: "bishvil",
             host: "*",
           },
           {
             scheme: "https",
-            host: "chavrutrail.app",
+            host: "shvil.app",
             pathPrefix: "/ride",
           },
         ],
@@ -61,7 +62,7 @@ export default {
 
   extra: {
     eas: {
-      projectId: "9cf48d40-4f8e-421d-b94d-8609e4dba89b",
+      projectId: "cecc5ae1-51aa-4482-904b-7f509e4ca83c",
     },
     MAPBOX_ACCESS_TOKEN: process.env.MAPBOX_ACCESS_TOKEN,
   },

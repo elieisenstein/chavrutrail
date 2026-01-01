@@ -295,3 +295,5 @@ Ride Status "Auto-Cleanup": Add a background task or a simple filter so that rid
 "I'm at the Spot" Button: A simple button that sends a high-priority notification to everyone in the ride: "Eli has arrived at the pickup point!" This solves the most stressful part of carpooling.
 
 Simple Onboarding: Since you have a profiles table, ensure that the very first time a user logs in, they are forced to pick a home_region.
+
+Edit rides and send notifications to joined.

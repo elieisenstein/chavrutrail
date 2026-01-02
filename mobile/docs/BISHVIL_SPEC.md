@@ -1,7 +1,7 @@
-# Chavrutrail – MVP Specification
+# Bishvil – MVP Specification
 
 ## Overview
-Chavrutrail is an Android-first mobile application for matching off-road cyclists
+Bishvil is an Android-first mobile application for matching off-road cyclists
 in Israel (MTB / Gravel) for shared rides, optimized for operational compatibility
 (pace, skill, terrain, timing), not social/dating use.
 

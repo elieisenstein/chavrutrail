@@ -1,4 +1,4 @@
-# Chavrutrail – Project Status
+# Bishvil – Project Status
 
 **Status:** Production-ready MVP  
 **Last updated:** December 2025
@@ -7,7 +7,7 @@
 
 ## Overview
 
-Chavrutrail is a mobile app for organizing and joining cycling rides.  
+Bishvil is a mobile app for organizing and joining cycling rides.  
 The MVP is fully implemented, tested on real Android devices, and ready for pilot testing.
 
 Core principles:
@@ -184,7 +184,7 @@ Estimated effort: 2–3 weeks.
 ## Ownership
 
 **Developer:** Eli Eisenstein  
-**Project:** Chavrutrail  
+**Project:** Bishvil  
 **Stage:** Pilot-ready MVP
 
 ---
@@ -278,7 +278,7 @@ Goal: Get users from the app into the actual car.
 
 WhatsApp Link Creation: This is the "Safety Net." Even if your internal chat isn't ready, a button that opens a WhatsApp chat with the originator is a must-have.
 
-Review Link for Sharing: To grow the app, users need to be able to share a ride link (Deep Linking). Since we added the scheme: "chavrutrail" to your config tonight, we are ready for this.
+Review Link for Sharing: To grow the app, users need to be able to share a ride link (Deep Linking). Since we added the scheme: "bishvil" to your config tonight, we are ready for this.
 
 Phase 3: The "Refinement" (Priority 3)
 Goal: Prepare for the first 10 testers.
@@ -297,3 +297,6 @@ Ride Status "Auto-Cleanup": Add a background task or a simple filter so that rid
 Simple Onboarding: Since you have a profiles table, ensure that the very first time a user logs in, they are forced to pick a home_region.
 
 Edit rides and send notifications to joined.
+
+
+run createUsers - run from bishvil "npx tsx --env-file=./scripts/.env.local scripts/createUsers.js"

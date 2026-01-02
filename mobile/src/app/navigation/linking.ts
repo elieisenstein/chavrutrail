@@ -2,7 +2,7 @@
 import { LinkingOptions } from '@react-navigation/native';
 
 export const linking: LinkingOptions<any> = {
-  prefixes: ['chavrutrail://', 'https://chavrutrail.app'],
+  prefixes: ['bishvil://', 'https://bishvil.app'],
   config: {
     screens: {
       FeedStack: {

@@ -1,0 +1,201 @@
+# Bishvil – Project Documentation (Reshaped)
+
+*Last reshaped: 2026-01-02*
+
+This document consolidates and restructures the project documentation into four clear layers:
+
+1. **Product Specification** – what the product is and is not
+2. **Architecture & Decisions** – stable, long‑term choices
+3. **Current Status** – factual snapshot of where the project stands
+4. **Execution Plan (TODO)** – forward‑looking, actionable work
+
+The content below was **moved and deduplicated** from the original documents to ensure each section has a single responsibility.
+
+---
+
+## 1. Product Specification (Stable)
+
+### Purpose
+
+Bishvil is an **Android‑first mobile app** for organizing and joining cycling rides in Israel (MTB / Gravel / Road), optimized for *operational compatibility* (pace, skill, timing) rather than social networking.
+
+### Core Principles
+
+* Fast ride discovery and joining
+* Low friction, minimal ceremony
+* Privacy‑first (no phone exposure)
+* Hebrew‑first with full RTL/LTR support
+
+### Target Platform
+
+* Android first (APK distribution)
+* iOS later (no architectural blockers)
+
+### MVP Scope
+
+* Ride creation and discovery
+* Join / approval flows
+* Profiles (lightweight)
+* Map‑based location selection
+* Bilingual UI (Hebrew / English)
+
+### Explicitly Out of Scope (MVP)
+
+* GPS ride tracking
+* Media uploads
+* Social feeds, likes, ratings
+* Internal moderation tools
+
+### KPIs (Pilot)
+
+* Time to first joined ride
+* % of rides that actually happen
+* Repeat rides with the same participants
+
+---
+
+## 2. Architecture & Decisions (Long‑Term)
+
+### Mobile Stack
+
+* React Native + Expo (TypeScript)
+* react-native-paper (Material Design 3)
+* Design‑system driven (Strava‑like feel)
+
+### Backend
+
+* Supabase
+
+  * Auth: Phone OTP (Twilio Verify)
+  * PostgreSQL + RLS
+  * Realtime (future chat / notifications)
+
+### Authentication
+
+* Phone OTP only (Israeli norm, high completion)
+* No email auth in MVP
+* Sessions persist across restarts
+
+### Profiles
+
+* `profiles` table separate from `auth.users`
+* Auto‑created via DB trigger
+* Phone number not duplicated in app tables
+
+### Privacy Decisions
+
+* Phone numbers never exposed to other users
+* Display name is the only visible identity
+* Future contact via in‑app or WhatsApp link only
+
+### Maps
+
+* Mapbox GL (native build)
+* Israel Hiking Map tiles
+* Text + map pin required
+* No reverse geocoding by design
+
+### Deferred Backend (Reserved)
+
+* FastAPI (Python) for:
+
+  * moderation
+  * trust scoring
+  * scheduled jobs
+  * external integrations
+
+---
+
+## 3. Current Project Status (Snapshot)
+
+**Stage:** Pilot‑ready MVP (Production‑ready)
+
+### What Works End‑to‑End
+
+* Phone OTP authentication
+* Persistent sessions
+* Profile auto‑creation
+* Ride creation wizard (When / Where / Details / Group / Review)
+* Join & approval flows
+* Owner cancel & participant leave
+* Real‑time participant counts
+* Feed with filters and empty states
+* Hebrew / English with stable RTL/LTR
+* Light / Dark / System themes
+
+### Maps & Location
+
+* Full Mapbox integration (native build)
+* Israel Hiking tiles with colored trails
+* Full‑screen map picker
+* Correct coordinate persistence
+* External navigation (Google Maps / Waze)
+
+### Navigation
+
+* 4 tabs: Feed, My Rides, Create, Profile
+* My Rides sections:
+
+  * Organizing
+  * Joined
+  * Requested
+
+### Production Readiness
+
+* Tested on physical Android devices
+* Real OTP flow verified
+* Multi‑user scenarios validated
+* Signed APKs ready for distribution
+
+### Known Limitations (Intentional)
+
+* No push notifications yet
+* No in‑app chat
+* No ride editing
+* No distance sorting
+
+---
+
+## 4. Execution Plan (TODO – Forward Looking)
+
+### Priority 1 – Engagement Foundation
+
+**Goal:** Prove notification & coordination value
+
+* Test full approval notification flow
+* Enforce phone number collection on join
+* Personalize feed by home region / ride type
+
+### Priority 2 – Social Bridge
+
+**Goal:** Get users into real coordination
+
+* WhatsApp group link per ride
+* Edit ride & notify participants
+
+### Priority 3 – Refinement
+
+**Goal:** Prepare first 10 testers
+
+* Multi‑device testing
+* Ride auto‑cleanup (past rides)
+* Simplified onboarding (forced home region)
+
+### Explicitly Postponed
+
+* Internal chat (WhatsApp used instead)
+* Media uploads
+* Ratings / reviews
+* "I’m at the spot" button
+
+---
+
+## Ownership
+
+**Developer:** Eli Eisenstein
+**Project:** Bishvil
+**Current Focus:** Pilot validation & engagement
+
+---
+
+*End of reshaped documentation*

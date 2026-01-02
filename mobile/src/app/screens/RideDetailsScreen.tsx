@@ -105,18 +105,56 @@ export default function RideDetailsScreen() {
   };
 
   useEffect(() => {
-    let mounted = true;
+  let mounted = true;
 
-    (async () => {
-      setLoading(true);
-      await loadRideData();
-      if (mounted) setLoading(false);
-    })();
+  (async () => {
+    setLoading(true);
+    await loadRideData();
+    if (mounted) setLoading(false);
+  })();
 
-    return () => {
-      mounted = false;
-    };
-  }, [rideId]);
+  // Real-time subscription for participant changes
+  const channel = supabase
+    .channel(`ride_${rideId}_updates`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*', // Listen for INSERT, UPDATE, DELETE
+        schema: 'public',
+        table: 'ride_participants',
+        filter: `ride_id=eq.${rideId}`,
+      },
+      (payload) => {
+        console.log('🔄 Participant change:', payload);
+        // Reload data when participants change
+        if (mounted) {
+          loadRideData();
+        }
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: '*', // Listen for ride updates (cancellation, edits, etc)
+        schema: 'public',
+        table: 'rides',
+        filter: `id=eq.${rideId}`,
+      },
+      (payload) => {
+        console.log('🔄 Ride changes:', payload);
+        // Reload data when ride changes
+        if (mounted) {
+          loadRideData();
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    mounted = false;
+    supabase.removeChannel(channel);
+  };
+}, [rideId]);
 
   async function handleJoin() {
     if (!ride) return;

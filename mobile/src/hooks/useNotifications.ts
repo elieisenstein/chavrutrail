@@ -25,7 +25,7 @@ export function useNotifications() {
       // Handle navigation using Linking API instead of navigation hook
       if (data?.rideId) {
         import('expo-linking').then(({ default: Linking }) => {
-          Linking.openURL(`chavrutrail://ride/${data.rideId}`);
+          Linking.openURL(`bishvil://ride/${data.rideId}`);
         });
       }
     });

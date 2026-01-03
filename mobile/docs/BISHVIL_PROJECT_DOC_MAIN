@@ -200,29 +200,28 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 
 *End of reshaped documentation*
 
-🏆 Notification System Milestone Summary
-We have successfully implemented a self-healing, event-driven push notification system that connects Supabase database events to physical mobile devices via Expo.
+🏆 Final Achievement Summary for your Status Doc
+We have now fully stabilized the end-to-end notification pipeline. Here is the breakdown of the successful architecture:
 
-1. Backend & Infrastructure
-Trigger-Based Logic: Configured a Supabase Database Webhook that monitors the ride_participants table and automatically triggers a process-ride-event Edge Function whenever a user joins or leaves a ride.
+1. Backend & Event Logic
+Automated Triggers: The Supabase Database Webhook accurately detects changes in ride_participants (joins/leaves) and rides (cancellations/updates).
 
-Internal Service Communication: Resolved 401 Unauthorized errors by disabling JWT verification for the send-notification function, allowing secure internal calls using the SERVICE_ROLE_KEY.
+Edge Function Reliability: The process-ride-event function correctly calls the send-notification service. We resolved the 401 Unauthorized issue by disabling JWT verification for internal service-to-service calls.
 
-Expo API Integration: Authenticated the Edge Function with the Expo Push Service using a dedicated EXPO_ACCESS_TOKEN, confirmed by receiving {"status": "ok"} responses from the Expo API.
+Expo API Integration: Successfully authenticated with Expo’s servers using the EXPO_ACCESS_TOKEN, verified by {"status": "ok"} responses in the logs.
 
-2. Mobile App Reliability
-Self-Healing Token Sync: Updated App.tsx and notifications.ts to automatically refresh and sync the expo_push_token to the Supabase profiles table every time the app initializes.
+2. Mobile App Infrastructure
+Self-Healing Token Sync: Updated App.tsx and notifications.ts to automatically refresh the expo_push_token in the Supabase profiles table every time the app initializes or a user logs in.
 
-Robust Auth Handling: Improved the token update logic to use supabase.auth.getUser() instead of getSession(), ensuring the push token is correctly mapped to the user ID even during "cold starts" or after app reinstalls.
+Robust User Identification: Switched to supabase.auth.getUser() to ensure the push token is always mapped to the correct user ID, even during cold starts.
 
-Release-Ready Builds: Successfully deployed and verified the logic using a Release APK (--variant release), ensuring the notification system persists on the device without a development server connection.
+Android Channel Optimization: Implemented specific notification channels (e.g., "Requests & Approvals", "Ride Updates") with AndroidImportance.HIGH to ensure pop-up alerts and custom sounds.
 
-3. User Experience & Branding
-Custom Notification Channels: Implemented distinct Android Notification Channels (e.g., "Requests & Approvals", "Ride Updates") with specific importance levels and behavior, replacing the generic "Miscellaneous" system group.
+3. Verified Use Cases
+✅ Join Requests: Owner is notified when a user requests to join.
 
-Localization Support: Integrated a translation helper (notificationHelpers.ts) that fetches the recipient's preferred language from their profile to deliver notifications in Hebrew or English.
+✅ Approvals/Rejections: Participants are notified of the owner's decision.
 
-📝 Current Status: STABLE
-Verified Flow: User Joins/Leaves → DB Trigger → Edge Function → Expo API → Mobile Device (Verified with logs and physical device).
+✅ Ride Cancellations: All participants are successfully broadcasted a notification if a ride is cancelled.
 
 Next Objective: Address UI state refreshing to ensure screens update automatically when a notification is received or an action is performed.

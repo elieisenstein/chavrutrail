@@ -180,7 +180,8 @@
       "other": "Other"
     },
     "saveProfile": "Save Profile",
-    "loadingProfile": "Loading profile..."
+    "loadingProfile": "Loading profile...",
+    "rideTypesRequired": "Please select at least one ride type"
   },
   "createRide": {
     "steps": {

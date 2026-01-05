@@ -46,15 +46,15 @@ export default function ProfileScreen() {
 
   const genderOptionsDisplay = isRTL
     ? [
-        { key: "Other", value: null as any, label: t("profile.genderOptions.other") },
-        { key: "Female", value: "Female" as any, label: t("profile.genderOptions.female") },
-        { key: "Male", value: "Male" as any, label: t("profile.genderOptions.male") },
-      ]
+      { key: "Other", value: null as any, label: t("profile.genderOptions.other") },
+      { key: "Female", value: "Female" as any, label: t("profile.genderOptions.female") },
+      { key: "Male", value: "Male" as any, label: t("profile.genderOptions.male") },
+    ]
     : [
-        { key: "Male", value: "Male" as any, label: t("profile.genderOptions.male") },
-        { key: "Female", value: "Female" as any, label: t("profile.genderOptions.female") },
-        { key: "Other", value: null as any, label: t("profile.genderOptions.other") },
-      ];
+      { key: "Male", value: "Male" as any, label: t("profile.genderOptions.male") },
+      { key: "Female", value: "Female" as any, label: t("profile.genderOptions.female") },
+      { key: "Other", value: null as any, label: t("profile.genderOptions.other") },
+    ];
 
   const dirText = {
     textAlign: isRTL ? "right" : "left",
@@ -71,7 +71,7 @@ export default function ProfileScreen() {
   const chipRowStyle = {
     flexDirection: "row" as const,
     flexWrap: "wrap" as const,
-    gap: 8,
+    gap: 6,
     marginBottom: 16,
     justifyContent: isRTL ? ("flex-end" as const) : ("flex-start" as const),
   };
@@ -152,6 +152,8 @@ export default function ProfileScreen() {
     );
   }
 
+  console.log('selectedRideTypes:', selectedRideTypes, 'length:', selectedRideTypes.length);
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.colors.background }}
@@ -214,22 +216,11 @@ export default function ProfileScreen() {
               mode={isSelected ? "flat" : "outlined"}
               showSelectedCheck={false}
               style={{
-                backgroundColor: isSelected
-                  ? isRoad
-                    ? "#2196F3"
-                    : theme.colors.primary
-                  : "transparent",
-                borderColor: isRoad && !isSelected ? "#2196F3" : undefined,
+                backgroundColor: isSelected ? theme.colors.primary : "transparent",
               }}
               textStyle={{
                 ...chipTextDir,
-                color: isSelected
-                  ? isRoad
-                    ? "#FFFFFF"
-                    : theme.colors.onPrimary
-                  : isRoad
-                    ? "#2196F3"
-                    : theme.colors.onSurface,
+                color: isSelected ? theme.colors.onPrimary : theme.colors.onSurface,
               }}
             >
               {t(`rideTypes.${type}`)}
@@ -237,6 +228,12 @@ export default function ProfileScreen() {
           );
         })}
       </View>
+
+      {selectedRideTypes.length === 0 && (
+        <Text style={{ color: theme.colors.error, fontSize: 12, marginTop: -8, marginBottom: 8, ...dirText }}>
+          {t("profile.rideTypesRequired")}
+        </Text>
+      )}
 
       <Divider style={{ marginBottom: 16 }} />
 
@@ -358,7 +355,7 @@ export default function ProfileScreen() {
         mode="contained"
         onPress={saveProfile}
         loading={saving}
-        disabled={saving || !displayName.trim()}
+        disabled={saving || !displayName.trim() || selectedRideTypes.length === 0}
         style={{ marginBottom: 12 }}
       >
         {t("profile.saveProfile")}

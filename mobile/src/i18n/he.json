@@ -180,7 +180,8 @@
       "other": "אחר"
     },
     "saveProfile": "שמור פרופיל",
-    "loadingProfile": "טוען פרופיל..."
+    "loadingProfile": "טוען פרופיל...",
+     "rideTypesRequired": "יש לבחור לפחות סוג רכיבה אחד"
   },
   "createRide": {
     "steps": {

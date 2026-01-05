@@ -272,3 +272,11 @@ PROJECT STATUS:
 ✅ Real-time updates via Supabase
 
 ✅ Feed personalization by gender + ride types
+
+what we did today:
+✅ Step 1: Remove duplicate "Profile" heading
+✅ Step 2: Merge XC and Trails → just "Trails"
+✅ Step 3: RTL button order fix - is not solved yet
+✅ Step 4: Reduce chip gap to 6px
+✅ Step 5: Consistent Ride Types styling
+✅ Bonus: Validation - require at least one ride type selected

@@ -174,12 +174,6 @@ export default function MyRidesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text variant="headlineMedium" style={{ color: theme.colors.onBackground }}>
-          {t("screens.myRides.title")}
-        </Text>
-      </View>
 
       {/* Section Selector */}
       <View style={styles.segmentContainer}>

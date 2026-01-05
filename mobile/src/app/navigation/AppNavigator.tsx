@@ -49,7 +49,17 @@ const CreateStackNav = createNativeStackNavigator<CreateRideStackParamList>();
 function FeedStack() {
   const { t } = useTranslation();
   return (
-    <FeedStackNav.Navigator>
+    <FeedStackNav.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#121212',
+        },
+        headerTintColor: '#ffffff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
       <FeedStackNav.Screen
         name="FeedList"
         component={FeedScreen}
@@ -67,7 +77,17 @@ function FeedStack() {
 function MyRidesStack() {
   const { t } = useTranslation();
   return (
-    <MyRidesStackNav.Navigator>
+    <MyRidesStackNav.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#121212',
+        },
+        headerTintColor: '#ffffff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
       <MyRidesStackNav.Screen
         name="MyRidesList"
         component={MyRidesScreen}
@@ -85,7 +105,17 @@ function MyRidesStack() {
 function ProfileStack() {
   const { t } = useTranslation();
   return (
-    <ProfileStackNav.Navigator>
+    <ProfileStackNav.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#121212',
+        },
+        headerTintColor: '#ffffff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
       <ProfileStackNav.Screen name="Profile" component={ProfileScreen} options={{ title: t("tabs.profile") }} />
       <ProfileStackNav.Screen name="Settings" component={SettingsScreen} options={{ title: t("settings.title") }} />
     </ProfileStackNav.Navigator>
@@ -95,7 +125,17 @@ function ProfileStack() {
 function CreateStack() {
   const { t } = useTranslation();
   return (
-    <CreateStackNav.Navigator>
+    <CreateStackNav.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#121212',
+        },
+        headerTintColor: '#ffffff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
       <CreateStackNav.Screen
         name="CreateRideWizard"
         component={CreateRideWizard}
@@ -129,9 +169,9 @@ function useDeepLinkHandler() {
 // ← NEW: Deep link parsing function
 function handleDeepLink(url: string, navigation: any) {
   const { path } = Linking.parse(url);
-  
+
   console.log('Deep link received:', url, 'path:', path);
-  
+
   if (path?.includes('ride/')) {
     const rideId = path.split('ride/')[1];
     if (rideId) {
@@ -146,30 +186,33 @@ function handleDeepLink(url: string, navigation: any) {
 
 export default function AppNavigator() {
   const { t } = useTranslation();
-  
+
   // ← NEW: Enable deep link handling
   useDeepLinkHandler();
 
   return (
-    <Tab.Navigator 
-      screenOptions={{ 
+    <Tab.Navigator
+      screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#ff6b35",
-        tabBarInactiveTintColor: "#999",
-        tabBarStyle: { 
-          direction: 'ltr' 
+        tabBarActiveTintColor: "#ff6b35",  // Orange for active tab
+        tabBarInactiveTintColor: "#ffffff",  // White for inactive tabs
+        tabBarStyle: {
+          direction: 'ltr',
+          backgroundColor: '#121212',  // Material Design dark background
+          borderTopColor: '#2a2a2a',  // Subtle top border
+          borderTopWidth: 1,
         }
       }}
     >
-      <Tab.Screen 
-        name="FeedStack" 
-        component={FeedStack} 
-        options={{ 
+      <Tab.Screen
+        name="FeedStack"
+        component={FeedStack}
+        options={{
           tabBarLabel: t("tabs.feed"),
           tabBarIcon: ({ color, size }) => (
             <Icon source="bike" size={size} color={color} />
           ),
-        }} 
+        }}
       />
 
       <Tab.Screen
@@ -183,26 +226,26 @@ export default function AppNavigator() {
         }}
       />
 
-      <Tab.Screen 
-        name="CreateStack" 
-        component={CreateStack} 
-        options={{ 
+      <Tab.Screen
+        name="CreateStack"
+        component={CreateStack}
+        options={{
           tabBarLabel: t("tabs.create"),
           tabBarIcon: ({ color, size }) => (
             <Icon source="plus-circle" size={size} color={color} />
           ),
-        }} 
+        }}
       />
 
-      <Tab.Screen 
-        name="ProfileStack" 
-        component={ProfileStack} 
-        options={{ 
+      <Tab.Screen
+        name="ProfileStack"
+        component={ProfileStack}
+        options={{
           tabBarLabel: t("tabs.profile"),
           tabBarIcon: ({ color, size }) => (
             <Icon source="account-circle" size={size} color={color} />
           ),
-        }} 
+        }}
       />
     </Tab.Navigator>
   );

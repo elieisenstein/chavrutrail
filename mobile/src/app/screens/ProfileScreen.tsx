@@ -307,7 +307,7 @@ export default function ProfileScreen() {
       </Text>
 
       <TextInput
-        label={t("profile.birthYearPlaceholder")}
+        placeholder={t("profile.birthYearPlaceholder")}
         value={birthYear}
         onChangeText={setBirthYear}
         keyboardType="numeric"
@@ -315,7 +315,6 @@ export default function ProfileScreen() {
         style={{ marginBottom: 16 }}
         contentStyle={dirText}
       />
-
       <Divider style={{ marginBottom: 16 }} />
 
       {/* Gender */}

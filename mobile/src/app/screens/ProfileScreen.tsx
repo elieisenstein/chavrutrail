@@ -7,17 +7,18 @@ import {
   updateMyProfile,
   Profile,
   rideTypesToString,
-  stringToRideTypes
+  stringToRideTypes,
 } from "../../lib/profile";
 import { useTranslation } from "react-i18next";
 import { useNavigation } from "@react-navigation/native";
 
-const RIDE_TYPES = ["XC", "Trail", "Enduro", "Gravel", "Road"];
+// const RIDE_TYPES = ["XC", "Trail", "Enduro", "Gravel", "Road"];
+const RIDE_TYPES = ["Trail", "Enduro", "Gravel", "Road"];
 const SKILL_LEVELS = ["Beginner", "Intermediate", "Advanced"];
 const PACE_OPTIONS = ["Slow", "Moderate", "Fast"];
 
 export default function ProfileScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
@@ -34,6 +35,46 @@ export default function ProfileScreen() {
 
   const nav = useNavigation<any>();
   const theme = useTheme();
+
+  // Language-based direction
+  const isRTL = i18n.language === "he";
+
+  // Display order: reverse the DATA (robust), do NOT use row-reverse with wrap
+  const rideTypesDisplay = isRTL ? [...RIDE_TYPES].reverse() : RIDE_TYPES;
+  const skillLevelsDisplay = isRTL ? [...SKILL_LEVELS].reverse() : SKILL_LEVELS;
+  const paceOptionsDisplay = isRTL ? [...PACE_OPTIONS].reverse() : PACE_OPTIONS;
+
+  const genderOptionsDisplay = isRTL
+    ? [
+        { key: "Other", value: null as any, label: t("profile.genderOptions.other") },
+        { key: "Female", value: "Female" as any, label: t("profile.genderOptions.female") },
+        { key: "Male", value: "Male" as any, label: t("profile.genderOptions.male") },
+      ]
+    : [
+        { key: "Male", value: "Male" as any, label: t("profile.genderOptions.male") },
+        { key: "Female", value: "Female" as any, label: t("profile.genderOptions.female") },
+        { key: "Other", value: null as any, label: t("profile.genderOptions.other") },
+      ];
+
+  const dirText = {
+    textAlign: isRTL ? "right" : "left",
+    writingDirection: isRTL ? "rtl" : "ltr",
+  } as const;
+
+  // Reusable helper: enforce chip label direction
+  const chipTextDir = {
+    writingDirection: isRTL ? "rtl" : "ltr",
+    textAlign: "center" as const,
+  };
+
+  // Common row style for chips
+  const chipRowStyle = {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: 8,
+    marginBottom: 16,
+    justifyContent: isRTL ? ("flex-end" as const) : ("flex-start" as const),
+  };
 
   const loadProfile = async () => {
     setErr(null);
@@ -97,7 +138,7 @@ export default function ProfileScreen() {
 
   const toggleRideType = (type: string) => {
     if (selectedRideTypes.includes(type)) {
-      setSelectedRideTypes(selectedRideTypes.filter(t => t !== type));
+      setSelectedRideTypes(selectedRideTypes.filter((t0) => t0 !== type));
     } else {
       setSelectedRideTypes([...selectedRideTypes, type]);
     }
@@ -106,7 +147,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View style={{ flex: 1, padding: 16, backgroundColor: theme.colors.background }}>
-        <Text>{t("profile.loadingProfile")}</Text>
+        <Text style={dirText}>{t("profile.loadingProfile")}</Text>
       </View>
     );
   }
@@ -117,23 +158,13 @@ export default function ProfileScreen() {
       contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
     >
       {!!err ? (
-        <Text style={{ color: theme.colors.error, marginBottom: 12 }}>
-          {err}
-        </Text>
+        <Text style={{ color: theme.colors.error, marginBottom: 12, ...dirText }}>{err}</Text>
       ) : null}
 
       {/* Settings Button */}
-      <Button
-        mode="outlined"
-        onPress={() => nav.navigate("Settings")}
-        style={{ marginBottom: 16 }}
-      >
+      <Button mode="outlined" onPress={() => nav.navigate("Settings")} style={{ marginBottom: 16 }}>
         {t("settings.title")}
       </Button>
-
-      <Text variant="headlineSmall" style={{ marginBottom: 16 }}>
-        {t("profile.title")}
-      </Text>
 
       {/* Display Name */}
       <TextInput
@@ -141,6 +172,7 @@ export default function ProfileScreen() {
         value={displayName}
         onChangeText={setDisplayName}
         style={{ marginBottom: 16 }}
+        contentStyle={dirText}
       />
 
       {/* About Me */}
@@ -153,113 +185,130 @@ export default function ProfileScreen() {
         maxLength={500}
         placeholder={t("profile.aboutMePlaceholder")}
         style={{ marginBottom: 8 }}
+        contentStyle={dirText}
       />
-      <Text style={{ opacity: 0.6, fontSize: 12, marginBottom: 16, textAlign: 'right' }}>
+      <Text style={{ opacity: 0.6, fontSize: 12, marginBottom: 16, ...dirText }}>
         {bio.length}/500
       </Text>
 
       <Divider style={{ marginBottom: 16 }} />
 
       {/* Ride Types */}
-      <Text variant="titleMedium" style={{ marginBottom: 8 }}>
+      <Text variant="titleMedium" style={{ marginBottom: 8, ...dirText }}>
         {t("profile.rideTypes")}
       </Text>
-      <Text style={{ opacity: 0.7, marginBottom: 8, fontSize: 12 }}>
+      <Text style={{ opacity: 0.7, marginBottom: 8, fontSize: 12, ...dirText }}>
         {t("profile.rideTypesHelp")}
       </Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-        {RIDE_TYPES.map(type => (
-          <Chip
-            key={type}
-            selected={selectedRideTypes.includes(type)}
-            onPress={() => toggleRideType(type)}
-            mode={selectedRideTypes.includes(type) ? "flat" : "outlined"}
-            showSelectedCheck={false}
-            style={{
-              backgroundColor: selectedRideTypes.includes(type)
-                ? (type === "Road" ? "#2196F3" : theme.colors.primary)
-                : 'transparent',
-              borderColor: type === "Road" && !selectedRideTypes.includes(type)
-                ? "#2196F3"
-                : undefined
-            }}
-            textStyle={{
-              color: selectedRideTypes.includes(type)
-                ? (type === "Road" ? "#FFFFFF" : theme.colors.onPrimary)
-                : (type === "Road" ? "#2196F3" : theme.colors.onSurface)
-            }}
-          >
-            {t(`rideTypes.${type}`)}
-          </Chip>
-        ))}
+
+      <View style={chipRowStyle}>
+        {rideTypesDisplay.map((type) => {
+          const isSelected = selectedRideTypes.includes(type);
+          const isRoad = type === "Road";
+
+          return (
+            <Chip
+              key={type}
+              selected={isSelected}
+              onPress={() => toggleRideType(type)}
+              mode={isSelected ? "flat" : "outlined"}
+              showSelectedCheck={false}
+              style={{
+                backgroundColor: isSelected
+                  ? isRoad
+                    ? "#2196F3"
+                    : theme.colors.primary
+                  : "transparent",
+                borderColor: isRoad && !isSelected ? "#2196F3" : undefined,
+              }}
+              textStyle={{
+                ...chipTextDir,
+                color: isSelected
+                  ? isRoad
+                    ? "#FFFFFF"
+                    : theme.colors.onPrimary
+                  : isRoad
+                    ? "#2196F3"
+                    : theme.colors.onSurface,
+              }}
+            >
+              {t(`rideTypes.${type}`)}
+            </Chip>
+          );
+        })}
       </View>
 
       <Divider style={{ marginBottom: 16 }} />
 
       {/* Skill Level */}
-      <Text variant="titleMedium" style={{ marginBottom: 8 }}>
+      <Text variant="titleMedium" style={{ marginBottom: 8, ...dirText }}>
         {t("profile.skillLevel")}
       </Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-        {SKILL_LEVELS.map(level => (
-          <Chip
-            key={level}
-            selected={selectedSkill === level}
-            onPress={() => setSelectedSkill(level)}
-            mode={selectedSkill === level ? "flat" : "outlined"}
-            showSelectedCheck={false}
-            style={{
-              backgroundColor: selectedSkill === level
-                ? theme.colors.primary
-                : 'transparent'
-            }}
-            textStyle={{
-              color: selectedSkill === level
-                ? theme.colors.onPrimary
-                : theme.colors.onSurface
-            }}
-          >
-            {t(`skillLevels.${level}`)}
-          </Chip>
-        ))}
+
+      <View style={chipRowStyle}>
+        {skillLevelsDisplay.map((level) => {
+          const isSelected = selectedSkill === level;
+
+          return (
+            <Chip
+              key={level}
+              selected={isSelected}
+              onPress={() => setSelectedSkill(level)}
+              mode={isSelected ? "flat" : "outlined"}
+              showSelectedCheck={false}
+              style={{
+                backgroundColor: isSelected ? theme.colors.primary : "transparent",
+              }}
+              textStyle={{
+                ...chipTextDir,
+                color: isSelected ? theme.colors.onPrimary : theme.colors.onSurface,
+              }}
+            >
+              {t(`skillLevels.${level}`)}
+            </Chip>
+          );
+        })}
       </View>
 
       <Divider style={{ marginBottom: 16 }} />
 
       {/* Pace */}
-      <Text variant="titleMedium" style={{ marginBottom: 8 }}>
+      <Text variant="titleMedium" style={{ marginBottom: 8, ...dirText }}>
         {t("profile.pace")}
       </Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-        {PACE_OPTIONS.map(pace => (
-          <Chip
-            key={pace}
-            selected={selectedPace === pace}
-            onPress={() => setSelectedPace(pace)}
-            mode={selectedPace === pace ? "flat" : "outlined"}
-            showSelectedCheck={false}
-            style={{
-              backgroundColor: selectedPace === pace
-                ? theme.colors.primary
-                : 'transparent'
-            }}
-            textStyle={{
-              color: selectedPace === pace
-                ? theme.colors.onPrimary
-                : theme.colors.onSurface
-            }}
-          >
-            {t(`paceOptions.${pace}`)}
-          </Chip>
-        ))}
+
+      <View style={chipRowStyle}>
+        {paceOptionsDisplay.map((pace) => {
+          const isSelected = selectedPace === pace;
+
+          return (
+            <Chip
+              key={pace}
+              selected={isSelected}
+              onPress={() => setSelectedPace(pace)}
+              mode={isSelected ? "flat" : "outlined"}
+              showSelectedCheck={false}
+              style={{
+                backgroundColor: isSelected ? theme.colors.primary : "transparent",
+              }}
+              textStyle={{
+                ...chipTextDir,
+                color: isSelected ? theme.colors.onPrimary : theme.colors.onSurface,
+              }}
+            >
+              {t(`paceOptions.${pace}`)}
+            </Chip>
+          );
+        })}
       </View>
 
       <Divider style={{ marginBottom: 16 }} />
 
       {/* Birth Year */}
-      <Text variant="titleMedium" style={{ marginBottom: 8 }}>
+      <Text variant="titleMedium" style={{ marginBottom: 8, ...dirText }}>
         {t("profile.birthYear")}
       </Text>
+
       <TextInput
         label={t("profile.birthYearPlaceholder")}
         value={birthYear}
@@ -267,69 +316,39 @@ export default function ProfileScreen() {
         keyboardType="numeric"
         maxLength={4}
         style={{ marginBottom: 16 }}
+        contentStyle={dirText}
       />
 
       <Divider style={{ marginBottom: 16 }} />
 
       {/* Gender */}
-      <Text variant="titleMedium" style={{ marginBottom: 8 }}>
+      <Text variant="titleMedium" style={{ marginBottom: 8, ...dirText }}>
         {t("profile.gender")}
       </Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-        <Chip
-          selected={selectedGender === "Male"}
-          onPress={() => setSelectedGender("Male")}
-          mode={selectedGender === "Male" ? "flat" : "outlined"}
-          showSelectedCheck={false}
-          style={{
-            backgroundColor: selectedGender === "Male"
-              ? theme.colors.primary
-              : 'transparent'
-          }}
-          textStyle={{
-            color: selectedGender === "Male"
-              ? theme.colors.onPrimary
-              : theme.colors.onSurface
-          }}
-        >
-          {t("profile.genderOptions.male")}
-        </Chip>
-        <Chip
-          selected={selectedGender === "Female"}
-          onPress={() => setSelectedGender("Female")}
-          mode={selectedGender === "Female" ? "flat" : "outlined"}
-          showSelectedCheck={false}
-          style={{
-            backgroundColor: selectedGender === "Female"
-              ? theme.colors.primary
-              : 'transparent'
-          }}
-          textStyle={{
-            color: selectedGender === "Female"
-              ? theme.colors.onPrimary
-              : theme.colors.onSurface
-          }}
-        >
-          {t("profile.genderOptions.female")}
-        </Chip>
-        <Chip
-          selected={selectedGender === null}
-          onPress={() => setSelectedGender(null)}
-          mode={selectedGender === null ? "flat" : "outlined"}
-          showSelectedCheck={false}
-          style={{
-            backgroundColor: selectedGender === null
-              ? theme.colors.primary
-              : 'transparent'
-          }}
-          textStyle={{
-            color: selectedGender === null
-              ? theme.colors.onPrimary
-              : theme.colors.onSurface
-          }}
-        >
-          {t("profile.genderOptions.other")}
-        </Chip>
+
+      <View style={chipRowStyle}>
+        {genderOptionsDisplay.map((g) => {
+          const isSelected = selectedGender === g.value;
+
+          return (
+            <Chip
+              key={g.key}
+              selected={isSelected}
+              onPress={() => setSelectedGender(g.value)}
+              mode={isSelected ? "flat" : "outlined"}
+              showSelectedCheck={false}
+              style={{
+                backgroundColor: isSelected ? theme.colors.primary : "transparent",
+              }}
+              textStyle={{
+                ...chipTextDir,
+                color: isSelected ? theme.colors.onPrimary : theme.colors.onSurface,
+              }}
+            >
+              {g.label}
+            </Chip>
+          );
+        })}
       </View>
 
       <Divider style={{ marginBottom: 16 }} />

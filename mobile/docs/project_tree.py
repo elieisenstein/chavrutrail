@@ -40,6 +40,6 @@ def export_file_list(root_folder: str, output_csv: str):
 
 if __name__ == "__main__":
     ROOT_FOLDER = r"C:/Users/eliei/Documents/bishvil"    
-    OUTPUT_CSV  = r"C:/Users/eliei/Documents/bishvil/mobile/docs/files_list.csv"  # <-- change this
+    OUTPUT_CSV  = r"C:/Users/eliei/Documents/bishvil/mobile/docs/files_list.csv"  
 
     export_file_list(ROOT_FOLDER, OUTPUT_CSV)

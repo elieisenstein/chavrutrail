@@ -23,6 +23,7 @@ export default {
   },
 
   android: {
+    supportsRtl: true,
     package: "com.elieisenstein.bishvil",
     googleServicesFile: "./google-services.json", // This tells Expo where to find your file
     permissions: [

@@ -173,7 +173,7 @@
     "pace": "Pace Preference",
     "birthYear": "Birth Year",
     "birthYearPlaceholder": "Year (e.g., 1990)",
-    "gender": "Gender (Optional)",
+    "gender": "Gender",
     "genderOptions": {
       "male": "Man",
       "female": "Woman",

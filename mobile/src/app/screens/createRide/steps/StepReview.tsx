@@ -95,7 +95,7 @@ export default function StepReview({ draft }: { draft: CreateRideDraft }) {
       {/* Group */}
       <Text style={{ color: theme.colors.onBackground }}>
         <Text style={{ fontWeight: "bold" }}>{t("createRide.review.groupMode")} </Text>
-        {draft.join_mode === "express" 
+        {draft.join_mode === "express"
           ? t("createRide.review.groupModeExpress")
           : t("createRide.review.groupModeApproval")}
       </Text>
@@ -104,6 +104,13 @@ export default function StepReview({ draft }: { draft: CreateRideDraft }) {
         <Text style={{ fontWeight: "bold" }}>{t("createRide.review.maxParticipants")} </Text>
         {draft.max_participants || "-"}
       </Text>
+
+      {draft.gender_preference && (
+        <Text style={{ color: theme.colors.onBackground }}>
+          <Text style={{ fontWeight: "bold" }}>{t("createRide.group.genderPreference")}: </Text>
+          {t(`createRide.group.genderOptions.${draft.gender_preference}`)}
+        </Text>
+      )}
 
       <Divider />
 

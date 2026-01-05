@@ -1,6 +1,6 @@
 import React from "react";
 import { View } from "react-native";
-import { Button, Text, TextInput } from "react-native-paper";
+import { Button, Text, TextInput, Chip, useTheme } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 import { CreateRideDraft, JoinMode } from "../createRideTypes";
 
@@ -19,6 +19,7 @@ export default function StepGroup({
   onChange: (patch: Partial<CreateRideDraft>) => void;
 }) {
   const { t } = useTranslation();
+  const theme = useTheme();
 
   return (
     <View style={{ gap: 12 }}>
@@ -42,28 +43,32 @@ export default function StepGroup({
         keyboardType="numeric"
       />
 
-      {/* ADD THIS SECTION */}
-      <Text style={{ marginTop: 12 }}>{t("createRide.group.genderPreference")}</Text>
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        {genderPreferences.map((pref) => (
-          <Button
-            key={pref}
-            mode={draft.gender_preference === pref ? "contained" : "outlined"}
-            onPress={() => onChange({ gender_preference: pref })}
-            style={{ flex: 1 }}
-          >
-            {t(`createRide.group.genderOptions.${pref}`)}
-          </Button>
-        ))}
-      </View>
-      <Text style={{ opacity: 0.7, fontSize: 12 }}>
-        {t("createRide.group.genderPreferenceHelp")}
-      </Text>
-      {/* END OF NEW SECTION */}
-
       <Text style={{ opacity: 0.7 }}>
         {t("createRide.group.recommendation")}
       </Text>
+
+      <Text style={{ marginTop: 12 }}>{t("createRide.group.genderPreference")}</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+        {genderPreferences.map((pref) => (
+          <Chip
+            key={pref}
+            selected={draft.gender_preference === pref}
+            onPress={() => onChange({ gender_preference: pref })}
+            mode={draft.gender_preference === pref ? "flat" : "outlined"}
+            showSelectedCheck={false}
+            style={{
+              backgroundColor: draft.gender_preference === pref ? theme.colors.primary : "transparent",
+            }}
+            textStyle={{
+              color: draft.gender_preference === pref ? theme.colors.onPrimary : theme.colors.onSurface,
+            }}
+          >
+            {t(`createRide.group.genderOptions.${pref}`)}
+          </Chip>
+        ))}
+      </View>
+
+
     </View>
   );
 }

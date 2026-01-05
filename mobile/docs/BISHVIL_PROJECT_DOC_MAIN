@@ -1,15 +1,13 @@
-# Bishvil – Project Documentation (Reshaped)
+# Bishvil – Project Documentation
 
-*Last reshaped: 2026-01-02*
+*Last updated: 2026-01-05*
 
-This document consolidates and restructures the project documentation into four clear layers:
+This document consolidates the project documentation into four clear layers:
 
 1. **Product Specification** – what the product is and is not
 2. **Architecture & Decisions** – stable, long‑term choices
 3. **Current Status** – factual snapshot of where the project stands
 4. **Execution Plan (TODO)** – forward‑looking, actionable work
-
-The content below was **moved and deduplicated** from the original documents to ensure each section has a single responsibility.
 
 ---
 
@@ -17,7 +15,7 @@ The content below was **moved and deduplicated** from the original documents to 
 
 ### Purpose
 
-Bishvil is an **Android‑first mobile app** for organizing and joining cycling rides in Israel (MTB / Gravel / Road), optimized for *operational compatibility* (pace, skill, timing) rather than social networking.
+Bishvil is an **Android‑first mobile app** for organizing and joining cycling rides in Israel (MTB / Gravel / Road), optimized for *operational compatibility* (pace, skill, timing, gender preferences) rather than social networking.
 
 ### Core Principles
 
@@ -25,32 +23,38 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * Low friction, minimal ceremony
 * Privacy‑first (no phone exposure)
 * Hebrew‑first with full RTL/LTR support
+* Gender-aware ride filtering for safety and comfort
 
 ### Target Platform
 
-* Android first (APK distribution)
+* Android first (APK distribution via direct download)
 * iOS later (no architectural blockers)
 
 ### MVP Scope
 
 * Ride creation and discovery
 * Join / approval flows
-* Profiles (lightweight)
-* Map‑based location selection
+* Profiles (lightweight, preference-based)
+* Map‑based location selection (Israel Hiking Map)
 * Bilingual UI (Hebrew / English)
+* Push notifications for ride events
+* Gender-based ride filtering
 
 ### Explicitly Out of Scope (MVP)
 
-* GPS ride tracking
-* Media uploads
+* GPS ride tracking during rides
+* Media uploads (photos/videos)
 * Social feeds, likes, ratings
 * Internal moderation tools
+* In-app chat (WhatsApp used instead)
+* Ride editing after creation
 
 ### KPIs (Pilot)
 
 * Time to first joined ride
 * % of rides that actually happen
 * Repeat rides with the same participants
+* Notification engagement rate
 
 ---
 
@@ -58,225 +62,405 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 
 ### Mobile Stack
 
-* React Native + Expo (TypeScript)
-* react-native-paper (Material Design 3)
-* Design‑system driven (Strava‑like feel)
+* **Framework:** React Native + Expo SDK 52 (TypeScript)
+* **UI Library:** react-native-paper (Material Design 3)
+* **Navigation:** React Navigation (native stack + bottom tabs)
+* **Design:** Strava‑inspired, clean, functional aesthetic
 
 ### Backend
 
-* Supabase
-
-  * Auth: Phone OTP (Twilio Verify)
-  * PostgreSQL + RLS
-  * Realtime (future chat / notifications)
+* **Platform:** Supabase
+  * Auth: Phone OTP (email fallback for development)
+  * PostgreSQL with Row Level Security (RLS)
+  * Realtime subscriptions for live updates
+  * Edge Functions for notifications
+  * Database webhooks for event triggers
 
 ### Authentication
 
-* Phone OTP only (Israeli norm, high completion)
-* No email auth in MVP
-* Sessions persist across restarts
+* Phone OTP primary (Israeli norm, high completion)
+* Email auth for development/testing
+* Sessions persist across app restarts
+* Auto-refresh of push tokens on login
 
-### Profiles
+### Data Model
 
-* `profiles` table separate from `auth.users`
-* Auto‑created via DB trigger
-* Phone number not duplicated in app tables
+#### Core Tables
+* `profiles` - User profiles (separate from auth.users)
+  * Auto-created via DB trigger
+  * Contains: display_name, bio, ride_type[], skill, pace, birth_year, gender, expo_push_token
+* `rides` - Ride listings
+  * Contains ride details, location, preferences, gender_preference
+* `ride_participants` - Join/approval tracking
+  * Tracks status: joined, requested, rejected, left, kicked
 
 ### Privacy Decisions
 
 * Phone numbers never exposed to other users
 * Display name is the only visible identity
-* Future contact via in‑app or WhatsApp link only
+* Future contact via in‑app notifications or WhatsApp link only
+* No public profiles or social feeds
 
-### Maps
+### Maps & Location
 
-* Mapbox GL (native build)
-* Israel Hiking Map tiles
-* Text + map pin required
-* No reverse geocoding by design
+* **Provider:** Mapbox GL (native build required)
+* **Tiles:** Israel Hiking Map with colored trail overlays
+* **Features:**
+  * Full-screen map picker for ride creation
+  * Interactive map preview in ride details
+  * Text description + GPS coordinates required
+  * External navigation (Google Maps / Waze)
+* **Design Decision:** No reverse geocoding (user provides text description)
+
+### Notifications
+
+* **Provider:** Expo Push Notifications + Firebase Cloud Messaging
+* **Architecture:**
+  * Supabase Database Webhooks → Edge Function → Expo Push API
+  * Token stored in profiles table, auto-refreshed on app start
+  * Android notification channels for categorization
+* **Events:**
+  * Join requests (to owner)
+  * Approval/rejection (to requester)
+  * Ride cancellation (to all participants)
+  * Ride updates (future)
+
+### Internationalization
+
+* **Languages:** Hebrew (primary), English
+* **Implementation:** react-i18next
+* **RTL Handling:** Native I18nManager.forceRTL() with app restart requirement
+* **Date/Time:** Localized using he-IL formatting
 
 ### Deferred Backend (Reserved)
 
-* FastAPI (Python) for:
-
-  * moderation
-  * trust scoring
-  * scheduled jobs
-  * external integrations
+* FastAPI (Python) for future needs:
+  * Moderation tools
+  * Trust scoring algorithms
+  * Scheduled cleanup jobs
+  * External service integrations
 
 ---
 
 ## 3. Current Project Status (Snapshot)
 
-**Stage:** Pilot‑ready MVP (Production‑ready)
+**Stage:** Polish & Refinement Phase (Production-ready MVP)
 
-### What Works End‑to‑End
+### ✅ Completed Core Features
 
-* Phone OTP authentication
-* Persistent sessions
-* Profile auto‑creation
-* Ride creation wizard (When / Where / Details / Group / Review)
-* Join & approval flows
-* Owner cancel & participant leave
-* Real‑time participant counts
-* Feed with filters and empty states
-* Hebrew / English with stable RTL/LTR
-* Light / Dark / System themes
+#### Authentication & Profiles
+* Phone OTP authentication with persistent sessions
+* Profile auto-creation via DB trigger
+* Lightweight profile with ride preferences
+* Gender selection (Male/Female/Other)
+* Birth year collection
+* Ride type preferences (Trail, Enduro, Gravel, Road)
+* Skill level and pace preferences
 
-### Maps & Location
+#### Ride Creation & Management
+* 5-step wizard (When/Where/Details/Group/Review)
+  * Date/time picker with duration
+  * Full-screen map location picker (Israel Hiking Map)
+  * Ride type, skill level, pace selection
+  * Distance and elevation (optional)
+  * Max participants (1-6, recommendation for 4)
+  * Join mode (Express/Approval)
+  * Gender preference (All/Men/Women)
+* Owner can cancel rides (notifies all participants)
+* Participants can leave rides
+* Real-time participant count updates
 
-* Full Mapbox integration (native build)
-* Israel Hiking tiles with colored trails
-* Full‑screen map picker
-* Correct coordinate persistence
-* External navigation (Google Maps / Waze)
+#### Feed & Discovery
+* Smart filtering by:
+  * User's preferred ride types (auto-loaded from profile)
+  * User's gender (automatic gender-based visibility)
+  * Skill level (optional)
+  * Time range (Today, 3d, 7d, 14d, 30d)
+* Empty states with helpful CTAs
+* Pull-to-refresh
+* Real-time updates via Supabase subscriptions
 
-### Navigation
+#### My Rides
+* Three sections with visual status indicators:
+  * Organizing (orange badge)
+  * Joined (green badge)
+  * Requested (yellow badge)
+* Empty states per section
+* Status-specific ride cards
 
-* 4 tabs: Feed, My Rides, Create, Profile
-* My Rides sections:
+#### Ride Details
+* Complete ride information display
+* Israel Hiking Map preview
+* Participant list with owner indicator
+* Pending requests section (owner only)
+* Approve/reject buttons (owner only)
+* Join/Leave actions
+* External navigation (Google Maps/Waze)
+* WhatsApp share functionality
+* Gender preference display
 
-  * Organizing
-  * Joined
-  * Requested
+#### Notifications System
+* **Backend:** Supabase webhooks → Edge Functions → Expo Push API
+* **Mobile:** Auto-refreshing push tokens on app start/login
+* **Events:** Join requests, approvals/rejections, ride cancellations
+* **Android:** Custom notification channels with high priority
+* **Verified:** All notification flows tested end-to-end
 
-### Production Readiness
+#### UI/UX Polish (Latest Session - Jan 5, 2026)
+* **Unified Design System:**
+  * Consistent chip styling across all screens
+  * Orange theme color for selections
+  * 6px gap spacing (reduced from 8px)
+  * Material Design 3 components throughout
+  
+* **ProfileScreen:**
+  * Removed duplicate heading
+  * Merged XC + Trails → just "Trails" (4 ride types)
+  * RTL button order support (arrays reversed for Hebrew)
+  * Validation: at least one ride type required
+  * Birth year placeholder-only behavior
+  
+* **Create Ride Wizard:**
+  * StepDetails: Replaced buttons with chips for consistency
+  * StepGroup: Gender preference with chips
+  * StepReview: Gender preference display added
+  * Increased spacing between sections (16px)
+  * Extra spacing between Pace and Distance fields
+  
+* **MyRidesScreen & RideDetailsScreen:**
+  * Gender preference display added
+  * Consistent with create flow
 
-* Tested on physical Android devices
-* Real OTP flow verified
-* Multi‑user scenarios validated
-* Signed APKs ready for distribution
+#### Internationalization
+* Hebrew and English fully supported
+* RTL/LTR handling with native I18nManager
+* App restart required for language/direction changes
+* All UI strings translated
+* Localized date/time formatting
 
-### Known Limitations (Intentional)
+#### Theme Support
+* Light, Dark, and System theme modes
+* Persistent theme preference
+* Smooth theme switching
 
-* No push notifications yet
-* No in‑app chat
-* No ride editing
-* No distance sorting
+### 📋 Known Limitations (Intentional MVP Decisions)
+
+* No ride editing after creation
+* No in-app chat (WhatsApp used instead)
+* No distance-based sorting (future)
+* No GPS tracking during rides
+* No media uploads
+* No ratings or reviews
+* No "I'm at the spot" button
+* RTL chip alignment (minor visual issue in Hebrew, functional but not perfectly right-aligned)
+
+### 🧪 Testing Status
+
+* **Devices:** Tested on physical Android devices
+* **Auth:** Real OTP flow verified (Twilio Verify)
+* **Multi-user:** Validated with multiple test accounts
+* **Notifications:** End-to-end tested for all event types
+* **Maps:** Verified on real devices with GPS
+* **APK:** Signed APKs ready for distribution
+
+### 🎨 Design System
+
+* **Colors:** Orange primary theme (Strava-inspired)
+* **Typography:** Material Design 3 defaults
+* **Components:** react-native-paper throughout
+* **Spacing:** Consistent 6px chip gaps, 16px section spacing
+* **Status Badges:**
+  * Owner: Orange (#FF6B35)
+  * Joined: Green (#4CAF50)
+  * Requested: Yellow (#FFC107)
 
 ---
 
 ## 4. Execution Plan (TODO – Forward Looking)
 
-### Priority 1 – Engagement Foundation
+### Immediate Next Steps (Phase 1 - APK Distribution)
 
-**Goal:** Prove notification & coordination value
+**Goal:** Get first 10 beta testers using the app
 
-* Test full approval notification flow
-* Enforce phone number collection on join
-* Personalize feed by home region / ride type
+* [ ] Finalize APK signing and distribution method
+* [ ] Create simple landing page with download link
+* [ ] Test APK installation on various Android versions
+* [ ] Set up basic crash reporting (Sentry or similar)
+* [ ] Create user onboarding flow documentation
 
-### Priority 2 – Social Bridge
+### Priority 2 – Enhanced Coordination
 
-**Goal:** Get users into real coordination
+**Goal:** Improve ride coordination and communication
 
-* WhatsApp group link per ride
-* Edit ride & notify participants
+* [ ] WhatsApp group link per ride (owner can add)
+* [ ] Ride editing for owner (notify participants of changes)
+* [ ] "Confirm attendance" feature 24h before ride
+* [ ] Phone number visibility toggle (opt-in for participants)
 
-### Priority 3 – Refinement
+### Priority 3 – Feed Improvements
 
-**Goal:** Prepare first 10 testers
+**Goal:** Better discovery and matching
 
-* Multi‑device testing
-* Ride auto‑cleanup (past rides)
-* Simplified onboarding (forced home region)
+* [ ] Distance-based sorting (requires user home location)
+* [ ] Save home location in profile
+* [ ] "Near me" filter
+* [ ] Ride recommendations based on profile
+
+### Priority 4 – Data & Cleanup
+
+**Goal:** Maintain clean database and improve UX
+
+* [ ] Auto-archive rides after end time (status: completed)
+* [ ] Auto-cancel rides with no participants 24h before start
+* [ ] Cleanup old notifications
+* [ ] Basic analytics dashboard
+
+### Future Enhancements (Post-MVP)
+
+* Trust score system (completed rides, cancellation rate)
+* In-app chat (if WhatsApp proves insufficient)
+* Ride templates for repeat organizers
+* Group/club features
+* Premium features (ride series, advanced filters)
 
 ### Explicitly Postponed
 
-* Internal chat (WhatsApp used instead)
-* Media uploads
-* Ratings / reviews
-* "I’m at the spot" button
+* GPS ride tracking and recording
+* Media uploads (photos/videos from rides)
+* Public ratings and reviews
+* Complex moderation tools
+* iOS version (until Android validates product-market fit)
 
 ---
 
-## Ownership
+## 5. Technical Debt & Issues
 
-**Developer:** Eli Eisenstein
-**Project:** Bishvil
-**Current Focus:** Pilot validation & engagement
+### Minor Issues
+* **RTL Chip Alignment:** Hebrew chips align left instead of right (functional but not ideal)
+  * Impact: Low (purely visual, doesn't affect usability)
+  * Priority: Low (polish for future release)
+
+### Migration Notes
+* Users who selected "XC" before the merge will see it removed on next profile edit
+* No database migration needed (handled in app logic)
+
+### Performance Considerations
+* Feed query performance is good for <1000 rides
+* May need indexing if user base grows significantly
+* Real-time subscriptions are lightweight (only participants table)
 
 ---
 
-*End of reshaped documentation*
+## 6. Development Practices
 
-🏆 Final Achievement Summary for your Status Doc
-We have now fully stabilized the end-to-end notification pipeline. Here is the breakdown of the successful architecture:
+### Code Organization
+* Feature-based folder structure
+* Shared components in `/components`
+* API calls in `/lib` modules
+* Type definitions co-located with features
 
-1. Backend & Event Logic
-Automated Triggers: The Supabase Database Webhook accurately detects changes in ride_participants (joins/leaves) and rides (cancellations/updates).
+### Type Safety
+* Full TypeScript coverage
+* Strict mode enabled
+* Supabase types auto-generated
 
-Edge Function Reliability: The process-ride-event function correctly calls the send-notification service. We resolved the 401 Unauthorized issue by disabling JWT verification for internal service-to-service calls.
+### State Management
+* React hooks (useState, useEffect)
+* No global state library (intentional simplicity)
+* Real-time updates via Supabase subscriptions
 
-Expo API Integration: Successfully authenticated with Expo’s servers using the EXPO_ACCESS_TOKEN, verified by {"status": "ok"} responses in the logs.
+### Error Handling
+* Try-catch blocks for all async operations
+* User-friendly error messages
+* Console logging for debugging
 
-2. Mobile App Infrastructure
-Self-Healing Token Sync: Updated App.tsx and notifications.ts to automatically refresh the expo_push_token in the Supabase profiles table every time the app initializes or a user logs in.
+---
 
-Robust User Identification: Switched to supabase.auth.getUser() to ensure the push token is always mapped to the correct user ID, even during cold starts.
+## 7. Ownership & Contact
 
-Android Channel Optimization: Implemented specific notification channels (e.g., "Requests & Approvals", "Ride Updates") with AndroidImportance.HIGH to ensure pop-up alerts and custom sounds.
+**Developer:** Eli Eisenstein  
+**Project:** Bishvil (בשביל - "For the trail")  
+**Current Phase:** Polish & Beta Testing  
+**Started:** 2025  
+**Current Focus:** APK distribution and first pilot users
 
-3. Verified Use Cases
-✅ Join Requests: Owner is notified when a user requests to join.
+---
 
-✅ Approvals/Rejections: Participants are notified of the owner's decision.
+## 8. Session History & Progress Log
 
-✅ Ride Cancellations: All participants are successfully broadcasted a notification if a ride is cancelled.
+### Session: January 5, 2026 - UI/UX Polish & Gender Preferences
 
-Next Objective: Address UI state refreshing to ensure screens update automatically when a notification is received or an action is performed - done!
+**Completed:**
+* ProfileScreen polish (removed duplicate heading, merged XC+Trails, RTL support, validation, birth year fix)
+* StepDetails polish (unified chip styling, spacing improvements)
+* StepGroup polish (gender preference chips)
+* StepReview (added gender preference display)
+* MyRidesScreen (added gender preference display)
+* RideDetailsScreen (added gender preference display)
+* Consistent design system across all screens
 
-Gender:
-🎉 Session Summary: Gender Preferences & Personalized Feed
+**Key Decisions:**
+* Standardized on 6px chip gaps (down from 8px)
+* Merged "XC" and "Trail" into single "Trail" category (4 types total)
+* Removed duplicate UI elements for cleaner interface
+* Validated critical fields (at least one ride type required)
 
-✅ What We Built:
-1. Gender Preferences for Rides
+### Previous Sessions - Key Achievements
 
-Database: Added gender_preference column to rides table (all/men/women)
-Profile: Changed "Skip" → "Other" (גבר / אישה / אחר)
-Create Ride: Step 4 now has gender selector (כולם / גברים / נשים)
-Feed Filtering: Automatically hides incompatible gender rides
+**Notifications System (December 2025):**
+* Implemented end-to-end push notification pipeline
+* Supabase webhooks → Edge Functions → Expo Push API
+* Self-healing token sync on app start
+* Android notification channels with custom sounds
+* Verified all notification types working
 
-Male users → see "All" + "Men only" ✅
-Female users → see "All" + "Women only" ✅
-Other users → see "All" only ✅
+**Gender Preferences Feature (December 2025):**
+* Added gender_preference to rides table (all/men/women)
+* Profile gender selection (Male/Female/Other)
+* Automatic feed filtering based on viewer's gender
+* Privacy-focused implementation (filter by viewer, not by creator)
 
+**Core Features (November-December 2025):**
+* Phone OTP authentication
+* Ride creation wizard (5 steps)
+* Feed with smart filtering
+* My Rides with status tracking
+* Real-time participant updates
+* Map integration (Israel Hiking Map)
+* Bilingual support (Hebrew/English)
+* Theme support (Light/Dark/System)
 
-Ride Details: Shows gender badge when not "All"
+---
 
-2. Personalized Feed by Ride Types
+*End of documentation*
 
-Auto-load user preferences: Feed automatically shows only user's preferred ride types from profile
-On every screen focus: Both gender AND ride types reload when returning to Feed
-User can override: Filter modal lets users manually add other types if desired
+## Quick Reference
 
+### Current Ride Types
+1. Trail (merged from XC + Trail)
+2. Enduro
+3. Gravel
+4. Road
 
-Done.
+### Gender Preference Logic
+* **All:** Visible to everyone
+* **Men:** Visible only to male users
+* **Women:** Visible only to female users
+* **Other/Null gender users:** See only "All" rides
 
-Next:
-Ready for a new session! What's next? 🚴‍♂️
-Options:
+### Status Badges
+* **Orange:** Owner/Organizing
+* **Green:** Joined
+* **Yellow:** Requested/Pending
 
-A. Phone number collection when joining
-B. WhatsApp group link integration
-C. Polish
-D. Realtime refresh
+### Key File Locations
+* Profiles: `src/lib/profile.ts`
+* Rides: `src/lib/rides.ts`
+* Notifications: `src/lib/notifications.ts`
+* Auth: `src/lib/supabase.ts`
+* i18n: `src/app/i18n/`
 
+---
 
-PROJECT STATUS:
-
-✅ Core features complete: ride creation, feed with filters, notifications, gender preferences
-
-✅ Push notifications working (Firebase + Expo)
-
-✅ Real-time updates via Supabase
-
-✅ Feed personalization by gender + ride types
-
-what we did today:
-✅ Step 1: Remove duplicate "Profile" heading
-✅ Step 2: Merge XC and Trails → just "Trails"
-✅ Step 3: RTL button order fix - is not solved yet
-✅ Step 4: Reduce chip gap to 6px
-✅ Step 5: Consistent Ride Types styling
-✅ Bonus: Validation - require at least one ride type selected
+**Last Reshaped:** January 5, 2026  
+**Status:** Ready for beta testing

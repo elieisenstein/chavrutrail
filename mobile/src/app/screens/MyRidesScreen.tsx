@@ -102,7 +102,7 @@ export default function MyRidesScreen() {
       <Card
         style={[
           styles.card,
-          { 
+          {
             borderLeftWidth: 4,
             borderLeftColor: statusColor,
           }
@@ -130,15 +130,15 @@ export default function MyRidesScreen() {
               const startDate = new Date(ride.start_at);
               const endDate = new Date(startDate);
               endDate.setHours(endDate.getHours() + ride.duration_hours);
-              
-              const dateStr = startDate.toLocaleDateString('he-IL', { 
+
+              const dateStr = startDate.toLocaleDateString('he-IL', {
                 day: '2-digit',
-                month: '2-digit', 
+                month: '2-digit',
                 year: 'numeric'
               });
               const startTime = startDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
               const endTime = endDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-              
+
               return `${dateStr} ${startTime}-${endTime} (${ride.duration_hours}h)`;
             })()}
           </Text>
@@ -149,6 +149,10 @@ export default function MyRidesScreen() {
 
           <Text style={{ opacity: 0.8 }}>
             {t("rideDetails.group")}: {t(`rideDetails.joinModes.${ride.join_mode.toLowerCase()}`)} · {t("rideDetails.max")} {ride.max_participants}
+          </Text>
+
+          <Text style={{ opacity: 0.8 }}>
+            {t("createRide.group.genderPreference")}: {t(`createRide.group.genderOptions.${ride.gender_preference}`)}
           </Text>
         </Card.Content>
       </Card>

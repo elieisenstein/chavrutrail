@@ -152,8 +152,6 @@ export default function ProfileScreen() {
     );
   }
 
-  console.log('selectedRideTypes:', selectedRideTypes, 'length:', selectedRideTypes.length);
-
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.colors.background }}

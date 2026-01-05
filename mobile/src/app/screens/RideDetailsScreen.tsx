@@ -10,17 +10,17 @@ import type { Ride } from "../../lib/rides";
 import type { FeedStackParamList } from "../navigation/AppNavigator";
 import IsraelHikingMapView from "../../components/IsraelHikingMapView";
 import { ShareRideButton } from "../../components/ShareRideButton";
-import { 
-  joinOrRequestRide, 
-  leaveRide, 
-  getMyRideParticipantStatus, 
+import {
+  joinOrRequestRide,
+  leaveRide,
+  getMyRideParticipantStatus,
   getRideParticipantCount,
   getRideParticipants,
   approveJoinRequest,
   rejectJoinRequest,
   cancelRide,
   type ParticipantWithName,
-  type ParticipantStatus 
+  type ParticipantStatus
 } from "../../lib/rides";
 
 type RideDetailsRoute = RouteProp<FeedStackParamList, "RideDetails">;
@@ -40,7 +40,7 @@ export default function RideDetailsScreen() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [approvingUserId, setApprovingUserId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
-  
+
   const theme = useTheme();
 
   // Navigation function - opens Google Maps or Waze
@@ -105,56 +105,56 @@ export default function RideDetailsScreen() {
   };
 
   useEffect(() => {
-  let mounted = true;
+    let mounted = true;
 
-  (async () => {
-    setLoading(true);
-    await loadRideData();
-    if (mounted) setLoading(false);
-  })();
+    (async () => {
+      setLoading(true);
+      await loadRideData();
+      if (mounted) setLoading(false);
+    })();
 
-  // Real-time subscription for participant changes
-  const channel = supabase
-    .channel(`ride_${rideId}_updates`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*', // Listen for INSERT, UPDATE, DELETE
-        schema: 'public',
-        table: 'ride_participants',
-        filter: `ride_id=eq.${rideId}`,
-      },
-      (payload) => {
-        console.log('🔄 Participant change:', payload);
-        // Reload data when participants change
-        if (mounted) {
-          loadRideData();
+    // Real-time subscription for participant changes
+    const channel = supabase
+      .channel(`ride_${rideId}_updates`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'ride_participants',
+          filter: `ride_id=eq.${rideId}`,
+        },
+        (payload) => {
+          console.log('🔄 Participant change:', payload);
+          // Reload data when participants change
+          if (mounted) {
+            loadRideData();
+          }
         }
-      }
-    )
-    .on(
-      'postgres_changes',
-      {
-        event: '*', // Listen for ride updates (cancellation, edits, etc)
-        schema: 'public',
-        table: 'rides',
-        filter: `id=eq.${rideId}`,
-      },
-      (payload) => {
-        console.log('🔄 Ride changes:', payload);
-        // Reload data when ride changes
-        if (mounted) {
-          loadRideData();
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for ride updates (cancellation, edits, etc)
+          schema: 'public',
+          table: 'rides',
+          filter: `id=eq.${rideId}`,
+        },
+        (payload) => {
+          console.log('🔄 Ride changes:', payload);
+          // Reload data when ride changes
+          if (mounted) {
+            loadRideData();
+          }
         }
-      }
-    )
-    .subscribe();
+      )
+      .subscribe();
 
-  return () => {
-    mounted = false;
-    supabase.removeChannel(channel);
-  };
-}, [rideId]);
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [rideId]);
 
   async function handleJoin() {
     if (!ride) return;
@@ -162,7 +162,7 @@ export default function RideDetailsScreen() {
     try {
       setJoining(true);
       await joinOrRequestRide(ride.id, ride.join_mode);
-      
+
       await loadRideData();
     } catch (e: any) {
       console.log("Join error:", e?.message ?? e);
@@ -262,29 +262,29 @@ export default function RideDetailsScreen() {
       <Card>
         <Card.Content style={{ gap: 8 }}>
           <Text variant="titleLarge" style={{ color: theme.colors.onSurface }}>
-          {t(`rideTypes.${ride.ride_type}`)} · {t(`skillLevels.${ride.skill_level}`)}
-          {ride.pace ? ` · ${t(`paceOptions.${ride.pace}`)}` : ""}
-          {ride.gender_preference !== "all" && (
-            <Text style={{ color: theme.colors.primary }}>
-              {" "}· {t(`createRide.group.genderOptions.${ride.gender_preference}`)}
-            </Text>
-          )}
-        </Text>
+            {t(`rideTypes.${ride.ride_type}`)} · {t(`skillLevels.${ride.skill_level}`)}
+            {ride.pace ? ` · ${t(`paceOptions.${ride.pace}`)}` : ""}
+            {ride.gender_preference !== "all" && (
+              <Text style={{ color: theme.colors.primary }}>
+                {" "}· {t(`createRide.group.genderOptions.${ride.gender_preference}`)}
+              </Text>
+            )}
+          </Text>
 
           <Text style={{ opacity: 0.8 }}>
             {t("rideDetails.when")}: {(() => {
               const startDate = new Date(ride.start_at);
               const endDate = new Date(startDate);
               endDate.setHours(endDate.getHours() + ride.duration_hours);
-              
-              const dateStr = startDate.toLocaleDateString('he-IL', { 
+
+              const dateStr = startDate.toLocaleDateString('he-IL', {
                 day: '2-digit',
-                month: '2-digit', 
+                month: '2-digit',
                 year: 'numeric'
               });
               const startTime = startDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
               const endTime = endDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-              
+
               return `${dateStr} ${startTime}-${endTime} (${ride.duration_hours}h)`;
             })()}
           </Text>
@@ -295,6 +295,10 @@ export default function RideDetailsScreen() {
 
           <Text style={{ opacity: 0.8 }}>
             {t("rideDetails.group")}: {t(`rideDetails.joinModes.${ride.join_mode.toLowerCase()}`)} · {t("rideDetails.max")} {ride.max_participants}
+          </Text>
+
+          <Text style={{ opacity: 0.8 }}>
+            {t("createRide.group.genderPreference")}: {t(`createRide.group.genderOptions.${ride.gender_preference}`)}
           </Text>
 
           <Text style={{ opacity: 0.8 }}>
@@ -313,7 +317,7 @@ export default function RideDetailsScreen() {
 
           {/* Share Buttons */}
           <Divider style={{ marginVertical: 12 }} />
-          <ShareRideButton 
+          <ShareRideButton
             rideId={ride.id}
             rideTitle={shareTitle}
             isHebrew={isHebrew}
@@ -326,16 +330,16 @@ export default function RideDetailsScreen() {
               <Text variant="titleMedium" style={{ color: theme.colors.onSurface, marginBottom: 8 }}>
                 {t("rideDetails.meetingLocation")}
               </Text>
-              
+
               <IsraelHikingMapView
                 key={`map-${ride.id}-${ride.start_lat}-${ride.start_lng}`}
                 center={[Number(ride.start_lng), Number(ride.start_lat)]}
                 zoom={13}
                 height={250}
                 interactive={false}
-                markers={[{ 
-                  coordinate: [Number(ride.start_lng), Number(ride.start_lat)], 
-                  id: "meeting" 
+                markers={[{
+                  coordinate: [Number(ride.start_lng), Number(ride.start_lat)],
+                  id: "meeting"
                 }]}
               />
 
@@ -362,7 +366,7 @@ export default function RideDetailsScreen() {
           ))}
           {joinedParticipants.length === 1 && joinedParticipants[0]?.role === 'owner' && (
             <Text style={{ opacity: 0.6, paddingLeft: 8, fontStyle: 'italic', marginTop: 4 }}>
-              {isOwner 
+              {isOwner
                 ? t("rideDetails.status.waitingForOthers")
                 : t("rideDetails.status.beTheFirst")}
             </Text>
@@ -376,11 +380,11 @@ export default function RideDetailsScreen() {
                 {t("rideDetails.pendingRequests")}
               </Text>
               {pendingRequests.map((p) => (
-                <View 
-                  key={p.user_id} 
-                  style={{ 
-                    flexDirection: 'row', 
-                    gap: 8, 
+                <View
+                  key={p.user_id}
+                  style={{
+                    flexDirection: 'row',
+                    gap: 8,
                     alignItems: 'center',
                     marginTop: 8,
                   }}
@@ -388,8 +392,8 @@ export default function RideDetailsScreen() {
                   <Text style={{ flex: 1, opacity: 0.8 }}>
                     {p.display_name}
                   </Text>
-                  <Button 
-                    mode="contained" 
+                  <Button
+                    mode="contained"
                     compact
                     loading={approvingUserId === p.user_id}
                     disabled={approvingUserId !== null}
@@ -397,8 +401,8 @@ export default function RideDetailsScreen() {
                   >
                     {t("rideDetails.approve")}
                   </Button>
-                  <Button 
-                    mode="outlined" 
+                  <Button
+                    mode="outlined"
                     compact
                     loading={approvingUserId === p.user_id}
                     disabled={approvingUserId !== null}
@@ -424,10 +428,10 @@ export default function RideDetailsScreen() {
                 {myStatus === "joined"
                   ? t("rideDetails.actions.joined")
                   : myStatus === "requested"
-                  ? t("rideDetails.actions.requested")
-                  : ride.join_mode === "express"
-                  ? t("rideDetails.actions.join")
-                  : t("rideDetails.actions.askToJoin")}
+                    ? t("rideDetails.actions.requested")
+                    : ride.join_mode === "express"
+                      ? t("rideDetails.actions.join")
+                      : t("rideDetails.actions.askToJoin")}
               </Button>
             )}
 

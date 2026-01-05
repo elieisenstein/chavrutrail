@@ -1,10 +1,11 @@
 import React from "react";
 import { View } from "react-native";
-import { Button, Text, TextInput } from "react-native-paper";
+import { Button, Text, TextInput, Chip, useTheme } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 import { CreateRideDraft, RideType, SkillLevel } from "../createRideTypes";
 
-const rideTypes: RideType[] = ["XC", "Trail", "Enduro", "Gravel", "Road"];
+//const rideTypes: RideType[] = ["XC", "Trail", "Enduro", "Gravel", "Road"];
+const rideTypes: RideType[] = ["Trail", "Enduro", "Gravel", "Road"];
 const skillLevels: SkillLevel[] = ["Beginner", "Intermediate", "Advanced"];
 const paceOptions = ["Slow", "Moderate", "Fast"];
 
@@ -16,47 +17,71 @@ export default function StepDetails({
   onChange: (patch: Partial<CreateRideDraft>) => void;
 }) {
   const { t } = useTranslation();
+  const theme = useTheme();
 
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: 16 }}>
       <Text>{t("createRide.details.rideType")}</Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {rideTypes.map((rt) => (
-          <Button 
-            key={rt} 
-            mode={draft.ride_type === rt ? "contained" : "outlined"} 
+          <Chip
+            key={rt}
+            selected={draft.ride_type === rt}
             onPress={() => onChange({ ride_type: rt })}
-            buttonColor={rt === "Road" && draft.ride_type === rt ? "#2196F3" : undefined}
-            textColor={rt === "Road" && draft.ride_type !== rt ? "#2196F3" : undefined}
+            mode={draft.ride_type === rt ? "flat" : "outlined"}
+            showSelectedCheck={false}
+            style={{
+              backgroundColor: draft.ride_type === rt ? theme.colors.primary : "transparent",
+            }}
+            textStyle={{
+              color: draft.ride_type === rt ? theme.colors.onPrimary : theme.colors.onSurface,
+            }}
           >
             {t(`rideTypes.${rt}`)}
-          </Button>
+          </Chip>
         ))}
       </View>
 
       <Text>{t("createRide.details.skillLevel")}</Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {skillLevels.map((sl) => (
-          <Button 
-            key={sl} 
-            mode={draft.skill_level === sl ? "contained" : "outlined"} 
+          <Chip
+            key={sl}
+            selected={draft.skill_level === sl}
             onPress={() => onChange({ skill_level: sl })}
+            mode={draft.skill_level === sl ? "flat" : "outlined"}
+            showSelectedCheck={false}
+            style={{
+              backgroundColor: draft.skill_level === sl ? theme.colors.primary : "transparent",
+            }}
+            textStyle={{
+              color: draft.skill_level === sl ? theme.colors.onPrimary : theme.colors.onSurface,
+            }}
           >
             {t(`skillLevels.${sl}`)}
-          </Button>
+          </Chip>
         ))}
       </View>
 
+
       <Text>{t("profile.pace")}</Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {paceOptions.map((pace) => (
-          <Button 
-            key={pace} 
-            mode={draft.pace === pace ? "contained" : "outlined"} 
+          <Chip
+            key={pace}
+            selected={draft.pace === pace}
             onPress={() => onChange({ pace: pace as "Slow" | "Moderate" | "Fast" })}
+            mode={draft.pace === pace ? "flat" : "outlined"}
+            showSelectedCheck={false}
+            style={{
+              backgroundColor: draft.pace === pace ? theme.colors.primary : "transparent",
+            }}
+            textStyle={{
+              color: draft.pace === pace ? theme.colors.onPrimary : theme.colors.onSurface,
+            }}
           >
             {t(`paceOptions.${pace}`)}
-          </Button>
+          </Chip>
         ))}
       </View>
 
@@ -65,6 +90,7 @@ export default function StepDetails({
         value={draft.distance_km?.toString() ?? ""}
         onChangeText={(v) => onChange({ distance_km: v === "" ? null : Number(v) })}
         keyboardType="numeric"
+        style={{ marginTop: 16 }}
       />
 
       <TextInput

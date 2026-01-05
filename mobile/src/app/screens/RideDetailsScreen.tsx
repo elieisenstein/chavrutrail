@@ -262,9 +262,14 @@ export default function RideDetailsScreen() {
       <Card>
         <Card.Content style={{ gap: 8 }}>
           <Text variant="titleLarge" style={{ color: theme.colors.onSurface }}>
-            {t(`rideTypes.${ride.ride_type}`)} · {t(`skillLevels.${ride.skill_level}`)}
-            {ride.pace ? ` · ${t(`paceOptions.${ride.pace}`)}` : ""}
-          </Text>
+          {t(`rideTypes.${ride.ride_type}`)} · {t(`skillLevels.${ride.skill_level}`)}
+          {ride.pace ? ` · ${t(`paceOptions.${ride.pace}`)}` : ""}
+          {ride.gender_preference !== "all" && (
+            <Text style={{ color: theme.colors.primary }}>
+              {" "}· {t(`createRide.group.genderOptions.${ride.gender_preference}`)}
+            </Text>
+          )}
+        </Text>
 
           <Text style={{ opacity: 0.8 }}>
             {t("rideDetails.when")}: {(() => {

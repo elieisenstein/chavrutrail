@@ -5,6 +5,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import { listFilteredRides, Ride, type RideFilters } from "../../lib/rides";
+import { fetchMyProfile } from "../../lib/profile";
 import { formatDateTimeLocal } from "../../lib/datetime";
 import type { FeedStackParamList } from "../navigation/AppNavigator";
 
@@ -28,20 +29,46 @@ export default function FeedScreen() {
     maxDays: 7,
   });
 
+  const [userGender, setUserGender] = useState<string | null>(null); 
+
   // Draft filters (for editing in modal before applying)
   const [draftFilters, setDraftFilters] = useState<RideFilters>(filters);
+
+  // Load user profile to personalize feed - reload on focus
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        const profile = await fetchMyProfile();
+        if (profile) {
+          // Set user gender for filtering
+          setUserGender(profile.gender);
+          
+          // Set default ride type filters from profile (if they have preferences)
+          if (profile.ride_type) {
+            const preferredTypes = profile.ride_type.split(',').map(t => t.trim());
+            if (preferredTypes.length > 0) {
+              setFilters(prev => ({
+                ...prev,
+                rideTypes: preferredTypes,
+              }));
+            }
+          }
+        }
+      })();
+    }, [])
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await listFilteredRides(filters, 50);
+      const data = await listFilteredRides(filters, userGender, 50);
       setRides(data);
     } catch (e: any) {
       console.log("Feed load error:", e?.message ?? e);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, userGender]);
 
   useFocusEffect(
     useCallback(() => {

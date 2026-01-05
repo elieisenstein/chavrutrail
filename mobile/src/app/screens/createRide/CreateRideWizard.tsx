@@ -24,6 +24,7 @@ function getInitialDraft(): CreateRideDraft {
   return {
     join_mode: "express",
     max_participants: 4,
+    gender_preference: "all",
     pace: null,
     notes: null,
     distance_km: null,
@@ -109,6 +110,7 @@ export default function CreateRideWizard() {
         elevation_m: draft.elevation_m ?? null,
         join_mode: draft.join_mode!,
         max_participants: draft.max_participants!,
+        gender_preference: draft.gender_preference ?? "all",
         notes: draft.notes ?? null,
       });
 

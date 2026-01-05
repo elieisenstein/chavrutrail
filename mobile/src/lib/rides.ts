@@ -32,6 +32,7 @@ export type Ride = {
 
   join_mode: JoinMode;
   max_participants: number;
+  gender_preference: "all" | "men" | "women";
 
   notes: string | null;
 
@@ -83,6 +84,7 @@ export async function createRide(input: CreateRideInput): Promise<Ride> {
   return data as Ride;
 }
 
+
 export async function listPublishedUpcomingRides(limit = 50): Promise<Ride[]> {
   const nowIso = new Date().toISOString();
 
@@ -103,7 +105,7 @@ export async function listPublishedUpcomingRides(limit = 50): Promise<Ride[]> {
  * List rides with filters applied
  * Note: Location filtering is done client-side since we don't have PostGIS
  */
-export async function listFilteredRides(filters: RideFilters, limit = 50): Promise<Ride[]> {
+export async function listFilteredRides(filters: RideFilters, userGender?: string | null, limit = 50): Promise<Ride[]> {
   const nowIso = new Date().toISOString();
   
   // Calculate max date based on maxDays
@@ -129,6 +131,16 @@ export async function listFilteredRides(filters: RideFilters, limit = 50): Promi
   // Apply skill level filter if not all levels
   if (filters.skillLevels.length > 0) {
     query = query.in("skill_level", filters.skillLevels);
+  }
+
+  // ADD THIS GENDER FILTERING:
+  if (userGender === "Male") {
+    query = query.in("gender_preference", ["all", "men"]);
+  } else if (userGender === "Female") {
+    query = query.in("gender_preference", ["all", "women"]);
+  } else {
+    // User has no gender or "Other" - only show "all" rides
+    query = query.eq("gender_preference", "all");
   }
 
   const { data, error } = await query;

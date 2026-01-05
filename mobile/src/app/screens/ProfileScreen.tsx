@@ -328,7 +328,7 @@ export default function ProfileScreen() {
               : theme.colors.onSurface
           }}
         >
-          {t("profile.genderOptions.skip")}
+          {t("profile.genderOptions.other")}
         </Chip>
       </View>
 

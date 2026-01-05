@@ -19,6 +19,7 @@ export type CreateRideDraft = {
 
   join_mode?: JoinMode;
   max_participants?: number;
+  gender_preference?: "all" | "men" | "women";
 
   notes?: string | null; // Route description (optional)
 };

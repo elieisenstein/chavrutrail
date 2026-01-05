@@ -114,9 +114,9 @@
     "joined": "Joined",
     "requested": "Requested",
     "statusLabels": {
-      "owner": "OWNER",
-      "joined": "JOINED",
-      "requested": "REQUESTED"
+      "owner": "Owner",
+      "joined": "Joined",
+      "requested": "Requested"
     },
     "emptyStates": {
       "organizing": "You haven't created any rides yet",
@@ -175,9 +175,9 @@
     "birthYearPlaceholder": "Year (e.g., 1990)",
     "gender": "Gender (Optional)",
     "genderOptions": {
-      "male": "Male",
-      "female": "Female",
-      "skip": "Skip"
+      "male": "Man",
+      "female": "Woman",
+      "other": "Other"
     },
     "saveProfile": "Save Profile",
     "loadingProfile": "Loading profile..."
@@ -228,7 +228,14 @@
         "approval": "Approval (owner accepts)"
       },
       "maxParticipants": "Max Participants (1-6)",
-      "recommendation": "Recommendation: keep it small (4) for easier matching."
+      "recommendation": "Recommendation: keep it small (4) for easier matching.",
+      "genderPreference": "Gender Preference",
+      "genderOptions": {
+        "all": "All",
+        "men": "Men",
+        "women": "Women"
+      },
+      "genderPreferenceHelp": "Choose who can join this ride"
     },
     "review": {
       "title": "Review your ride details",

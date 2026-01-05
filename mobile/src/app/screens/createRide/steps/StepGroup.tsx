@@ -9,6 +9,8 @@ const joinModes: { mode: JoinMode }[] = [
   { mode: "approval" },
 ];
 
+const genderPreferences: Array<"all" | "men" | "women"> = ["all", "men", "women"];
+
 export default function StepGroup({
   draft,
   onChange,
@@ -39,6 +41,25 @@ export default function StepGroup({
         onChangeText={(v) => onChange({ max_participants: v === "" ? undefined : Number(v) })}
         keyboardType="numeric"
       />
+
+      {/* ADD THIS SECTION */}
+      <Text style={{ marginTop: 12 }}>{t("createRide.group.genderPreference")}</Text>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {genderPreferences.map((pref) => (
+          <Button
+            key={pref}
+            mode={draft.gender_preference === pref ? "contained" : "outlined"}
+            onPress={() => onChange({ gender_preference: pref })}
+            style={{ flex: 1 }}
+          >
+            {t(`createRide.group.genderOptions.${pref}`)}
+          </Button>
+        ))}
+      </View>
+      <Text style={{ opacity: 0.7, fontSize: 12 }}>
+        {t("createRide.group.genderPreferenceHelp")}
+      </Text>
+      {/* END OF NEW SECTION */}
 
       <Text style={{ opacity: 0.7 }}>
         {t("createRide.group.recommendation")}

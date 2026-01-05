@@ -175,9 +175,9 @@
     "birthYearPlaceholder": "שנה (לדוגמה, 1990)",
     "gender": "מין (אופציונלי)",
     "genderOptions": {
-      "male": "זכר",
-      "female": "נקבה",
-      "skip": "דלג"
+      "male": "גבר",
+      "female": "אישה",
+      "other": "אחר"
     },
     "saveProfile": "שמור פרופיל",
     "loadingProfile": "טוען פרופיל..."
@@ -228,7 +228,14 @@
         "approval": "באישור (המארגן מאשר)"
       },
       "maxParticipants": "מספר משתתפים מקסימלי (1-6)",
-      "recommendation": "מומלץ: קבוצה קטנה (4) לקלות בתיאום"
+      "recommendation": "מומלץ: קבוצה קטנה (4) לקלות בתיאום",
+      "genderPreference": "העדפת מגדר",
+      "genderOptions": {
+        "all": "כולם",
+        "men": "גברים",
+        "women": "נשים"
+      },
+      "genderPreferenceHelp": "בחר מי יכול להצטרף לרכיבה"
     },
     "review": {
       "title": "סקור את פרטי הרכיבה",

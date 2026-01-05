@@ -224,4 +224,32 @@ Android Channel Optimization: Implemented specific notification channels (e.g., 
 
 ✅ Ride Cancellations: All participants are successfully broadcasted a notification if a ride is cancelled.
 
-Next Objective: Address UI state refreshing to ensure screens update automatically when a notification is received or an action is performed.
+Next Objective: Address UI state refreshing to ensure screens update automatically when a notification is received or an action is performed - done!
+
+Gender:
+🎉 Session Summary: Gender Preferences & Personalized Feed
+
+✅ What We Built:
+1. Gender Preferences for Rides
+
+Database: Added gender_preference column to rides table (all/men/women)
+Profile: Changed "Skip" → "Other" (גבר / אישה / אחר)
+Create Ride: Step 4 now has gender selector (כולם / גברים / נשים)
+Feed Filtering: Automatically hides incompatible gender rides
+
+Male users → see "All" + "Men only" ✅
+Female users → see "All" + "Women only" ✅
+Other users → see "All" only ✅
+
+
+Ride Details: Shows gender badge when not "All"
+
+2. Personalized Feed by Ride Types
+
+Auto-load user preferences: Feed automatically shows only user's preferred ride types from profile
+On every screen focus: Both gender AND ride types reload when returning to Feed
+User can override: Filter modal lets users manually add other types if desired
+
+
+
+

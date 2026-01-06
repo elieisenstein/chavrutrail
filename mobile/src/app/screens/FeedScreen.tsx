@@ -29,7 +29,7 @@ export default function FeedScreen() {
     maxDays: 7,
   });
 
-  const [userGender, setUserGender] = useState<string | null>(null); 
+  const [userGender, setUserGender] = useState<string | null>(null);
 
   // Draft filters (for editing in modal before applying)
   const [draftFilters, setDraftFilters] = useState<RideFilters>(filters);
@@ -42,7 +42,7 @@ export default function FeedScreen() {
         if (profile) {
           // Set user gender for filtering
           setUserGender(profile.gender);
-          
+
           // Set default ride type filters from profile (if they have preferences)
           if (profile.ride_type) {
             const preferredTypes = profile.ride_type.split(',').map(t => t.trim());
@@ -73,7 +73,7 @@ export default function FeedScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-      return () => {};
+      return () => { };
     }, [load])
   );
 
@@ -154,9 +154,9 @@ export default function FeedScreen() {
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
       >
         {/* Filter Summary */}
-        <View style={{ 
-          flexDirection: "row", 
-          alignItems: "center", 
+        <View style={{
+          flexDirection: "row",
+          alignItems: "center",
           marginBottom: 12,
           padding: 12,
           backgroundColor: theme.colors.surfaceVariant,
@@ -165,8 +165,8 @@ export default function FeedScreen() {
           <Text style={{ flex: 1, color: theme.colors.onSurfaceVariant, fontSize: 12 }}>
             {`${t("feed.filters")}: ${getFilterSummary()}`}
           </Text>
-          <Button 
-            mode="contained" 
+          <Button
+            mode="contained"
             compact
             onPress={openFilterModal}
           >
@@ -180,19 +180,19 @@ export default function FeedScreen() {
             <Card>
               <Card.Content style={{ alignItems: 'center', padding: 32 }}>
                 <Icon source="bike-fast" size={64} color={theme.colors.outline} />
-                <Text 
-                  variant="titleMedium" 
+                <Text
+                  variant="titleMedium"
                   style={{ marginTop: 16, marginBottom: 8, textAlign: 'center' }}
                 >
                   {t("feed.noRides.title")}
                 </Text>
-                <Text 
+                <Text
                   style={{ opacity: 0.7, textAlign: 'center', marginBottom: 16 }}
                 >
                   {t("feed.noRides.message")}
                 </Text>
-                <Button 
-                  mode="outlined" 
+                <Button
+                  mode="outlined"
                   onPress={openFilterModal}
                   icon="filter-variant"
                 >
@@ -217,15 +217,15 @@ export default function FeedScreen() {
                       const startDate = new Date(r.start_at);
                       const endDate = new Date(startDate);
                       endDate.setHours(endDate.getHours() + r.duration_hours);
-                      
-                      const dateStr = startDate.toLocaleDateString('he-IL', { 
+
+                      const dateStr = startDate.toLocaleDateString('he-IL', {
                         day: '2-digit',
-                        month: '2-digit', 
+                        month: '2-digit',
                         year: 'numeric'
                       });
                       const startTime = startDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
                       const endTime = endDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-                      
+
                       return `${dateStr} ${startTime}-${endTime} (${r.duration_hours}h)`;
                     })()}
                   </Text>
@@ -242,6 +242,7 @@ export default function FeedScreen() {
 
                   <Text style={{ opacity: 0.8 }}>
                     {t("feed.rideCard.group")}: {t(`rideDetails.joinModes.${r.join_mode.toLowerCase()}`)} · {t("feed.rideCard.max")} {r.max_participants}
+                    {r.gender_preference !== "all" && ` · ${t(`createRide.group.genderOptions.${r.gender_preference}`)}`}
                   </Text>
                   {r.distance_km != null || r.elevation_m != null ? (
                     <Text style={{ opacity: 0.8 }}>
@@ -336,15 +337,15 @@ export default function FeedScreen() {
 
           {/* Action Buttons */}
           <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
-            <Button 
-              mode="outlined" 
+            <Button
+              mode="outlined"
               onPress={resetFilters}
               style={{ flex: 1 }}
             >
               {t("common.reset")}
             </Button>
-            <Button 
-              mode="contained" 
+            <Button
+              mode="contained"
               onPress={applyFilters}
               style={{ flex: 1 }}
             >

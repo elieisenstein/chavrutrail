@@ -4,3 +4,4 @@ mobile/.env
 .vscode/
 node_modules/
 scripts/createUsers.js
+scripts/deleteUsers.js

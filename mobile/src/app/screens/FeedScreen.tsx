@@ -8,6 +8,7 @@ import { listFilteredRides, Ride, type RideFilters } from "../../lib/rides";
 import { fetchMyProfile } from "../../lib/profile";
 import { formatDateTimeLocal } from "../../lib/datetime";
 import type { FeedStackParamList } from "../navigation/AppNavigator";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Available options
 const RIDE_TYPES = ["XC", "Trail", "Enduro", "Gravel", "Road"];
@@ -28,6 +29,21 @@ export default function FeedScreen() {
     skillLevels: [],
     maxDays: 7,
   });
+
+  // Load saved filters from AsyncStorage on mount
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem('feed_filters');
+        if (saved) {
+          const parsedFilters = JSON.parse(saved);
+          setFilters(parsedFilters);
+        }
+      } catch (e) {
+        console.log('Error loading saved filters:', e);
+      }
+    })();
+  }, []);
 
   const [userGender, setUserGender] = useState<string | null>(null);
 
@@ -114,11 +130,17 @@ export default function FeedScreen() {
     setFilterModalVisible(true);
   }
 
-  function applyFilters() {
+  async function applyFilters() {
     setFilters(draftFilters);
     setFilterModalVisible(false);
-  }
 
+    // Save filters to AsyncStorage
+    try {
+      await AsyncStorage.setItem('feed_filters', JSON.stringify(draftFilters));
+    } catch (e) {
+      console.log('Error saving filters:', e);
+    }
+  }
   function resetFilters() {
     const defaultFilters: RideFilters = {
       rideTypes: [],

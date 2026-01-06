@@ -13,6 +13,8 @@ import AuthScreen from "./src/app/auth/AuthScreen";
 import AppNavigator from "./src/app/navigation/AppNavigator";
 import { linking } from "./src/app/navigation/linking";
 import { useNotifications } from './src/hooks/useNotifications';
+import * as SplashScreen from 'expo-splash-screen';
+import { Linking } from 'react-native';
 
 // Initialize Mapbox
 MapboxGL.setAccessToken("pk.eyJ1IjoiZWxpZWlzZW5zdGVpbiIsImEiOiJjbWpwc21iOXEzaHZzM2Nxemhzb2VtNHA3In0.NCwfmHYdr7JE0vvKRL9pFw");
@@ -73,19 +75,39 @@ function InnerApp() {
     const syncPushToken = async () => {
       // Check if we have an active user session
       const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
+
       if (currentSession?.user) {
         console.log("📱 User session detected, syncing push token...");
         // This calls the registerForPushNotificationsAsync from notifications.ts
         const { registerForPushNotificationsAsync } = require('./src/lib/notifications');
         await registerForPushNotificationsAsync();
       }
+
+      // HIDE SPLASH SCREEN (The fix for the black screen)
+      // We only hide it once everything (i18n and Auth) is ready
+      if (i18nReady && !authLoading) {
+        await SplashScreen.hideAsync().catch(() => {
+          /* Ignore errors if already hidden */
+        });
+      }
     };
 
     if (!authLoading && session) {
       syncPushToken();
     }
-  }, [authLoading, session]); // Runs when the app finishes loading auth or the user logs in
+  }, [authLoading, session, i18nReady]); // Runs when the app finishes loading auth or the user logs in
+
+  // Inside InnerApp useEffect
+  useEffect(() => {
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      console.log("Warm start link received:", url);
+      // Force hide splash screen in case it's stuck on top
+      SplashScreen.hideAsync().catch(() => { });
+    });
+
+    return () => subscription.remove();
+  }, []);
+
 
   // Initialize i18n
   useEffect(() => {

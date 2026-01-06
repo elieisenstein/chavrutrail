@@ -4,8 +4,8 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import { Icon } from "react-native-paper";
-import * as Linking from 'expo-linking'; // ← NEW
-import { useNavigation } from '@react-navigation/native'; // ← NEW
+//import * as Linking from 'expo-linking'; // ← NEW
+//import { useNavigation } from '@react-navigation/native'; // ← NEW
 
 import FeedScreen from "../screens/FeedScreen";
 import ProfileScreen from "../screens/ProfileScreen";
@@ -145,6 +145,7 @@ function CreateStack() {
   );
 }
 
+/*
 // ← NEW: Deep link handler hook
 function useDeepLinkHandler() {
   const navigation = useNavigation();
@@ -183,12 +184,13 @@ function handleDeepLink(url: string, navigation: any) {
     }
   }
 }
+*/
 
 export default function AppNavigator() {
   const { t } = useTranslation();
 
   // ← NEW: Enable deep link handling
-  useDeepLinkHandler();
+  //useDeepLinkHandler();
 
   return (
     <Tab.Navigator

@@ -2,7 +2,11 @@
 import { LinkingOptions } from '@react-navigation/native';
 
 export const linking: LinkingOptions<any> = {
-  prefixes: ['bishvil://', 'https://bishvil.app'],
+  prefixes: [
+    'bishvil://', 
+    'https://bishvil.app',
+    'https://bishvil-app.vercel.app' // ADD THIS LINE
+  ],
   config: {
     screens: {
       FeedStack: {
@@ -14,7 +18,7 @@ export const linking: LinkingOptions<any> = {
       MyRidesStack: {
         screens: {
           MyRidesList: 'my-rides',
-          RideDetails: 'ride/:rideId',
+          RideDetails: 'my-rides/ride/:rideId',
         },
       },
       ProfileStack: {

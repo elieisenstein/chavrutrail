@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import type { Ride } from "../../lib/rides";
 import { getMyOrganizingRides, getMyJoinedRides, getMyRequestedRides } from "../../lib/rides";
 import type { MyRidesStackParamList } from "../navigation/AppNavigator";
+import { supabase } from "../../lib/supabase"; 
 
 type Section = "organizing" | "joined" | "requested";
 type MyRideStatus = "owner" | "joined" | "requested";
@@ -42,10 +43,45 @@ export default function MyRidesScreen() {
     }
   }, []);
 
-  // Load rides when screen comes into focus
+  // Load rides when screen comes into focus AND set up real-time subscription
   useFocusEffect(
     useCallback(() => {
       loadRides();
+
+      // Subscribe to changes in ride_participants table for current user
+      const channel = supabase
+        .channel('my_rides_updates')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen for INSERT, UPDATE, DELETE
+            schema: 'public',
+            table: 'ride_participants',
+          },
+          (payload) => {
+            console.log('🔄 My rides participant change:', payload);
+            // Reload all rides when any participant change happens
+            loadRides();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen for ride updates (cancellation, edits, etc)
+            schema: 'public',
+            table: 'rides',
+          },
+          (payload) => {
+            console.log('🔄 My rides ride change:', payload);
+            // Reload rides when a ride is updated or cancelled
+            loadRides();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }, [loadRides])
   );
 

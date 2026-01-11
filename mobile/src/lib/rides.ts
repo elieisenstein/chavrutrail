@@ -15,6 +15,7 @@ export type ParticipantStatus = "joined" | "requested" | "rejected" | "left" | "
 export type Ride = {
   id: string;
   owner_id: string;
+  owner_display_name?: string;
   status: RideStatus;
 
   start_at: string; // timestamptz ISO
@@ -107,7 +108,7 @@ export async function listPublishedUpcomingRides(limit = 50): Promise<Ride[]> {
  */
 export async function listFilteredRides(filters: RideFilters, userGender?: string | null, limit = 50): Promise<Ride[]> {
   const nowIso = new Date().toISOString();
-  
+
   // Calculate max date based on maxDays
   const maxDate = new Date();
   maxDate.setDate(maxDate.getDate() + filters.maxDays);
@@ -116,7 +117,7 @@ export async function listFilteredRides(filters: RideFilters, userGender?: strin
   // Build query
   let query = supabase
     .from("rides")
-    .select("*")
+    .select("*, owner:profiles!rides_owner_profile_id_fkey(display_name)")
     .eq("status", "published")
     .gte("start_at", nowIso)
     .lte("start_at", maxDateIso)
@@ -147,7 +148,12 @@ export async function listFilteredRides(filters: RideFilters, userGender?: strin
 
   if (error) throw new Error(error.message);
 
-  let rides = (data ?? []) as Ride[];
+  // Flatten the profiles join
+  let rides = (data ?? []).map((item: any) => ({
+    ...item,
+    owner_display_name: item.owner?.display_name ?? "Unknown",
+    owner: undefined,
+  })) as Ride[];
 
   // Client-side location filtering (if radius specified)
   if (filters.locationRadius && filters.userLat !== undefined && filters.userLng !== undefined) {
@@ -392,14 +398,19 @@ export async function getMyOrganizingRides(): Promise<Ride[]> {
 
   const { data, error } = await supabase
     .from("rides")
-    .select("*")
+    .select("*, owner:profiles!rides_owner_profile_id_fkey(display_name)")
     .eq("owner_id", userId)
     .eq("status", "published")
-    .gte("start_at", new Date().toISOString()) // Only upcoming rides
+    .gte("start_at", new Date().toISOString())
     .order("start_at", { ascending: true });
 
   if (error) throw new Error(error.message);
-  return (data as Ride[]) || [];
+
+  return (data ?? []).map((item: any) => ({
+    ...item,
+    owner_display_name: item.owner?.display_name ?? "Unknown",
+    owner: undefined,
+  })) as Ride[];
 }
 
 /**
@@ -414,19 +425,24 @@ export async function getMyJoinedRides(): Promise<Ride[]> {
     .from("rides")
     .select(`
       *,
+      owner:profiles!rides_owner_profile_id_fkey(display_name),
       ride_participants!inner(user_id, status)
     `)
     .eq("ride_participants.user_id", userId)
     .eq("ride_participants.status", "joined")
-    .neq("owner_id", userId) // ← EXCLUDE rides where I'm the owner
+    .neq("owner_id", userId)
     .eq("status", "published")
     .gte("start_at", new Date().toISOString())
     .order("start_at", { ascending: true });
 
   if (error) throw new Error(error.message);
-  return (data as any[]).map(item => {
-    const { ride_participants, ...ride } = item;
-    return ride as Ride;
+  
+  return (data ?? []).map((item: any) => {
+    const { ride_participants, owner, ...ride } = item;
+    return {
+      ...ride,
+      owner_display_name: owner?.display_name ?? "Unknown",
+    } as Ride;
   });
 }
 
@@ -442,18 +458,23 @@ export async function getMyRequestedRides(): Promise<Ride[]> {
     .from("rides")
     .select(`
       *,
+      owner:profiles!rides_owner_profile_id_fkey(display_name),
       ride_participants!inner(user_id, status)
     `)
     .eq("ride_participants.user_id", userId)
     .eq("ride_participants.status", "requested")
-    .neq("owner_id", userId) // ← EXCLUDE rides where I'm the owner
+    .neq("owner_id", userId)
     .eq("status", "published")
     .gte("start_at", new Date().toISOString())
     .order("start_at", { ascending: true });
 
   if (error) throw new Error(error.message);
-  return (data as any[]).map(item => {
-    const { ride_participants, ...ride } = item;
-    return ride as Ride;
+  
+  return (data ?? []).map((item: any) => {
+    const { ride_participants, owner, ...ride } = item;
+    return {
+      ...ride,
+      owner_display_name: owner?.display_name ?? "Unknown",
+    } as Ride;
   });
 }

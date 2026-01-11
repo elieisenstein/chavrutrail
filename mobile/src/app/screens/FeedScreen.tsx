@@ -234,6 +234,10 @@ export default function FeedScreen() {
                     {r.pace ? ` · ${t(`paceOptions.${r.pace}`)}` : ""}
                   </Text>
 
+                  <Text style={{ opacity: 0.7, fontSize: 12, marginTop: 2 }}>
+                    👤 {r.owner_display_name}
+                  </Text>
+
                   <Text style={{ opacity: 0.8 }}>
                     {t("feed.rideCard.when")}: {(() => {
                       const startDate = new Date(r.start_at);

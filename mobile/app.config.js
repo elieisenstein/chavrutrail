@@ -25,6 +25,11 @@ export default {
   android: {
     supportsRtl: true,
     package: "com.elieisenstein.bishvil",
+    jsEngine: "hermes",
+    config: {
+      // ONLY build for actual phone architectures (saves ~30MB)
+      abiFilters: ["armeabi-v7a", "arm64-v8a"],
+    },
     googleServicesFile: "./google-services.json", // This tells Expo where to find your file
     permissions: [
       "NOTIFICATIONS",
@@ -78,5 +83,16 @@ export default {
         accessToken: "pk.eyJ1IjoiZWxpZWlzZW5zdGVpbiIsImEiOiJjbWpwc21iOXEzaHZzM2Nxemhzb2VtNHA3In0.NCwfmHYdr7JE0vvKRL9pFw",
       },
     ],
+    // ADD THIS NEW SECTION BELOW
+    [
+      "expo-build-properties",
+      {
+        "android": {
+          "enableShrinkResourcesInReleaseBuilds": true,
+          "enableMinifyInReleaseBuilds": true,
+          "enableProguardInReleaseBuilds": true
+        }
+      }
+    ]
   ],
 };

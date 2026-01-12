@@ -235,7 +235,7 @@ export default function FeedScreen() {
                   </Text>
 
                   <Text style={{ opacity: 0.7, fontSize: 12, marginTop: 2 }}>
-                    👤 {r.owner_display_name}
+                    👤 {r.owner_display_name} · {r.owner_rides_organized ?? 0} organized · {r.owner_rides_joined ?? 0} joined
                   </Text>
 
                   <Text style={{ opacity: 0.8 }}>

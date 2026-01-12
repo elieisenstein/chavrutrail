@@ -114,7 +114,7 @@
     "joined": "Joined",
     "requested": "Requested",
     "statusLabels": {
-      "owner": "Owner",
+      "owner": "Organizer",
       "joined": "Joined",
       "requested": "Requested"
     },
@@ -226,7 +226,7 @@
       "joinMode": "Join Mode",
       "joinModes": {
         "express": "Express (auto-join)",
-        "approval": "Approval (owner accepts)"
+        "approval": "Approval (organizer accepts)"
       },
       "maxParticipants": "Max Participants (1-6)",
       "recommendation": "Recommendation: keep it small (4) for easier matching.",

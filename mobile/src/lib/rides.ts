@@ -16,6 +16,8 @@ export type Ride = {
   id: string;
   owner_id: string;
   owner_display_name?: string;
+  owner_rides_organized?: number;  
+  owner_rides_joined?: number;    
   status: RideStatus;
 
   start_at: string; // timestamptz ISO
@@ -134,13 +136,12 @@ export async function listFilteredRides(filters: RideFilters, userGender?: strin
     query = query.in("skill_level", filters.skillLevels);
   }
 
-  // ADD THIS GENDER FILTERING:
+  // Gender filtering
   if (userGender === "Male") {
     query = query.in("gender_preference", ["all", "men"]);
   } else if (userGender === "Female") {
     query = query.in("gender_preference", ["all", "women"]);
   } else {
-    // User has no gender or "Other" - only show "all" rides
     query = query.eq("gender_preference", "all");
   }
 
@@ -154,6 +155,33 @@ export async function listFilteredRides(filters: RideFilters, userGender?: strin
     owner_display_name: item.owner?.display_name ?? "Unknown",
     owner: undefined,
   })) as Ride[];
+
+  // Get unique owner IDs
+  const uniqueOwnerIds = [...new Set(rides.map(r => r.owner_id))];
+
+  // Fetch counts for all owners in parallel
+  const ownerStatsMap = new Map<string, { organized: number; joined: number }>();
+  
+  // TODO: Optimize for scale - this fetches counts for each unique owner (N queries)
+  // Future improvement: Add rides_organized_count and rides_joined_count to profiles table
+  // and update via automated job when rides complete
+
+  await Promise.all(
+    uniqueOwnerIds.map(async (ownerId) => {
+      const [organized, joined] = await Promise.all([
+        getUserOrganizedRidesCount(ownerId),
+        getUserJoinedRidesCount(ownerId),
+      ]);
+      ownerStatsMap.set(ownerId, { organized, joined });
+    })
+  );
+
+  // Attach stats to rides
+  rides = rides.map(ride => ({
+    ...ride,
+    owner_rides_organized: ownerStatsMap.get(ride.owner_id)?.organized ?? 0,
+    owner_rides_joined: ownerStatsMap.get(ride.owner_id)?.joined ?? 0,
+  }));
 
   // Client-side location filtering (if radius specified)
   if (filters.locationRadius && filters.userLat !== undefined && filters.userLng !== undefined) {
@@ -477,4 +505,42 @@ export async function getMyRequestedRides(): Promise<Ride[]> {
       owner_display_name: owner?.display_name ?? "Unknown",
     } as Ride;
   });
+}
+
+/**
+ * Count how many rides a user has organized (completed, not cancelled)
+ */
+export async function getUserOrganizedRidesCount(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("rides")
+    .select("*", { count: "exact", head: true })
+    .eq("owner_id", userId)
+    .lt("start_at", new Date().toISOString()) // Past rides
+    .neq("status", "cancelled");
+
+  if (error) {
+    console.log("Error counting organized rides:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/**
+ * Count how many rides a user has joined (completed, not cancelled)
+ */
+export async function getUserJoinedRidesCount(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("ride_participants")
+    .select("ride_id, rides!inner(start_at, status, owner_id)", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("status", "joined")
+    .lt("rides.start_at", new Date().toISOString()) // Past rides
+    .neq("rides.status", "cancelled")
+    .neq("rides.owner_id", userId); // Don't count rides where they're the owner
+
+  if (error) {
+    console.log("Error counting joined rides:", error.message);
+    return 0;
+  }
+  return count ?? 0;
 }

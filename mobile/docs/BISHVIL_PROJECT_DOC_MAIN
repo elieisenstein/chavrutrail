@@ -1,6 +1,6 @@
 # Bishvil – Project Documentation
 
-*Last updated: 2026-01-05*
+*Last updated: 2026-01-07*
 
 This document consolidates the project documentation into four clear layers:
 
@@ -24,6 +24,7 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * Privacy‑first (no phone exposure)
 * Hebrew‑first with full RTL/LTR support
 * Gender-aware ride filtering for safety and comfort
+* Social trust through organizer transparency
 
 ### Target Platform
 
@@ -39,6 +40,8 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * Bilingual UI (Hebrew / English)
 * Push notifications for ride events
 * Gender-based ride filtering
+* Organizer display with ride statistics
+* Deep linking for ride sharing
 
 ### Explicitly Out of Scope (MVP)
 
@@ -48,6 +51,8 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * Internal moderation tools
 * In-app chat (WhatsApp used instead)
 * Ride editing after creation
+* User search / following (reserved for future)
+* Clickable user profiles (foundation laid, not implemented)
 
 ### KPIs (Pilot)
 
@@ -55,6 +60,7 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * % of rides that actually happen
 * Repeat rides with the same participants
 * Notification engagement rate
+* Deep link conversion rate (shared → opened → joined)
 
 ---
 
@@ -65,7 +71,8 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * **Framework:** React Native + Expo SDK 52 (TypeScript)
 * **UI Library:** react-native-paper (Material Design 3)
 * **Navigation:** React Navigation (native stack + bottom tabs)
-* **Design:** Strava‑inspired, clean, functional aesthetic
+* **Design:** Strava‑inspired dark theme, clean, functional aesthetic
+* **Storage:** AsyncStorage for user preferences (filters, theme)
 
 ### Backend
 
@@ -75,6 +82,7 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
   * Realtime subscriptions for live updates
   * Edge Functions for notifications
   * Database webhooks for event triggers
+  * Foreign key relationships for data integrity
 
 ### Authentication
 
@@ -89,17 +97,24 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * `profiles` - User profiles (separate from auth.users)
   * Auto-created via DB trigger
   * Contains: display_name, bio, ride_type[], skill, pace, birth_year, gender, expo_push_token
+  * **Future:** Will add rides_organized_count, rides_joined_count for performance
+  
 * `rides` - Ride listings
   * Contains ride details, location, preferences, gender_preference
+  * Foreign key: owner_id → profiles.id (rides_owner_profile_id_fkey)
+  * Status: draft, published, cancelled, completed (future automation)
+  
 * `ride_participants` - Join/approval tracking
   * Tracks status: joined, requested, rejected, left, kicked
+  * Foreign key: user_id → profiles.id
 
 ### Privacy Decisions
 
 * Phone numbers never exposed to other users
 * Display name is the only visible identity
+* Organizer name and stats visible for trust building
 * Future contact via in‑app notifications or WhatsApp link only
-* No public profiles or social feeds
+* No public user profiles yet (foundation exists for future)
 
 ### Maps & Location
 
@@ -125,6 +140,20 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
   * Ride cancellation (to all participants)
   * Ride updates (future)
 
+### Deep Linking
+
+* **Architecture:**
+  * React Navigation's built-in linking configuration
+  * Prefixes: `bishvil://`, `https://bishvil.app`, `https://bishvil-app.vercel.app`
+* **Route Strategy:**
+  * External shared links → FeedStack → RideDetails
+  * MyRides internal navigation → MyRidesStack → RideDetails
+  * Unique patterns prevent conflicts: `ride/:rideId` vs `my-rides/ride/:rideId`
+* **Features:**
+  * Works in cold start (app closed) and warm start (app open)
+  * WhatsApp share integration
+  * Native Android intent handling via MainActivity
+
 ### Internationalization
 
 * **Languages:** Hebrew (primary), English
@@ -132,19 +161,41 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * **RTL Handling:** Native I18nManager.forceRTL() with app restart requirement
 * **Date/Time:** Localized using he-IL formatting
 
+### Real-Time Architecture
+
+* **Technology:** Supabase Realtime (PostgreSQL Change Data Capture)
+* **Implementation:**
+  * MyRidesScreen: Subscribes to ride_participants and rides table changes
+  * RideDetailsScreen: Subscribes to changes for specific ride
+  * Feed: Uses useFocusEffect for manual refresh (sufficient for feed use case)
+* **Benefits:** Instant updates across devices without polling or manual refresh
+
+### Design System
+
+* **Theme:** Dark mode (#121212 background)
+* **Colors:**
+  * Primary: #ff6b35 (orange) for selections and CTAs
+  * Status badges: Orange (owner), Green (joined), Yellow (pending)
+* **Spacing:**
+  * Chip gaps: 6px
+  * Section gaps: 16px
+* **Typography:** Material Design 3 variants
+* **Components:** Consistent chips, cards, buttons across all screens
+
 ### Deferred Backend (Reserved)
 
 * FastAPI (Python) for future needs:
   * Moderation tools
   * Trust scoring algorithms
-  * Scheduled cleanup jobs
+  * Scheduled cleanup jobs (ride status automation)
   * External service integrations
+  * Counter field maintenance (rides_organized_count, rides_joined_count)
 
 ---
 
 ## 3. Current Project Status (Snapshot)
 
-**Stage:** Polish & Refinement Phase (Production-ready MVP)
+**Stage:** Production-Ready MVP with Social Trust Features
 
 ### ✅ Completed Core Features
 
@@ -176,9 +227,11 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
   * User's gender (automatic gender-based visibility)
   * Skill level (optional)
   * Time range (Today, 3d, 7d, 14d, 30d)
+  * **Persistent filters** - saved to AsyncStorage, restored on app start
 * Empty states with helpful CTAs
 * Pull-to-refresh
 * Real-time updates via Supabase subscriptions
+* **Organizer display** with ride statistics
 
 #### My Rides
 * Three sections with visual status indicators:
@@ -187,17 +240,36 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
   * Requested (yellow badge)
 * Empty states per section
 * Status-specific ride cards
+* **Real-time updates** - automatic refresh when participant status changes
 
 #### Ride Details
 * Complete ride information display
+* **Organizer name and statistics** at top of card
 * Israel Hiking Map preview
 * Participant list with owner indicator
 * Pending requests section (owner only)
 * Approve/reject buttons (owner only)
 * Join/Leave actions
 * External navigation (Google Maps/Waze)
-* WhatsApp share functionality
+* **WhatsApp share with deep links**
 * Gender preference display
+* **Real-time updates** for participants and ride changes
+
+#### Deep Linking System
+* **Full deep link support** for ride sharing
+* Works in cold start (app closed) and warm start (app running)
+* WhatsApp integration for viral sharing
+* Automatic navigation to correct ride details
+* Conflict-free route patterns across navigation stacks
+
+#### Organizer Display & Trust Signals ⭐ NEW
+* **Organizer name visible** on all ride cards (Feed, MyRides, RideDetails)
+* **Ride statistics** displayed next to name:
+  * Number of rides organized (completed, not cancelled)
+  * Number of rides joined (as participant, completed, not cancelled)
+* **Format:** `👤 David Cohen · 5 organized · 12 joined`
+* **Purpose:** Build trust, help users identify known/experienced riders
+* **Foundation:** Ready for clickable profiles (not yet implemented)
 
 #### Notifications System
 * **Backend:** Supabase webhooks → Edge Functions → Expo Push API
@@ -206,30 +278,57 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * **Android:** Custom notification channels with high priority
 * **Verified:** All notification flows tested end-to-end
 
-#### UI/UX Polish (Latest Session - Jan 5, 2026)
-* **Unified Design System:**
-  * Consistent chip styling across all screens
+#### UI/UX Design System
+* **Unified Dark Theme:**
+  * Header background: #121212
+  * Tab bar background: #121212
+  * White inactive icons, orange active icons
+  * Consistent across all screens
+  
+* **Consistent Chip Styling:**
+  * 6px gap spacing (optimized for space)
   * Orange theme color for selections
-  * 6px gap spacing (reduced from 8px)
   * Material Design 3 components throughout
   
 * **ProfileScreen:**
   * Removed duplicate heading
-  * Merged XC + Trails → just "Trails" (4 ride types)
-  * RTL button order support (arrays reversed for Hebrew)
+  * 4 ride types (Trail merged from XC+Trail)
+  * RTL button order support
   * Validation: at least one ride type required
   * Birth year placeholder-only behavior
   
 * **Create Ride Wizard:**
-  * StepDetails: Replaced buttons with chips for consistency
-  * StepGroup: Gender preference with chips
-  * StepReview: Gender preference display added
-  * Increased spacing between sections (16px)
-  * Extra spacing between Pace and Distance fields
+  * Unified chip styling across all steps
+  * Gender preference with chips
+  * Review step shows gender preference
+  * Optimized spacing (16px between sections)
   
-* **MyRidesScreen & RideDetailsScreen:**
-  * Gender preference display added
-  * Consistent with create flow
+* **Feed & Ride Cards:**
+  * Gender preference shown inline (only when not "All")
+  * Organizer display with statistics
+  * Compact, scannable design
+  * Reduced duplicate information
+
+#### Real-Time Updates ⭐ NEW
+* **MyRidesScreen:** Automatic updates when:
+  * Someone joins/requests to join your ride
+  * You get approved for a ride
+  * A ride is cancelled
+  * Participant status changes
+* **RideDetailsScreen:** Automatic updates when:
+  * Participants join/leave
+  * Requests are approved/rejected
+  * Ride details change
+* **Implementation:** Supabase real-time subscriptions with proper cleanup
+* **Result:** No manual refresh needed, instant multi-device sync
+
+#### Persistent User Preferences ⭐ NEW
+* **Feed Filters:** Automatically saved to AsyncStorage
+  * Ride types selection
+  * Skill level selection
+  * Time range preference
+* **Restored on app start** - seamless UX
+* **No extra UI** - works transparently
 
 #### Internationalization
 * Hebrew and English fully supported
@@ -242,6 +341,7 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * Light, Dark, and System theme modes
 * Persistent theme preference
 * Smooth theme switching
+* Optimized for dark mode (primary UI)
 
 ### 📋 Known Limitations (Intentional MVP Decisions)
 
@@ -253,151 +353,242 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * No ratings or reviews
 * No "I'm at the spot" button
 * RTL chip alignment (minor visual issue in Hebrew, functional but not perfectly right-aligned)
+* **No clickable profiles yet** (foundation exists, awaiting user feedback)
+* **Ride stats fetched on-demand** (N+1 queries, acceptable for MVP scale)
 
 ### 🧪 Testing Status
 
 * **Devices:** Tested on physical Android devices
-* **Auth:** Real OTP flow verified (Twilio Verify)
-* **Multi-user:** Validated with multiple test accounts
-* **Notifications:** End-to-end tested for all event types
-* **Maps:** Verified on real devices with GPS
-* **APK:** Signed APKs ready for distribution
+* **Scenarios Verified:**
+  * End-to-end ride creation and joining flow
+  * Express join (instant) vs Approval join (request/approve)
+  * Notifications for all event types
+  * Gender-based ride filtering
+  * Real-time participant updates (multi-device)
+  * Deep links (cold start and warm start)
+  * Persistent filters across app restarts
+  * Organizer statistics display
+* **Known Issues:** None critical (RTL alignment is cosmetic)
 
-### 🎨 Design System
+### 🔧 Technical Debt & Future Optimization
 
-* **Colors:** Orange primary theme (Strava-inspired)
-* **Typography:** Material Design 3 defaults
-* **Components:** react-native-paper throughout
-* **Spacing:** Consistent 6px chip gaps, 16px section spacing
-* **Status Badges:**
-  * Owner: Orange (#FF6B35)
-  * Joined: Green (#4CAF50)
-  * Requested: Yellow (#FFC107)
+#### TODO: Ride Statistics Performance Optimization
+**Current Implementation:**
+* Ride stats fetched on-demand using `getUserOrganizedRidesCount()` and `getUserJoinedRidesCount()`
+* Feed with 50 rides, 30 unique owners = 60 COUNT queries (2 per owner)
+* Acceptable for MVP (<100 active users)
 
----
+**Future Optimization (When Needed):**
+```sql
+-- Add counter fields to profiles table
+ALTER TABLE profiles 
+ADD COLUMN rides_organized_count INTEGER DEFAULT 0,
+ADD COLUMN rides_joined_count INTEGER DEFAULT 0;
+```
 
-## 4. Execution Plan (TODO – Forward Looking)
+**Implementation Plan:**
+1. Add counter columns to profiles table
+2. Create Edge Function or scheduled job:
+   - Run daily (or when ride completes)
+   - Count past rides for each user
+   - Update counter fields
+3. Remove real-time count fetching
+4. Return counters directly from profiles join (instant, 1 query)
 
-### Immediate Next Steps (Phase 1 - APK Distribution)
+**Migration:**
+- Backfill existing counts with one-time script
+- Add automated counter maintenance
+- Switch from on-demand to cached counts
 
-**Goal:** Get first 10 beta testers using the app
+#### TODO: Automated Ride Status Management
+**Current:**
+* Rides remain `published` after end time
+* Manual counting: `start_at < NOW() AND status != 'cancelled'`
 
-* [ ] Finalize APK signing and distribution method
-* [ ] Create simple landing page with download link
-* [ ] Test APK installation on various Android versions
-* [ ] Set up basic crash reporting (Sentry or similar)
-* [ ] Create user onboarding flow documentation
-
-### Priority 2 – Enhanced Coordination
-
-**Goal:** Improve ride coordination and communication
-
-* [ ] WhatsApp group link per ride (owner can add)
-* [ ] Ride editing for owner (notify participants of changes)
-* [ ] "Confirm attendance" feature 24h before ride
-* [ ] Phone number visibility toggle (opt-in for participants)
-
-### Priority 3 – Feed Improvements
-
-**Goal:** Better discovery and matching
-
-* [ ] Distance-based sorting (requires user home location)
-* [ ] Save home location in profile
-* [ ] "Near me" filter
-* [ ] Ride recommendations based on profile
-
-### Priority 4 – Data & Cleanup
-
-**Goal:** Maintain clean database and improve UX
-
-* [ ] Auto-archive rides after end time (status: completed)
-* [ ] Auto-cancel rides with no participants 24h before start
-* [ ] Cleanup old notifications
-* [ ] Basic analytics dashboard
-
-### Future Enhancements (Post-MVP)
-
-* Trust score system (completed rides, cancellation rate)
-* In-app chat (if WhatsApp proves insufficient)
-* Ride templates for repeat organizers
-* Group/club features
-* Premium features (ride series, advanced filters)
-
-### Explicitly Postponed
-
-* GPS ride tracking and recording
-* Media uploads (photos/videos from rides)
-* Public ratings and reviews
-* Complex moderation tools
-* iOS version (until Android validates product-market fit)
+**Future:**
+* Scheduled job to update `status = 'completed'` after ride ends
+* Enables better analytics and ride history features
+* Simplifies counting logic
 
 ---
 
-## 5. Technical Debt & Issues
+## 4. Execution Plan (TODO)
 
-### Minor Issues
-* **RTL Chip Alignment:** Hebrew chips align left instead of right (functional but not ideal)
-  * Impact: Low (purely visual, doesn't affect usability)
-  * Priority: Low (polish for future release)
+### Immediate (This Week)
 
-### Migration Notes
-* Users who selected "XC" before the merge will see it removed on next profile edit
-* No database migration needed (handled in app logic)
+#### Beta Testing Phase
+- [ ] Build signed APK
+- [ ] Share APK via WeTransfer with 2-3 friends
+- [ ] Collect initial feedback on:
+  - Ride discovery flow
+  - Join/approval experience
+  - Notification clarity
+  - Overall UX
+  - Value of organizer statistics
 
-### Performance Considerations
-* Feed query performance is good for <1000 rides
-* May need indexing if user base grows significantly
-* Real-time subscriptions are lightweight (only participants table)
+#### Bug Fixes & Polish (If Needed)
+- [ ] Address any critical issues from beta testing
+- [ ] Fix RTL chip alignment (if users complain)
+- [ ] Improve error messages based on feedback
+
+### Near-Term (Next 2 Weeks)
+
+#### User Profiles (Phase 1) - Based on Feedback
+**Decision Point:** Implement only if beta testers ask "Who is this person?"
+
+If yes, implement:
+- [ ] Create UserProfileScreen component
+- [ ] Make organizer name clickable in Feed and RideDetails
+- [ ] Show basic profile:
+  - Display name
+  - Bio (if exists)
+  - Ride preferences (types, skill, pace)
+  - Statistics (organized/joined counts)
+  - Home region (if provided)
+- [ ] Add "View Profile" option in ride details
+
+**Explicitly NOT included in Phase 1:**
+- User search
+- Following users
+- Past ride history (just counts)
+- Profile editing by others
+- Ratings or reviews
+
+#### WhatsApp Group Integration
+- [ ] Add optional WhatsApp group link field to ride creation
+- [ ] Display WhatsApp group link in ride details for participants
+- [ ] Update review step to show group link if provided
+
+#### Analytics & Monitoring
+- [ ] Set up basic analytics:
+  - Ride creation rate
+  - Join/approval conversion rate
+  - Deep link click-through rate
+  - Notification open rate
+- [ ] Error tracking (Sentry or similar)
+- [ ] Performance monitoring
+
+### Medium-Term (1-2 Months)
+
+#### Performance Optimization
+- [ ] Implement counter fields for ride statistics (if user base grows)
+- [ ] Add automated ride status updates (completed/cancelled)
+- [ ] Optimize database queries based on usage patterns
+
+#### Ride Editing
+- [ ] Allow ride creator to edit ride details before ride starts
+- [ ] Notify participants of changes
+- [ ] Handle edge cases (participants leaving after changes)
+
+#### Enhanced Discovery
+- [ ] Distance-based sorting (requires user location)
+- [ ] Map view of nearby rides
+- [ ] "Rides near me" filter option
+
+#### User Experience Improvements
+- [ ] Empty state illustrations
+- [ ] Loading skeletons instead of spinners
+- [ ] Improved ride card visual hierarchy
+- [ ] Better date/time pickers
+
+### Long-Term (3+ Months) - Based on Growth
+
+#### Social Features (If Demand Exists)
+- [ ] User search functionality
+- [ ] Following system
+- [ ] Activity feed (friends' rides)
+- [ ] Ride history (past rides with details)
+- [ ] Trust/reputation system (soft scoring)
+
+#### Advanced Features
+- [ ] Recurring rides (weekly group rides)
+- [ ] Ride templates (save frequently used settings)
+- [ ] Route planning integration
+- [ ] Weather forecast integration
+- [ ] Ride difficulty calculator
+
+#### Platform Expansion
+- [ ] iOS app (if Android version proves successful)
+- [ ] Web dashboard for ride management
+- [ ] Admin/moderation tools
 
 ---
 
-## 6. Development Practices
+## Session History
 
-### Code Organization
-* Feature-based folder structure
-* Shared components in `/components`
-* API calls in `/lib` modules
-* Type definitions co-located with features
+### Session: January 6-7, 2026 - Organizer Display & Statistics
 
-### Type Safety
-* Full TypeScript coverage
-* Strict mode enabled
-* Supabase types auto-generated
+**Completed:**
+* **Deep Link Functionality:**
+  - Fixed warm start freeze issue
+  - Resolved route pattern conflicts (`ride/:rideId` made unique per stack)
+  - Removed duplicate manual deep link handler
+  - Verified cold and warm start scenarios
+  
+* **Gender Preference Display:**
+  - Added to Feed cards (compact, inline, only when not "All")
+  - Added to MyRides cards
+  - Added to RideDetails screen
+  - Consistent display across all screens
+  
+* **Persistent Feed Filters:**
+  - Implemented AsyncStorage-based filter persistence
+  - Automatic save on "Apply"
+  - Automatic restore on app start
+  - No extra UI needed
+  
+* **Real-Time Updates:**
+  - Added Supabase subscriptions to MyRidesScreen
+  - Listens to ride_participants and rides table changes
+  - Verified RideDetailsScreen subscriptions working
+  - Tested multi-device sync scenarios
+  
+* **Organizer Display & Statistics:**
+  - Added foreign key: rides.owner_id → profiles.id
+  - Created helper functions:
+    - `getUserOrganizedRidesCount(userId)` - counts past organized rides
+    - `getUserJoinedRidesCount(userId)` - counts past joined rides
+  - Updated Ride type to include:
+    - `owner_display_name?: string`
+    - `owner_rides_organized?: number`
+    - `owner_rides_joined?: number`
+  - Modified 4 fetch functions to join with profiles and fetch stats:
+    - `listFilteredRides` (Feed)
+    - `getMyOrganizingRides` (MyRides - Organizing)
+    - `getMyJoinedRides` (MyRides - Joined)
+    - `getMyRequestedRides` (MyRides - Requested)
+  - Updated UI in FeedScreen and RideDetailsScreen to display organizer + stats
+  - Format: `👤 David Cohen · 5 organized · 12 joined`
 
-### State Management
-* React hooks (useState, useEffect)
-* No global state library (intentional simplicity)
-* Real-time updates via Supabase subscriptions
+**Technical Decisions:**
+* Used on-demand stat fetching (Option A) for MVP
+  - Acceptable performance for <100 users
+  - Marked as TODO for future counter field optimization
+* Ride status remains `published` after end time
+  - Count logic: `start_at < NOW() AND status != 'cancelled'`
+  - Future: Automated status updates to `completed`
+* Deep link strategy: External links → FeedStack, internal nav maintains context
+* Profile visibility: Display name + stats only (no clickable profiles yet)
+  - Testing demand before building full profile features
 
-### Error Handling
-* Try-catch blocks for all async operations
-* User-friendly error messages
-* Console logging for debugging
+**Testing:**
+* ✅ Deep links (cold + warm start)
+* ✅ Real-time updates (2-device verification)
+* ✅ Gender preference filtering
+* ✅ Organizer display with accurate statistics
+* ✅ Persistent filters across restarts
 
----
-
-## 7. Ownership & Contact
-
-**Developer:** Eli Eisenstein  
-**Project:** Bishvil (בשביל - "For the trail")  
-**Current Phase:** Polish & Beta Testing  
-**Started:** 2025  
-**Current Focus:** APK distribution and first pilot users
-
----
-
-## 8. Session History & Progress Log
-
-### Session: January 5, 2026 - UI/UX Polish & Gender Preferences
+### Session: January 5, 2026 - UI/UX Polish
 
 **Completed:**
 * ProfileScreen polish (removed duplicate heading, merged XC+Trails, RTL support, validation, birth year fix)
 * StepDetails polish (unified chip styling, spacing improvements)
 * StepGroup polish (gender preference chips)
 * StepReview (added gender preference display)
-* MyRidesScreen (added gender preference display)
+* MyRidesScreen (added gender preference display, removed duplicate header)
 * RideDetailsScreen (added gender preference display)
 * Consistent design system across all screens
+* Dark theme implementation (#121212 headers and tab bar)
 
 **Key Decisions:**
 * Standardized on 6px chip gaps (down from 8px)
@@ -432,8 +623,6 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 
 ---
 
-*End of documentation*
-
 ## Quick Reference
 
 ### Current Ride Types
@@ -449,50 +638,38 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * **Other/Null gender users:** See only "All" rides
 
 ### Status Badges
-* **Orange:** Owner/Organizing
-* **Green:** Joined
-* **Yellow:** Requested/Pending
+* **Orange (#FF6B35):** Owner/Organizing
+* **Green (#4CAF50):** Joined
+* **Yellow (#FFC107):** Requested/Pending
+
+### Organizer Statistics
+* **Organized Count:** Past rides where user was owner (start_at < NOW, status != 'cancelled')
+* **Joined Count:** Past rides where user was participant (joined status, not owner, start_at < NOW, status != 'cancelled')
+* **Display:** `👤 Name · X organized · Y joined`
+
+### Deep Link Patterns
+* **External shares:** `bishvil://ride/:rideId` → FeedStack → RideDetails
+* **MyRides internal:** `my-rides/ride/:rideId` → MyRidesStack → RideDetails
+* **Supported prefixes:** `bishvil://`, `https://bishvil.app`, `https://bishvil-app.vercel.app`
+
+### Database Foreign Keys
+* `rides.owner_id` → `profiles.id` (rides_owner_profile_id_fkey)
+* `ride_participants.ride_id` → `rides.id`
+* `ride_participants.user_id` → `profiles.id`
+* `profiles.id` → `auth.users.id`
 
 ### Key File Locations
 * Profiles: `src/lib/profile.ts`
 * Rides: `src/lib/rides.ts`
+* Ride Statistics: `getUserOrganizedRidesCount()`, `getUserJoinedRidesCount()` in `rides.ts`
 * Notifications: `src/lib/notifications.ts`
 * Auth: `src/lib/supabase.ts`
+* Navigation: `src/app/navigation/AppNavigator.tsx`
+* Deep Linking: `src/app/navigation/linking.ts`
 * i18n: `src/app/i18n/`
 
 ---
 
-**Last Reshaped:** January 5, 2026  
-**Status:** Ready for beta testing
-
-
-Summary of Today's Accomplishments:
-✅ Header & Footer Styling
-
-Dark theme (#121212) for headers and tab bar
-White inactive icons, orange active icons
-Consistent across all screens
-
-✅ Deep Link Fix
-
-Fixed warm start freeze issue
-Resolved route pattern conflict
-Deep links now work perfectly in both cold and warm starts
-
-✅ Gender Preference Display
-
-Added to Feed cards (only shows when not "All")
-Compact, single-line display
-Consistent with MyRides and RideDetails
-
-✅ Persistent Feed Filters
-
-Filters now save automatically to AsyncStorage
-Load on app start
-No extra UI needed - just works!
-
-✅ UI Polish
-
-Removed duplicate "My Rides" header
-Clean, Strava-inspired dark interface
-Improved screen real estate usage
+**Last Updated:** January 7, 2026  
+**Status:** Production-ready MVP with social trust features  
+**Next Milestone:** Beta testing with 2-3 users, gather feedback on organizer visibility

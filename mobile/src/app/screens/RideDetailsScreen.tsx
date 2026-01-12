@@ -19,6 +19,8 @@ import {
   approveJoinRequest,
   rejectJoinRequest,
   cancelRide,
+  getUserOrganizedRidesCount,
+  getUserJoinedRidesCount,
   type ParticipantWithName,
   type ParticipantStatus
 } from "../../lib/rides";
@@ -71,55 +73,65 @@ export default function RideDetailsScreen() {
     );
   }
 
-const loadRideData = async () => {
-  try {
-    // Get current user ID
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user.id;
-    setCurrentUserId(userId ?? null);
-
-    // 1) Fetch ride + owner display name (this is the part you want)
-    const { data, error } = await supabase
-      .from("rides")
-      .select("*, owner:profiles!rides_owner_profile_id_fkey(display_name)")
-      .eq("id", rideId)
-      .eq("status", "published")
-      .single();
-
-    if (error) throw new Error(error.message);
-
-    const rideData = {
-      ...data,
-      owner_display_name: (data as any)?.owner?.display_name ?? "Unknown",
-      owner: undefined,
-    } as Ride;
-
-    // IMPORTANT: set ride immediately so screen renders like Feed
-    setRide(rideData);
-
-    // 2) Fetch participant data separately so RLS errors won't kill the screen
+  const loadRideData = async () => {
     try {
-      const [status, count, participantsList] = await Promise.all([
-        getMyRideParticipantStatus(rideId),
-        getRideParticipantCount(rideId),
-        getRideParticipants(rideId),
+      // Get current user ID
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+      setCurrentUserId(userId ?? null);
+
+      // 1) Fetch ride + owner display name (this is the part you want)
+      const { data, error } = await supabase
+        .from("rides")
+        .select("*, owner:profiles!rides_owner_profile_id_fkey(display_name)")
+        .eq("id", rideId)
+        .eq("status", "published")
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      // Flatten owner data
+      const rideData = {
+        ...data,
+        owner_display_name: (data as any)?.owner?.display_name ?? "Unknown",
+        owner: undefined,
+      } as Ride;
+
+      // Fetch owner stats
+      const [organized, joined] = await Promise.all([
+        getUserOrganizedRidesCount(rideData.owner_id),
+        getUserJoinedRidesCount(rideData.owner_id),
       ]);
 
-      setMyStatus(status);
-      setJoinedCount(count);
-      setParticipants(participantsList);
+      rideData.owner_rides_organized = organized;
+      rideData.owner_rides_joined = joined;
+
+      // IMPORTANT: set ride immediately so screen renders like Feed
+      setRide(rideData);
+
+      // 2) Fetch participant data separately so RLS errors won't kill the screen
+      try {
+        const [status, count, participantsList] = await Promise.all([
+          getMyRideParticipantStatus(rideId),
+          getRideParticipantCount(rideId),
+          getRideParticipants(rideId),
+        ]);
+
+        setMyStatus(status);
+        setJoinedCount(count);
+        setParticipants(participantsList);
+      } catch (e: any) {
+        console.log("RideDetails participants load error:", e?.message ?? e);
+        // Don't fail the whole screen
+        setMyStatus(null);
+        setJoinedCount(null);
+        setParticipants([]);
+      }
     } catch (e: any) {
-      console.log("RideDetails participants load error:", e?.message ?? e);
-      // Don't fail the whole screen
-      setMyStatus(null);
-      setJoinedCount(null);
-      setParticipants([]);
+      console.log("RideDetails load error:", e?.message ?? e);
+      setRide(null);
     }
-  } catch (e: any) {
-    console.log("RideDetails load error:", e?.message ?? e);
-    setRide(null);
-  }
-};
+  };
 
 
   useEffect(() => {
@@ -288,9 +300,11 @@ const loadRideData = async () => {
               </Text>
             )}
           </Text>
+
           <Text style={{ opacity: 0.7, fontSize: 14, marginTop: 4 }}>
-            👤 {ride.owner_display_name}
+            👤 {ride.owner_display_name} · {ride.owner_rides_organized ?? 0} organized · {ride.owner_rides_joined ?? 0} joined
           </Text>
+          
           <Text style={{ opacity: 0.8 }}>
             {t("rideDetails.when")}: {(() => {
               const startDate = new Date(ride.start_at);

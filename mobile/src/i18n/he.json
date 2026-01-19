@@ -65,7 +65,22 @@
     "checkSpam": "לא רואה? בדוק בתיקיית הספאם",
     "rateLimitWarning": "שליחת אימייל מוגבלת (2 לשעה)",
     "rateLimitError": "יותר מדי בקשות. נסה שוב מאוחר יותר",
-    "resetFailed": "שליחת אימייל האיפוס נכשלה"
+    "resetFailed": "שליחת אימייל האיפוס נכשלה",
+    "createAccount": "צור חשבון",
+    "signUp": "הרשמה",
+    "confirmPassword": "אימות סיסמה",
+    "passwordsDoNotMatch": "הסיסמאות אינן תואמות",
+    "alreadyHaveAccount": "כבר יש לך חשבון? התחבר",
+    "signUpFailed": "יצירת חשבון נכשלה",
+    "accountCreated": "חשבון נוצר בהצלחה",
+    "displayNameLabel": "שם תצוגה",
+    "displayNameTaken": "השם הזה כבר תפוס",
+    "displayNameAvailable": "השם זמין",
+    "displayNameChecking": "בודק זמינות...",
+    "selectRideTypes": "מה אתה רוכב?",
+    "selectGender": "מגדר",
+    "completeProfileToStart": "השלם את הפרופיל שלך כדי להתחיל",
+    "emailAlreadyRegistered": "האימייל הזה כבר רשום"
   },
   "settings": {
     "title": "הגדרות",

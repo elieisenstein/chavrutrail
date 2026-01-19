@@ -7,9 +7,10 @@ import { supabase } from "../../lib/supabase";
 
 type Props = {
   onForgotPassword: () => void;
+  onSignUp: () => void;
 };
 
-export default function LoginScreen({ onForgotPassword }: Props) {
+export default function LoginScreen({ onForgotPassword, onSignUp }: Props) {
   const { t } = useTranslation();
 
   const [email, setEmail] = useState("");
@@ -126,13 +127,22 @@ export default function LoginScreen({ onForgotPassword }: Props) {
             {t("auth.signIn") ?? "Sign In"}
           </Button>
 
-          <Button 
-            mode="text" 
+          <Button
+            mode="text"
             onPress={onForgotPassword}
             disabled={loading}
             style={styles.forgotButton}
           >
             {t("auth.forgotPassword") ?? "Forgot password?"}
+          </Button>
+
+          <Button
+            mode="text"
+            onPress={onSignUp}
+            disabled={loading}
+            style={styles.signUpButton}
+          >
+            {t("auth.createAccount") ?? "Create account"}
           </Button>
 
           <View style={styles.betaNotice}>
@@ -178,6 +188,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   forgotButton: {
+    marginTop: 4,
+  },
+  signUpButton: {
     marginTop: 4,
   },
   betaNotice: {

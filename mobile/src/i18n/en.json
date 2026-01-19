@@ -65,7 +65,22 @@
     "checkSpam": "Don't see it? Check your spam folder.",
     "rateLimitWarning": "Email sending is rate limited (2/hour)",
     "rateLimitError": "Too many requests. Please try again later.",
-    "resetFailed": "Failed to send reset email"
+    "resetFailed": "Failed to send reset email",
+    "createAccount": "Create account",
+    "signUp": "Sign Up",
+    "confirmPassword": "Confirm password",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "alreadyHaveAccount": "Already have an account? Sign in",
+    "signUpFailed": "Failed to create account",
+    "accountCreated": "Account created successfully",
+    "displayNameLabel": "Display Name",
+    "displayNameTaken": "This name is already taken",
+    "displayNameAvailable": "Name is available",
+    "displayNameChecking": "Checking availability...",
+    "selectRideTypes": "What do you ride?",
+    "selectGender": "Gender",
+    "completeProfileToStart": "Complete your profile to get started",
+    "emailAlreadyRegistered": "This email is already registered"
   },
   "settings": {
     "title": "Settings",

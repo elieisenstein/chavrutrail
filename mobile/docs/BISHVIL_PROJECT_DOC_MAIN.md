@@ -1,6 +1,6 @@
 # Bishvil – Project Documentation
 
-*Last updated: 2026-01-07*
+*Last updated: 2026-01-19*
 
 This document consolidates the project documentation into four clear layers:
 
@@ -86,8 +86,13 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 
 ### Authentication
 
-* Phone OTP primary (Israeli norm, high completion)
-* Email auth for development/testing
+* **Email/Password Sign-Up:** Self-service registration for beta users
+  * No email verification (disabled in Supabase settings)
+  * Display name uniqueness enforced via database constraint
+  * Case-insensitive name checking via Postgres function with SECURITY DEFINER
+  * Profile completion during sign-up (display_name, ride_type[], gender)
+* Phone OTP primary (Israeli norm, high completion) - for future rollout
+* Email/password login for development/testing and beta users
 * Sessions persist across app restarts
 * Auto-refresh of push tokens on login
 
@@ -97,7 +102,15 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 * `profiles` - User profiles (separate from auth.users)
   * Auto-created via DB trigger
   * Contains: display_name, bio, ride_type[], skill, pace, birth_year, gender, expo_push_token
+  * **Constraint:** display_name must be unique (enforced via database constraint)
   * **Future:** Will add rides_organized_count, rides_joined_count for performance
+
+#### Database Functions
+* `check_display_name_available(name TEXT)` - Returns boolean
+  * Uses SECURITY DEFINER to bypass RLS policies
+  * Allows unauthenticated users to check name availability during sign-up
+  * Case-insensitive comparison using LOWER()
+  * Called via RPC from client: `supabase.rpc('check_display_name_available', { name })`
   
 * `rides` - Ride listings
   * Contains ride details, location, preferences, gender_preference
@@ -200,7 +213,15 @@ Bishvil is an **Android‑first mobile app** for organizing and joining cycling 
 ### ✅ Completed Core Features
 
 #### Authentication & Profiles
+* **Self-Service Sign-Up:** ⭐ NEW
+  - Email/password registration with minimum 6 characters
+  - Real-time display name availability checking (case-insensitive)
+  - No email verification required (friction-free for trusted users)
+  - Profile completion during sign-up (display_name, ride_type[], gender)
+  - Unique display name enforcement (database constraint)
+  - Display name stored in both user_metadata and profiles table
 * Phone OTP authentication with persistent sessions
+* Email/password login for development and beta users
 * Profile auto-creation via DB trigger
 * Lightweight profile with ride preferences
 * Gender selection (Male/Female/Other)
@@ -516,6 +537,138 @@ If yes, implement:
 
 ## Session History
 
+### Session: January 19, 2026 - Self-Service Sign-Up Implementation
+
+**Completed:**
+* **Email/Password Sign-Up Flow:**
+  - Created complete SignUpScreen component with comprehensive form
+  - Display name input with real-time availability checking (debounced 500ms)
+  - Email and password fields with show/hide toggles
+  - Password confirmation with match validation
+  - Ride types multi-select (Trail, Enduro, Gravel, Road)
+  - Gender selection (Male, Female, Other)
+  - Visual indicators: ✅ available, ❌ taken, ⏱ checking
+
+* **Database Changes:**
+  - Added unique constraint to profiles.display_name
+  - Created Postgres function `check_display_name_available(name TEXT)` with SECURITY DEFINER
+  - Function uses case-insensitive comparison (LOWER())
+  - Bypasses RLS policies to allow unauthenticated name checking
+
+* **Profile Creation:**
+  - Display name stored in both user_metadata and profiles table
+  - Immediate profile population with display_name, ride_type, gender
+  - Matches createUsers.js script behavior
+  - Users start with complete, usable profile
+
+* **Authentication Updates:**
+  - Disabled email confirmation in Supabase dashboard (friction-free)
+  - Added display_name to user metadata during sign-up
+  - Auto-login after successful registration
+  - Session persistence via AsyncStorage
+
+* **Navigation & UI:**
+  - Updated AuthScreen with signup routing
+  - Added "Create account" button to LoginScreen
+  - "Already have account?" link in SignUpScreen
+  - Seamless navigation between login/signup/forgot password
+
+* **Translations:**
+  - Added 13 new translation keys for sign-up flow
+  - Complete Hebrew and English translations
+  - RTL-compatible layouts
+
+**Technical Implementation:**
+* `mobile/src/lib/profile.ts`:
+  - New function: `isDisplayNameAvailable(displayName: string)`
+  - Uses RPC call to Postgres function (bypasses RLS)
+  - Case-insensitive name checking
+
+* `mobile/src/app/auth/SignUpScreen.tsx`:
+  - New component with full form validation
+  - Real-time name availability checking with debouncing
+  - Display name stored in user_metadata during signUp()
+  - Profile updated via updateMyProfile() after user creation
+
+* Database function:
+  ```sql
+  CREATE OR REPLACE FUNCTION check_display_name_available(name TEXT)
+  RETURNS BOOLEAN
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  AS $$
+  BEGIN
+    RETURN NOT EXISTS (
+      SELECT 1 FROM profiles WHERE LOWER(display_name) = LOWER(name)
+    );
+  END;
+  $$;
+  ```
+
+**Key Decisions:**
+* No email verification (disabled in Supabase settings)
+  - Trusted user base (friends only)
+  - Reduces friction for beta users
+  - Avoids Supabase rate limits (2 emails/hour)
+
+* 6-character password minimum
+  - Reasonable for trusted network
+  - Can be strengthened later if needed
+
+* Profile completion during sign-up
+  - Collects required fields: display_name, ride_type[], gender
+  - Optional fields (skill, pace, bio) added later in ProfileScreen
+  - No incomplete profile states
+
+* Case-insensitive display names
+  - "David" = "david" = "DAVID"
+  - Prevents identity confusion
+  - Better UX than strict case-sensitive
+
+* RLS bypass via Postgres function
+  - Long-term safe solution (vs. allowing anonymous access)
+  - Function-level security control
+  - Unauthenticated users can check names during sign-up
+
+**Problem Solved:**
+* **Issue 1:** RLS policies blocked unauthenticated name checking
+  - Root cause: profiles table SELECT requires authentication
+  - Solution: Created SECURITY DEFINER function to bypass RLS
+  - Alternative rejected: Adding RLS policy for anonymous users (less secure)
+
+* **Issue 2:** Email confirmation error despite settings
+  - Root cause: Project-level Supabase setting enabled
+  - Solution: Disabled email confirmation in Supabase dashboard
+
+* **Issue 3:** Display name not in auth.users metadata
+  - Root cause: Not passing data to signUp() options
+  - Solution: Added display_name to user_metadata during registration
+
+**Testing:**
+* ✅ Name availability checking (existing and new names)
+* ✅ Form validation (email, password, ride types, gender)
+* ✅ Sign-up flow (account creation + profile population)
+* ✅ Display name uniqueness enforcement (database constraint)
+* ✅ Auto-login after registration
+* ✅ Navigation between auth screens
+* ✅ Hebrew and English translations
+* ✅ Display name in both user_metadata and profiles table
+
+**Files Modified:**
+* `mobile/src/lib/profile.ts` - Added isDisplayNameAvailable()
+* `mobile/src/app/auth/SignUpScreen.tsx` - NEW complete sign-up form
+* `mobile/src/app/auth/AuthScreen.tsx` - Added signup routing
+* `mobile/src/app/auth/LoginScreen.tsx` - Added "Create account" button
+* `mobile/src/i18n/en.json` - Added sign-up translations
+* `mobile/src/i18n/he.json` - Added sign-up translations
+* Database - Added unique constraint + SECURITY DEFINER function
+
+**Next Steps:**
+* Friends can now self-register via sign-up screen
+* scripts/createUsers.js kept for admin/bulk operations if needed
+* Monitor sign-up flow during beta testing
+* Consider adding password strength indicator (future)
+
 ### Session: January 6-7, 2026 - Organizer Display & Statistics
 
 **Completed:**
@@ -670,6 +823,6 @@ If yes, implement:
 
 ---
 
-**Last Updated:** January 7, 2026  
-**Status:** Production-ready MVP with social trust features  
-**Next Milestone:** Beta testing with 2-3 users, gather feedback on organizer visibility
+**Last Updated:** January 19, 2026
+**Status:** Production-ready MVP with self-service sign-up
+**Next Milestone:** Beta testing with self-registering users, monitor sign-up flow and gather feedback

@@ -14,3 +14,7 @@ npx expo run:android --variant debug
 
 # OR for release build (what you've been using):
 npx expo run:android --variant release
+
+
+EAS build in the cloud:
+eas build --platform android --profile test_apk

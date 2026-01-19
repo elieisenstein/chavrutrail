@@ -3,9 +3,10 @@ import { View, StyleSheet } from "react-native";
 import { Text } from "react-native-paper";
 
 import LoginScreen from "./LoginScreen";
+import SignUpScreen from "./SignUpScreen";
 import ForgotPasswordScreen from "./ForgotPasswordScreen";
 
-type AuthView = "login" | "forgotPassword";
+type AuthView = "login" | "signup" | "forgotPassword";
 
 export default function AuthScreen() {
   const [view, setView] = useState<AuthView>("login");
@@ -13,9 +14,16 @@ export default function AuthScreen() {
   return (
     <View style={styles.container}>
       {view === "login" && (
-        <LoginScreen onForgotPassword={() => setView("forgotPassword")} />
+        <LoginScreen
+          onForgotPassword={() => setView("forgotPassword")}
+          onSignUp={() => setView("signup")}
+        />
       )}
-      
+
+      {view === "signup" && (
+        <SignUpScreen onSignIn={() => setView("login")} />
+      )}
+
       {view === "forgotPassword" && (
         <ForgotPasswordScreen onBack={() => setView("login")} />
       )}

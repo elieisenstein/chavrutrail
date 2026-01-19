@@ -67,3 +67,37 @@ export function stringToRideTypes(str: string | null): string[] {
     .map(s => s.trim())
     .filter(Boolean);
 }
+
+/**
+ * Check if a display name is available (not taken by another user)
+ * Returns true if available, false if taken
+ * Uses case-insensitive comparison to prevent confusion with similar names
+ *
+ * This function calls a Postgres function via RPC to bypass RLS policies,
+ * allowing unauthenticated users to check name availability during sign-up.
+ */
+export async function isDisplayNameAvailable(displayName: string): Promise<boolean> {
+  const trimmedName = displayName.trim();
+
+  if (!trimmedName) return false;
+
+  try {
+    // Call the Postgres function via RPC
+    const { data, error } = await supabase
+      .rpc('check_display_name_available', { name: trimmedName });
+
+    if (error) {
+      console.error("Display name check error:", error);
+      throw new Error(error.message);
+    }
+
+    console.log(`Checking availability for "${trimmedName}":`, {
+      isAvailable: data,
+    });
+
+    return data === true; // Function returns boolean directly
+  } catch (e: any) {
+    console.error("Failed to check display name availability:", e);
+    throw e;
+  }
+}

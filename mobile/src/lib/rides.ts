@@ -76,6 +76,33 @@ export type RideFilters = {
   userLng?: number;
 };
 
+/**
+ * Configuration: How many hours after a ride ends to keep showing it
+ * This allows users to see recent rides briefly after they've finished
+ */
+export const RIDE_VISIBILITY_HOURS_AFTER_END = 48;
+
+/**
+ * Calculate the minimum end time for ride visibility
+ * Rides are visible if they ended less than RIDE_VISIBILITY_HOURS_AFTER_END ago
+ * Returns ISO timestamp
+ */
+function getMinimumEndTime(): string {
+  const now = new Date();
+  now.setHours(now.getHours() - RIDE_VISIBILITY_HOURS_AFTER_END);
+  return now.toISOString();
+}
+
+/**
+ * Calculate ride end time based on start time and duration
+ * Returns ISO timestamp
+ */
+function calculateRideEndTime(startAt: string, durationHours: number): Date {
+  const startTime = new Date(startAt);
+  startTime.setHours(startTime.getHours() + durationHours);
+  return startTime;
+}
+
 export async function createRide(input: CreateRideInput): Promise<Ride> {
   const { data, error } = await supabase
     .from("rides")
@@ -107,24 +134,26 @@ export async function listPublishedUpcomingRides(limit = 50): Promise<Ride[]> {
 /**
  * List rides with filters applied
  * Note: Location filtering is done client-side since we don't have PostGIS
+ * Rides are visible for RIDE_VISIBILITY_HOURS_AFTER_END hours after they end
  */
 export async function listFilteredRides(filters: RideFilters, userGender?: string | null, limit = 50): Promise<Ride[]> {
   const nowIso = new Date().toISOString();
+  const minEndTimeIso = getMinimumEndTime();
 
-  // Calculate max date based on maxDays
+  // Calculate max date based on maxDays (from now)
   const maxDate = new Date();
   maxDate.setDate(maxDate.getDate() + filters.maxDays);
   const maxDateIso = maxDate.toISOString();
 
-  // Build query
+  // Build query - fetch rides that started recently or will start soon
+  // We'll filter by end time client-side since Postgres can't compute end_time in WHERE
   let query = supabase
     .from("rides")
     .select("*, owner:profiles!rides_owner_profile_id_fkey(display_name)")
     .eq("status", "published")
-    .gte("start_at", nowIso)
-    .lte("start_at", maxDateIso)
+    .lte("start_at", maxDateIso) // Started before max future date
     .order("start_at", { ascending: true })
-    .limit(limit);
+    .limit(limit * 2); // Fetch more to account for filtering
 
   // Apply ride type filter if not all types
   if (filters.rideTypes.length > 0) {
@@ -155,6 +184,13 @@ export async function listFilteredRides(filters: RideFilters, userGender?: strin
     owner_display_name: item.owner?.display_name ?? "Unknown",
     owner: undefined,
   })) as Ride[];
+
+  // Filter by ride end time (client-side)
+  // Keep rides that ended less than RIDE_VISIBILITY_HOURS_AFTER_END ago
+  rides = rides.filter(ride => {
+    const endTime = calculateRideEndTime(ride.start_at, ride.duration_hours);
+    return endTime >= new Date(minEndTimeIso);
+  });
 
   // Get unique owner IDs
   const uniqueOwnerIds = [...new Set(rides.map(r => r.owner_id))];
@@ -196,7 +232,8 @@ export async function listFilteredRides(filters: RideFilters, userGender?: strin
     });
   }
 
-  return rides;
+  // Apply final limit after all filtering
+  return rides.slice(0, limit);
 }
 
 /**
@@ -418,36 +455,50 @@ export async function cancelRide(rideId: string): Promise<void> {
 
 /**
  * Get rides I'm organizing (owner)
+ * Shows rides for RIDE_VISIBILITY_HOURS_AFTER_END hours after they end
  */
 export async function getMyOrganizingRides(): Promise<Ride[]> {
   const { data: sessionData } = await supabase.auth.getSession();
   const userId = sessionData.session?.user.id;
   if (!userId) throw new Error("Not signed in");
 
+  const minEndTimeIso = getMinimumEndTime();
+
   const { data, error } = await supabase
     .from("rides")
     .select("*, owner:profiles!rides_owner_profile_id_fkey(display_name)")
     .eq("owner_id", userId)
     .eq("status", "published")
-    .gte("start_at", new Date().toISOString())
     .order("start_at", { ascending: true });
 
   if (error) throw new Error(error.message);
 
-  return (data ?? []).map((item: any) => ({
+  let rides = (data ?? []).map((item: any) => ({
     ...item,
     owner_display_name: item.owner?.display_name ?? "Unknown",
     owner: undefined,
   })) as Ride[];
+
+  // Filter by ride end time (client-side)
+  // Keep rides that ended less than RIDE_VISIBILITY_HOURS_AFTER_END ago
+  rides = rides.filter(ride => {
+    const endTime = calculateRideEndTime(ride.start_at, ride.duration_hours);
+    return endTime >= new Date(minEndTimeIso);
+  });
+
+  return rides;
 }
 
 /**
  * Get rides I've joined (as participant, NOT owner)
+ * Shows rides for RIDE_VISIBILITY_HOURS_AFTER_END hours after they end
  */
 export async function getMyJoinedRides(): Promise<Ride[]> {
   const { data: sessionData } = await supabase.auth.getSession();
   const userId = sessionData.session?.user.id;
   if (!userId) throw new Error("Not signed in");
+
+  const minEndTimeIso = getMinimumEndTime();
 
   const { data, error } = await supabase
     .from("rides")
@@ -460,27 +511,38 @@ export async function getMyJoinedRides(): Promise<Ride[]> {
     .eq("ride_participants.status", "joined")
     .neq("owner_id", userId)
     .eq("status", "published")
-    .gte("start_at", new Date().toISOString())
     .order("start_at", { ascending: true });
 
   if (error) throw new Error(error.message);
-  
-  return (data ?? []).map((item: any) => {
+
+  let rides = (data ?? []).map((item: any) => {
     const { ride_participants, owner, ...ride } = item;
     return {
       ...ride,
       owner_display_name: owner?.display_name ?? "Unknown",
     } as Ride;
   });
+
+  // Filter by ride end time (client-side)
+  // Keep rides that ended less than RIDE_VISIBILITY_HOURS_AFTER_END ago
+  rides = rides.filter(ride => {
+    const endTime = calculateRideEndTime(ride.start_at, ride.duration_hours);
+    return endTime >= new Date(minEndTimeIso);
+  });
+
+  return rides;
 }
 
 /**
  * Get rides I've requested to join (waiting approval, NOT owner)
+ * Shows rides for RIDE_VISIBILITY_HOURS_AFTER_END hours after they end
  */
 export async function getMyRequestedRides(): Promise<Ride[]> {
   const { data: sessionData } = await supabase.auth.getSession();
   const userId = sessionData.session?.user.id;
   if (!userId) throw new Error("Not signed in");
+
+  const minEndTimeIso = getMinimumEndTime();
 
   const { data, error } = await supabase
     .from("rides")
@@ -493,18 +555,26 @@ export async function getMyRequestedRides(): Promise<Ride[]> {
     .eq("ride_participants.status", "requested")
     .neq("owner_id", userId)
     .eq("status", "published")
-    .gte("start_at", new Date().toISOString())
     .order("start_at", { ascending: true });
 
   if (error) throw new Error(error.message);
-  
-  return (data ?? []).map((item: any) => {
+
+  let rides = (data ?? []).map((item: any) => {
     const { ride_participants, owner, ...ride } = item;
     return {
       ...ride,
       owner_display_name: owner?.display_name ?? "Unknown",
     } as Ride;
   });
+
+  // Filter by ride end time (client-side)
+  // Keep rides that ended less than RIDE_VISIBILITY_HOURS_AFTER_END ago
+  rides = rides.filter(ride => {
+    const endTime = calculateRideEndTime(ride.start_at, ride.duration_hours);
+    return endTime >= new Date(minEndTimeIso);
+  });
+
+  return rides;
 }
 
 /**

@@ -249,6 +249,9 @@ Fast, low-friction ride discovery and joining for Israeli cyclists, optimized fo
   * Skill level (optional)
   * Time range (Today, 3d, 7d, 14d, 30d)
   * **Persistent filters** - saved to AsyncStorage, restored on app start
+* **Extended ride visibility:** Rides remain visible for 48 hours after they end
+  * Configurable via `RIDE_VISIBILITY_HOURS_AFTER_END` constant
+  * Allows users to review recent rides and coordinate post-ride
 * Empty states with helpful CTAs
 * Pull-to-refresh
 * **Organizer display** with ride statistics
@@ -259,6 +262,7 @@ Fast, low-friction ride discovery and joining for Israeli cyclists, optimized fo
   * Organizing (orange badge + OWNER)
   * Joined (green badge + JOINED)
   * Requested (yellow badge + REQUESTED)
+* **Extended ride visibility:** Rides remain visible for 48 hours after they end
 * Empty states per section
 * **Real-time updates** - automatic refresh when participant status changes
 
@@ -547,6 +551,35 @@ npx expo run:android
 ---
 
 ## Recent Session History
+
+### Session: January 20, 2026 - Extended Ride Visibility
+
+**Completed:**
+* Implemented 48-hour post-ride visibility window
+  * Rides now remain visible for 48 hours after they end
+  * Configurable via `RIDE_VISIBILITY_HOURS_AFTER_END` constant in [rides.ts](../src/lib/rides.ts)
+* Updated all ride fetching functions:
+  * `listFilteredRides()` - Feed with filters
+  * `getMyOrganizingRides()` - My organizing rides
+  * `getMyJoinedRides()` - My joined rides
+  * `getMyRequestedRides()` - My requested rides
+* Added helper functions:
+  * `getMinimumEndTime()` - Calculates cutoff timestamp
+  * `calculateRideEndTime()` - Computes ride end time from start + duration
+* Client-side filtering for ended rides (Postgres doesn't support computed columns in WHERE)
+* Updated documentation with new feature
+
+**Technical Implementation:**
+* Removed `gte("start_at", nowIso)` from database queries
+* Added client-side filtering: `endTime >= minEndTime`
+* End time = start_at + duration_hours
+* Visibility cutoff = now - 48 hours
+
+**Why This Feature:**
+* Allows users to review recent rides
+* Coordinate post-ride (share photos, plan next ride)
+* See who actually showed up
+* Better UX - rides don't disappear instantly
 
 ### Session: January 20, 2026 - Documentation Consolidation
 

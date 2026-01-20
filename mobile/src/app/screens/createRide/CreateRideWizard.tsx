@@ -7,6 +7,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { supabase } from "../../../lib/supabase";
 import { createRide } from "../../../lib/rides";
+import { fetchMyProfile, updateMyProfile } from "../../../lib/profile";
 import { CreateRideDraft, draftIsStepValid } from "./createRideTypes";
 
 import StepWhen from "./steps/StepWhen";
@@ -95,6 +96,7 @@ export default function CreateRideWizard() {
 
     setSubmitting(true);
     try {
+      // 1. Create the ride
       const ride = await createRide({
         owner_id: userId,
         status: "published",
@@ -113,6 +115,27 @@ export default function CreateRideWizard() {
         gender_preference: draft.gender_preference ?? "all",
         notes: draft.notes ?? null,
       });
+
+      // 2. Auto-add ride type to user's profile if not already there
+      try {
+        const profile = await fetchMyProfile();
+        if (profile && profile.ride_type) {
+          const currentTypes = profile.ride_type.split(',').map(t => t.trim());
+          const newType = draft.ride_type!;
+
+          // Only update if the type isn't already in their profile
+          if (!currentTypes.includes(newType)) {
+            const updatedTypes = [...currentTypes, newType];
+            await updateMyProfile({
+              ride_type: updatedTypes.join(','),
+            });
+            console.log(`Auto-added ${newType} to user's ride types`);
+          }
+        }
+      } catch (e) {
+        // Non-critical - don't fail ride creation if profile update fails
+        console.log("Failed to auto-update profile ride types:", e);
+      }
 
       setDraft(getInitialDraft());
       setStepIndex(0);

@@ -161,7 +161,7 @@
     
     <a href="#" id="openApp" class="btn-primary">פתח רכיבה באפליקציה</a>
     
-    <a href="https://www.dropbox.com/scl/fi/cyjt1lmorp8n49ijkcddh/Bishvil-demo-v0.1.apk?rlkey=2vymu96vxfwnp1l19m2l3nfft&st=18tu0340&dl=0" class="btn-secondary">הורד APK</a>
+    <a href="#" class="btn-secondary" id="downloadApk">הורד APK</a>
 
     <div class="features">
       <div class="feature">
@@ -189,15 +189,32 @@
 
   <script>
   (function () {
+    const VERSION_URL = 'https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bnsj1ed2zv4dd5qpkhy&dl=1';
+    const FALLBACK_APK = 'https://www.dropbox.com/scl/fi/cyjt1lmorp8n49ijkcddh/Bishvil-demo-v0.1.apk?rlkey=2vymu96vxfwnp1l19m2l3nfft&dl=1';
+
+    // Fetch APK URL from version.json
+    fetch(VERSION_URL)
+      .then(r => r.json())
+      .then(data => {
+        window.apkUrl = data.downloadUrl;
+        // Update download button
+        const downloadBtn = document.getElementById('downloadApk');
+        if (downloadBtn) downloadBtn.href = data.downloadUrl;
+      })
+      .catch(() => {
+        window.apkUrl = FALLBACK_APK;
+        const downloadBtn = document.getElementById('downloadApk');
+        if (downloadBtn) downloadBtn.href = FALLBACK_APK;
+      });
+
     // Extract rideId from /ride/<id>
     const parts = window.location.pathname.split("/").filter(Boolean);
     const rideId = (parts[0] === "ride" && parts[1]) ? parts[1] : null;
 
-    // If not on a ride page, do nothing
+    // If not on a ride page, just set download link
     if (!rideId) return;
 
     const deepLink = `bishvil://ride/${rideId}`;
-    const fallbackApk = "https://www.dropbox.com/scl/fi/cyjt1lmorp8n49ijkcddh/Bishvil-demo-v0.1.apk?rlkey=2vymu96vxfwnp1l19m2l3nfft&st=18tu0340&dl=0";
 
     // Wire the button to retry opening the app
     const btn = document.getElementById("openApp");
@@ -209,17 +226,13 @@
 
         // fallback if app didn't open
         setTimeout(() => {
-          window.location.href = fallbackApk;
+          window.location.href = window.apkUrl || FALLBACK_APK;
         }, 1200);
       });
     }
 
     // Attempt auto-open on page load (best-effort)
-    // Many browsers allow this when user tapped a link to get here.
     window.location.href = deepLink;
-
-    // If it didn't open, keep user on page; do NOT auto-redirect to download
-    // (auto download redirect is annoying). Leave the download button visible.
   })();
 </script>
 </body>

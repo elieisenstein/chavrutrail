@@ -1,6 +1,6 @@
 # Bishvil – Project Documentation
 
-*Last updated: 2026-01-20*
+*Last updated: 2026-01-21*
 
 ---
 
@@ -549,6 +549,47 @@ npx expo run:android
 * `ride_participants.user_id` → `profiles.id`
 * `profiles.id` → `auth.users.id`
 
+### Releasing a New Version (APK Update Workflow)
+
+**Single Update Point:** Both the mobile app and landing page fetch the APK URL from the same `version.json` file hosted on Dropbox.
+
+**Steps to release a new version:**
+
+1. **Build new APK:**
+   ```bash
+   eas build --platform android --profile preview
+   ```
+
+2. **Upload APK to Dropbox:**
+   * Upload the new APK file to Dropbox
+   * Get shareable link
+   * Change `dl=0` to `dl=1` in the URL for direct download
+
+3. **Update `version.json` on Dropbox:**
+   ```json
+   {
+     "version": "1.0.2",
+     "downloadUrl": "https://www.dropbox.com/scl/fi/xxxxx/bishvil.apk?rlkey=xxx&dl=1"
+   }
+   ```
+   * Increment version number
+   * Update downloadUrl with new APK link
+
+4. **Done!** Both app and landing page will automatically use the new URL.
+
+**How it works:**
+
+* **Mobile App:** On startup, `checkForUpdate()` in [versionCheck.ts](../src/lib/versionCheck.ts) fetches `version.json` and compares versions. If newer version exists, shows an alert with "Update Now" button.
+
+* **Landing Page:** [public/index.html](../../public/index.html) fetches `version.json` on load and updates the download button URL dynamically.
+
+**Version.json URL:**
+```
+https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bnsj1ed2zv4dd5qpkhy&dl=1
+```
+
+**Note:** The `dl=1` parameter makes Dropbox return raw file content instead of a preview page.
+
 ### Key File Locations
 
 * **Auth:** `src/lib/supabase.ts`
@@ -557,6 +598,7 @@ npx expo run:android
 * **Notifications:** `src/lib/notifications.ts`
 * **Navigation:** `src/app/navigation/AppNavigator.tsx`
 * **Deep Linking:** `src/app/navigation/linking.ts`
+* **Version Check:** `src/lib/versionCheck.ts`
 * **i18n:** `src/app/i18n/`
 
 ---

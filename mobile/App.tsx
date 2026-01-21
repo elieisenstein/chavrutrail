@@ -15,6 +15,7 @@ import { linking } from "./src/app/navigation/linking";
 import { useNotifications } from './src/hooks/useNotifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { Linking } from 'react-native';
+import { checkForUpdate } from './src/lib/versionCheck';
 
 // Initialize Mapbox
 MapboxGL.setAccessToken("pk.eyJ1IjoiZWxpZWlzZW5zdGVpbiIsImEiOiJjbWpwc21iOXEzaHZzM2Nxemhzb2VtNHA3In0.NCwfmHYdr7JE0vvKRL9pFw");
@@ -118,6 +119,13 @@ function InnerApp() {
       setI18nReady(true);
     })();
   }, []);
+
+  // Check for app updates on startup
+  useEffect(() => {
+    if (i18nReady && !authLoading) {
+      checkForUpdate();
+    }
+  }, [i18nReady, authLoading]);
 
   // Handle auth state
   useEffect(() => {

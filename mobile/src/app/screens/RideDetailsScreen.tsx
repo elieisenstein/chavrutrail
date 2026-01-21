@@ -284,6 +284,7 @@ export default function RideDetailsScreen() {
   const isOwner = currentUserId === ride.owner_id;
   const rideHasStarted = new Date(ride.start_at) < new Date();
   const rideHasEnded = new Date(new Date(ride.start_at).getTime() + ride.duration_hours * 60 * 60 * 1000) < new Date();
+  const isFull = (joinedCount ?? 0) >= ride.max_participants;
   const shareTitle = `${ride.ride_type} · ${ride.skill_level}`;
 
   return (
@@ -460,16 +461,18 @@ export default function RideDetailsScreen() {
                 mode="contained"
                 loading={joining}
                 onPress={handleJoin}
-                disabled={joining || myStatus === "joined" || myStatus === "requested"}
+                disabled={joining || isFull || myStatus === "joined" || myStatus === "requested"}
                 style={{ flex: 1 }}
               >
                 {myStatus === "joined"
                   ? t("rideDetails.actions.joined")
                   : myStatus === "requested"
                     ? t("rideDetails.actions.requested")
-                    : ride.join_mode === "express"
-                      ? t("rideDetails.actions.join")
-                      : t("rideDetails.actions.askToJoin")}
+                    : isFull
+                      ? t("rideDetails.actions.full")
+                      : ride.join_mode === "express"
+                        ? t("rideDetails.actions.join")
+                        : t("rideDetails.actions.askToJoin")}
               </Button>
             )}
 

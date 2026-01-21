@@ -555,27 +555,34 @@ npx expo run:android
 
 **Steps to release a new version:**
 
-1. **Build new APK:**
+1. **Update version in `app.config.js`:**
+   ```javascript
+   version: "1.0.2",  // increment this
+   ```
+
+2. **Build new APK:**
    ```bash
    eas build --platform android --profile preview
    ```
 
-2. **Upload APK to Dropbox:**
+3. **Upload APK to Dropbox:**
    * Upload the new APK file to Dropbox
    * Get shareable link
    * Change `dl=0` to `dl=1` in the URL for direct download
 
-3. **Update `version.json` on Dropbox:**
+4. **Update `version.json` on Dropbox:**
    ```json
    {
      "version": "1.0.2",
      "downloadUrl": "https://www.dropbox.com/scl/fi/xxxxx/bishvil.apk?rlkey=xxx&dl=1"
    }
    ```
-   * Increment version number
+   * Version must match `app.config.js`
    * Update downloadUrl with new APK link
 
-4. **Done!** Both app and landing page will automatically use the new URL.
+5. **Done!** Both app and landing page will automatically use the new URL.
+
+**Important:** The version in `app.config.js` is baked into the APK at build time. The version in `version.json` is what users' apps fetch to check for updates. Both must match for the update prompt to stop showing.
 
 **How it works:**
 

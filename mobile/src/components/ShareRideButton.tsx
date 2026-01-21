@@ -7,9 +7,10 @@ interface ShareRideButtonProps {
   rideId: string;
   rideTitle: string;
   isHebrew: boolean;
+  disabled?: boolean;
 }
 
-export function ShareRideButton({ rideId, rideTitle, isHebrew }: ShareRideButtonProps) {
+export function ShareRideButton({ rideId, rideTitle, isHebrew, disabled }: ShareRideButtonProps) {
   const handleShare = async () => {
     const message = formatShareMessage(rideTitle, rideId, isHebrew);
 
@@ -29,6 +30,7 @@ export function ShareRideButton({ rideId, rideTitle, isHebrew }: ShareRideButton
       icon="share-variant"
       onPress={handleShare}
       style={{ marginTop: 8 }}
+      disabled={disabled}
     >
       {isHebrew ? "שתף רכיבה" : "Share Ride"}
     </Button>

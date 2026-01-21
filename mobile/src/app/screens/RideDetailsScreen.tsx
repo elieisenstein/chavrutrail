@@ -282,6 +282,8 @@ export default function RideDetailsScreen() {
   const joinedParticipants = participants.filter(p => p.status === 'joined');
   const pendingRequests = participants.filter(p => p.status === 'requested');
   const isOwner = currentUserId === ride.owner_id;
+  const rideHasStarted = new Date(ride.start_at) < new Date();
+  const rideHasEnded = new Date(new Date(ride.start_at).getTime() + ride.duration_hours * 60 * 60 * 1000) < new Date();
   const shareTitle = `${ride.ride_type} · ${ride.skill_level}`;
 
   return (
@@ -355,6 +357,7 @@ export default function RideDetailsScreen() {
             rideId={ride.id}
             rideTitle={shareTitle}
             isHebrew={isHebrew}
+            disabled={rideHasStarted}
           />
 
           {/* Meeting Location Map */}
@@ -382,6 +385,7 @@ export default function RideDetailsScreen() {
                 icon="navigation"
                 onPress={() => openNavigation(ride.start_lat, ride.start_lng, ride.start_name || t("rideDetails.meetingLocation"))}
                 style={{ marginTop: 12 }}
+                disabled={rideHasEnded}
               >
                 {t("rideDetails.getDirections")}
               </Button>
@@ -474,6 +478,7 @@ export default function RideDetailsScreen() {
                 mode="outlined"
                 onPress={handleLeave}
                 disabled={
+                  rideHasStarted ||
                   !myStatus ||
                   myStatus === "left" ||
                   myStatus === "rejected" ||

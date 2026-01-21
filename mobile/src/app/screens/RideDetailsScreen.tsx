@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ScrollView, View, Linking, Alert } from "react-native";
 import { ActivityIndicator, Button, Card, Text, useTheme, Divider } from "react-native-paper";
-import { RouteProp, useRoute } from "@react-navigation/native";
+import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 
 import { formatDateTimeLocal } from "../../lib/datetime";
@@ -29,6 +29,7 @@ type RideDetailsRoute = RouteProp<FeedStackParamList, "RideDetails">;
 
 export default function RideDetailsScreen() {
   const route = useRoute<RideDetailsRoute>();
+  const navigation = useNavigation();
   const { rideId } = route.params;
   const { t, i18n } = useTranslation();
   const isHebrew = i18n.language === 'he';
@@ -218,10 +219,10 @@ export default function RideDetailsScreen() {
     try {
       setCancelling(true);
       await cancelRide(ride.id);
-      await loadRideData();
+      // Navigate back after successful cancellation
+      navigation.goBack();
     } catch (e: any) {
       console.log("Cancel error:", e?.message ?? e);
-    } finally {
       setCancelling(false);
     }
   }

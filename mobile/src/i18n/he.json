@@ -252,7 +252,7 @@
         "express": "מהיר (הצטרפות אוטומטית)",
         "approval": "באישור (המארגן מאשר)"
       },
-      "maxParticipants": "מספר משתתפים מקסימלי (1-6)",
+      "maxParticipants": "מספר משתתפים מקסימלי (2-6)",
       "recommendation": "מומלץ: קבוצה קטנה (4) לקלות בתיאום",
       "genderPreference": "העדפת מגדר",
       "genderOptions": {

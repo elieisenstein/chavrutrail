@@ -252,7 +252,7 @@
         "express": "Express (auto-join)",
         "approval": "Approval (organizer accepts)"
       },
-      "maxParticipants": "Max Participants (1-6)",
+      "maxParticipants": "Max Participants (2-6)",
       "recommendation": "Recommendation: keep it small (4) for easier matching.",
       "genderPreference": "Gender Preference",
       "genderOptions": {

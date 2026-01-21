@@ -230,7 +230,7 @@ Fast, low-friction ride discovery and joining for Israeli cyclists, optimized fo
   * Full-screen map location picker (Israel Hiking Map)
   * Ride type, skill level, pace selection
   * Distance and elevation (optional)
-  * Max participants (1-6, recommendation for 4)
+  * Max participants (2-6) with stepper UI (+/- buttons)
   * Join mode (Express/Approval)
   * Gender preference (All/Men/Women)
 * Owner can cancel rides (notifies all participants)

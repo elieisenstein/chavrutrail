@@ -1,6 +1,6 @@
 import React from "react";
 import { View } from "react-native";
-import { Button, Text, TextInput, Chip, useTheme } from "react-native-paper";
+import { Button, Text, IconButton, Chip, useTheme } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 import { CreateRideDraft, JoinMode } from "../createRideTypes";
 
@@ -36,12 +36,24 @@ export default function StepGroup({
         ))}
       </View>
 
-      <TextInput
-        label={t("createRide.group.maxParticipants")}
-        value={draft.max_participants?.toString() ?? "4"}
-        onChangeText={(v) => onChange({ max_participants: v === "" ? undefined : Number(v) })}
-        keyboardType="numeric"
-      />
+      <Text>{t("createRide.group.maxParticipants")}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <IconButton
+          icon="minus"
+          mode="contained"
+          disabled={(draft.max_participants ?? 4) <= 2}
+          onPress={() => onChange({ max_participants: (draft.max_participants ?? 4) - 1 })}
+        />
+        <Text variant="headlineMedium" style={{ minWidth: 32, textAlign: "center" }}>
+          {draft.max_participants ?? 4}
+        </Text>
+        <IconButton
+          icon="plus"
+          mode="contained"
+          disabled={(draft.max_participants ?? 4) >= 6}
+          onPress={() => onChange({ max_participants: (draft.max_participants ?? 4) + 1 })}
+        />
+      </View>
 
       <Text style={{ opacity: 0.7 }}>
         {t("createRide.group.recommendation")}

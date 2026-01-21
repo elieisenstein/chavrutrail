@@ -495,7 +495,7 @@ export default function RideDetailsScreen() {
                 mode="contained"
                 loading={cancelling}
                 onPress={handleCancelRide}
-                disabled={cancelling || ride.status === 'cancelled'}
+                disabled={cancelling || ride.status === 'cancelled' || rideHasStarted}
                 style={{ flex: 1 }}
               >
                 {ride.status === 'cancelled' ? t("rideDetails.actions.cancelled") : t("rideDetails.actions.cancelRide")}

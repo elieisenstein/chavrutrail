@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
-import { Card, Text, useTheme, Button, Portal, Modal, Divider, Icon } from "react-native-paper";
+import { Card, Text, useTheme, Button, Portal, Modal, Divider, Icon, ActivityIndicator } from "react-native-paper";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
@@ -18,7 +18,7 @@ const DAY_OPTIONS = [1, 3, 7, 14, 30];
 export default function FeedScreen() {
   const { t } = useTranslation();
   const [rides, setRides] = useState<Ride[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const navigation = useNavigation<NativeStackNavigationProp<FeedStackParamList>>();
   const theme = useTheme();
@@ -198,7 +198,11 @@ export default function FeedScreen() {
 
         {/* Ride List */}
         <View style={{ gap: 12 }}>
-          {rides.length === 0 ? (
+          {loading && rides.length === 0 ? (
+            <View style={{ alignItems: 'center', paddingVertical: 64 }}>
+              <ActivityIndicator size="large" />
+            </View>
+          ) : rides.length === 0 ? (
             <Card>
               <Card.Content style={{ alignItems: 'center', padding: 32 }}>
                 <Icon source="bike-fast" size={64} color={theme.colors.outline} />

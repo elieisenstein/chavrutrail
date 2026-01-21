@@ -7,35 +7,32 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 
 import type { Ride } from "../../lib/rides";
-import { getMyOrganizingRides, getMyJoinedRides, getMyRequestedRides } from "../../lib/rides";
+import { getActiveMyRides, getMyRideHistory } from "../../lib/rides";
 import type { MyRidesStackParamList } from "../navigation/AppNavigator";
-import { supabase } from "../../lib/supabase"; 
+import { supabase } from "../../lib/supabase";
+import { Chip } from "react-native-paper";
 
-type Section = "organizing" | "joined" | "requested";
-type MyRideStatus = "owner" | "joined" | "requested";
+type Section = "active" | "history";
 
 export default function MyRidesScreen() {
   const theme = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<MyRidesStackParamList>>();
   const { t } = useTranslation();
 
-  const [selectedSection, setSelectedSection] = useState<Section>("organizing");
-  const [organizingRides, setOrganizingRides] = useState<Ride[]>([]);
-  const [joinedRides, setJoinedRides] = useState<Ride[]>([]);
-  const [requestedRides, setRequestedRides] = useState<Ride[]>([]);
+  const [selectedSection, setSelectedSection] = useState<Section>("active");
+  const [activeRides, setActiveRides] = useState<Ride[]>([]);
+  const [historyRides, setHistoryRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(false);
 
   const loadRides = useCallback(async () => {
     setLoading(true);
     try {
-      const [organizing, joined, requested] = await Promise.all([
-        getMyOrganizingRides(),
-        getMyJoinedRides(),
-        getMyRequestedRides(),
+      const [active, history] = await Promise.all([
+        getActiveMyRides(),
+        getMyRideHistory(),
       ]);
-      setOrganizingRides(organizing);
-      setJoinedRides(joined);
-      setRequestedRides(requested);
+      setActiveRides(active);
+      setHistoryRides(history);
     } catch (e: any) {
       console.log("Load my rides error:", e?.message ?? e);
     } finally {
@@ -87,52 +84,25 @@ export default function MyRidesScreen() {
 
   const getCurrentRides = (): Ride[] => {
     switch (selectedSection) {
-      case "organizing":
-        return organizingRides;
-      case "joined":
-        return joinedRides;
-      case "requested":
-        return requestedRides;
+      case "active":
+        return activeRides;
+      case "history":
+        return historyRides;
     }
   };
 
-  const getCurrentStatus = (): MyRideStatus => {
-    switch (selectedSection) {
-      case "organizing":
-        return "owner";
-      case "joined":
-        return "joined";
-      case "requested":
-        return "requested";
-    }
-  };
-
-  const getStatusColor = (status: MyRideStatus): string => {
-    switch (status) {
-      case "owner":
-        return "#FF6B35";
-      case "joined":
-        return "#4CAF50";
-      case "requested":
-        return "#FFC107";
-    }
-  };
-
-  const getStatusLabel = (status: MyRideStatus): string => {
-    switch (status) {
-      case "owner":
-        return t("myRides.statusLabels.owner");
-      case "joined":
-        return t("myRides.statusLabels.joined");
-      case "requested":
-        return t("myRides.statusLabels.requested");
+  const getStatusForRide = (ride: Ride): { color: string; label: string } => {
+    if (ride._myRole === "owner") {
+      return { color: "#FF6B35", label: t("myRides.statusLabels.owner") };
+    } else if (ride._participantStatus === "requested") {
+      return { color: "#FFC107", label: t("myRides.statusLabels.requested") };
+    } else {
+      return { color: "#4CAF50", label: t("myRides.statusLabels.joined") };
     }
   };
 
   function renderRide({ item: ride }: { item: Ride }) {
-    const status = getCurrentStatus();
-    const statusColor = getStatusColor(status);
-    const statusLabel = getStatusLabel(status);
+    const { color, label } = getStatusForRide(ride);
 
     return (
       <Card
@@ -140,7 +110,7 @@ export default function MyRidesScreen() {
           styles.card,
           {
             borderLeftWidth: 4,
-            borderLeftColor: statusColor,
+            borderLeftColor: color,
           }
         ]}
         onPress={() => navigation.navigate("RideDetails", { rideId: ride.id })}
@@ -150,9 +120,13 @@ export default function MyRidesScreen() {
             <Text variant="titleMedium" style={{ color: theme.colors.onSurface, flex: 1 }}>
               {t(`rideTypes.${ride.ride_type}`)} · {t(`skillLevels.${ride.skill_level}`)}
             </Text>
-            <View style={[styles.badge, { backgroundColor: statusColor }]}>
-              <Text style={styles.badgeText}>{statusLabel}</Text>
-            </View>
+            <Chip
+              mode="flat"
+              style={{ backgroundColor: color }}
+              textStyle={{ color: "#FFF", fontWeight: "bold" }}
+            >
+              {label}
+            </Chip>
           </View>
 
           {ride.pace && (
@@ -199,12 +173,10 @@ export default function MyRidesScreen() {
 
   function getEmptyMessage(): string {
     switch (selectedSection) {
-      case "organizing":
-        return t("myRides.emptyStates.organizing");
-      case "joined":
-        return t("myRides.emptyStates.joined");
-      case "requested":
-        return t("myRides.emptyStates.requested");
+      case "active":
+        return t("myRides.emptyStates.active");
+      case "history":
+        return t("myRides.emptyStates.history");
     }
   }
 
@@ -218,16 +190,14 @@ export default function MyRidesScreen() {
           onValueChange={(value) => setSelectedSection(value as Section)}
           buttons={[
             {
-              value: "organizing",
-              label: t("myRides.organizing"),
+              value: "active",
+              label: t("myRides.tabs.active"),
+              icon: "clock-outline",
             },
             {
-              value: "joined",
-              label: t("myRides.joined"),
-            },
-            {
-              value: "requested",
-              label: t("myRides.requested"),
+              value: "history",
+              label: t("myRides.tabs.history"),
+              icon: "history",
             },
           ]}
         />

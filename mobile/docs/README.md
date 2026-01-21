@@ -237,9 +237,11 @@ Fast, low-friction ride discovery and joining for Israeli cyclists, optimized fo
 * Participants can leave rides
 * Real-time participant count updates
 * **Auto-Add Ride Type Feature:**
-  * When creating a ride, the ride type is automatically added to user's profile if not already present
-  * Ensures users always see their own rides in feed
-  * Example: User with "Trail" creates "Gravel" ride → Profile updates to "Trail,Gravel"
+  * **When creating a ride:** Ride type automatically added to profile if not already present
+  * **When joining a ride:** Ride type automatically added to profile if not already present
+  * Ensures users always see rides they create or join in their feed
+  * Example: User with "Trail" joins "Gravel" ride via deep link → Profile updates to "Trail,Gravel"
+  * Silent, non-intrusive - matches user mental model: "I ride what I join"
 
 ### ✅ Feed & Discovery
 
@@ -249,22 +251,31 @@ Fast, low-friction ride discovery and joining for Israeli cyclists, optimized fo
   * Skill level (optional)
   * Time range (Today, 3d, 7d, 14d, 30d)
   * **Persistent filters** - saved to AsyncStorage, restored on app start
-* **Extended ride visibility:** Rides remain visible for 48 hours after they end
-  * Configurable via `RIDE_VISIBILITY_HOURS_AFTER_END` constant
-  * Allows users to review recent rides and coordinate post-ride
+* **Active rides only:** Feed shows only rides that haven't ended yet (not completed rides)
+  * Clean discovery experience - users see what they can actually join
+  * Completed rides moved to "My Rides → History" tab
 * Empty states with helpful CTAs
 * Pull-to-refresh
 * **Organizer display** with ride statistics
 
 ### ✅ My Rides
 
-* **Three sections** with visual status indicators:
-  * Organizing (orange badge + OWNER)
-  * Joined (green badge + JOINED)
-  * Requested (yellow badge + REQUESTED)
-* **Extended ride visibility:** Rides remain visible for 48 hours after they end
-* Empty states per section
+* **Two tabs with visual status indicators:**
+  * **Active Tab:** Shows all upcoming/active rides (organized + joined + requested)
+    * Orange stripe + "OWNER" for organized rides
+    * Green stripe + "JOINED" for joined rides
+    * Yellow stripe + "REQUESTED" for pending requests
+    * Only rides that haven't ended yet
+    * Includes requested rides (actively pending)
+    * Sorted by start time (ascending)
+  * **History Tab:** Shows ALL completed rides (organized + joined)
+    * Rides that have ended (no 48-hour gap)
+    * Last 30 days of history
+    * Sorted by start time (descending - most recent first)
+    * Status badges: OWNER (orange) / JOINED (green)
+* Empty states per tab
 * **Real-time updates** - automatic refresh when participant status changes
+* **Simple mental model:** Active = not ended, History = ended
 
 ### ✅ Ride Details
 
@@ -551,6 +562,90 @@ npx expo run:android
 ---
 
 ## Recent Session History
+
+### Session: January 21, 2026 - My Rides 2-Tab Simplification + Bug Fix
+
+**Completed:**
+* **Bug Fix:** Fixed History tab not showing recently completed rides
+  * Problem: Completed rides less than 48 hours old didn't appear anywhere
+  * Root cause: `getMyRideHistory()` filtered for rides ended MORE than 48 hours ago
+  * Solution: Changed filter to show ALL completed rides (`endTime < now`)
+* **Simplified to 2 tabs:** Active / History (removed "All" tab)
+  * User decision: "All" tab not needed with simplified design
+  * Cleaner, simpler mental model
+* **Feed Cleanup:** Removed 48-hour window from Feed
+  * Feed now shows only active rides (not yet ended)
+  * Clean discovery experience - users see what they can actually join
+  * Updated `listFilteredRides()` to filter: `endTime >= now`
+* **Active Tab Changes:**
+  * Now includes requested rides (makes sense - they're "actively" pending)
+  * Updated `getActiveMyRides()` to fetch joined + requested
+  * Status badges: OWNER (orange) / JOINED (green) / REQUESTED (yellow)
+* **History Tab Changes:**
+  * Now shows ALL completed rides immediately (no 48-hour gap)
+  * Updated `getMyRideHistory()` to remove 48-hour cutoff
+  * Simple rule: ride ended = history
+* Removed `getAllMyRides()` function (not needed with 2-tab design)
+* Updated [MyRidesScreen.tsx](../src/app/screens/MyRidesScreen.tsx):
+  * Removed "all" tab from UI
+  * Updated Section type: `"active" | "history"`
+  * Reduced from 6 to 4 parallel queries (performance improvement)
+  * Default tab now "active" instead of "all"
+
+**Technical Implementation:**
+* Updated `getActiveMyRides()` - include requested rides
+* Fixed `getMyRideHistory()` - `endTime < now` instead of `endTime < now - 48h`
+* Deleted `getAllMyRides()` function
+* 4 parallel queries on screen load (2 per tab) - reduced from 6
+* Client-side filtering for end time calculations
+* Real-time subscriptions unchanged
+
+**Problem Solved:**
+* **Bug:** Gravel ride ended yesterday but didn't appear in History
+* **User feedback:** "48-hour visibility messes up the Feed screen"
+* **User decision:** "All tab not needed, simplify to 2 tabs"
+* **Gap eliminated:** Completed rides now immediately visible in History
+
+**User Benefits:**
+* **Feed:** Clean discovery - only active rides shown
+* **Active Tab:** Everything you need to plan (upcoming + pending requests)
+* **History Tab:** ALL completed rides visible immediately (no gap!)
+* **Simpler UX:** 2 tabs instead of 3 - easier to understand
+* **Bug fixed:** No more missing completed rides
+* **Performance:** Fewer queries (4 instead of 6)
+
+### Session: January 20, 2026 - Auto-Add Ride Type When Joining Rides
+
+**Completed:**
+* Extended auto-add ride type feature to join flow
+  * Previously: Only when creating rides
+  * Now: Also when joining/requesting to join rides
+  * Solves deep link UX issue: Users can now see joined rides in feed immediately
+* Updated `joinOrRequestRide()` function in [rides.ts](../src/lib/rides.ts)
+  * Fetches ride details to get ride_type
+  * Checks user's current ride types
+  * Appends new type if not already present
+  * Updates profile via `updateMyProfile()`
+* Added import for `fetchMyProfile` and `updateMyProfile`
+* Graceful error handling - join succeeds even if profile update fails
+
+**Technical Implementation:**
+* Mirrors CreateRideWizard.tsx auto-add pattern
+* Non-critical operation wrapped in try-catch
+* Reuses existing ride fetch for both profile update and notifications
+* Console logging for debugging
+
+**Problem Solved:**
+* User with "Trail" gets shared "Gravel" ride via deep link
+* Clicks link → Joins ride → Gravel added to profile → Feed shows ride
+* No manual profile updates needed
+* Seamless deep link → join → view workflow
+
+**User Benefit:**
+* Eliminates confusing "I joined this ride but can't see it" moments
+* Encourages trying new ride types
+* Consistent behavior with ride creation
+* Silent, helpful, non-intrusive
 
 ### Session: January 20, 2026 - Extended Ride Visibility
 

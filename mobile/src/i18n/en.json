@@ -128,15 +128,23 @@
     "organizing": "Organizing",
     "joined": "Joined",
     "requested": "Requested",
+    "tabs": {
+      "all": "All",
+      "active": "Active",
+      "history": "History"
+    },
     "statusLabels": {
-      "owner": "Organizer",
-      "joined": "Joined",
-      "requested": "Requested"
+      "owner": "OWNER",
+      "joined": "JOINED",
+      "requested": "REQUESTED"
     },
     "emptyStates": {
       "organizing": "You haven't created any rides yet",
       "joined": "You haven't joined any rides yet",
-      "requested": "No pending requests"
+      "requested": "No pending requests",
+      "all": "No rides yet. Create or join a ride to get started!",
+      "active": "No active rides. Join a ride from the Feed!",
+      "history": "No ride history yet. Complete some rides first!"
     }
   },
   "rideDetails": {

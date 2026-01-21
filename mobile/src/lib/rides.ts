@@ -6,6 +6,7 @@ import {
   notifyUserOfRejection,
   notifyParticipantsOfCancellation,
 } from './notificationHelpers';
+import { fetchMyProfile, updateMyProfile } from "./profile";
 
 export type RideStatus = "draft" | "published" | "cancelled" | "completed";
 export type JoinMode = "express" | "approval";
@@ -16,8 +17,8 @@ export type Ride = {
   id: string;
   owner_id: string;
   owner_display_name?: string;
-  owner_rides_organized?: number;  
-  owner_rides_joined?: number;    
+  owner_rides_organized?: number;
+  owner_rides_joined?: number;
   status: RideStatus;
 
   start_at: string; // timestamptz ISO
@@ -41,6 +42,10 @@ export type Ride = {
 
   created_at: string;
   updated_at: string;
+
+  // Optional UI metadata (not in DB)
+  _myRole?: "owner" | "participant";
+  _participantStatus?: ParticipantStatus;
 };
 
 export type CreateRideInput = Omit<
@@ -134,11 +139,10 @@ export async function listPublishedUpcomingRides(limit = 50): Promise<Ride[]> {
 /**
  * List rides with filters applied
  * Note: Location filtering is done client-side since we don't have PostGIS
- * Rides are visible for RIDE_VISIBILITY_HOURS_AFTER_END hours after they end
+ * Feed shows only active rides (not yet ended)
  */
 export async function listFilteredRides(filters: RideFilters, userGender?: string | null, limit = 50): Promise<Ride[]> {
   const nowIso = new Date().toISOString();
-  const minEndTimeIso = getMinimumEndTime();
 
   // Calculate max date based on maxDays (from now)
   const maxDate = new Date();
@@ -186,10 +190,11 @@ export async function listFilteredRides(filters: RideFilters, userGender?: strin
   })) as Ride[];
 
   // Filter by ride end time (client-side)
-  // Keep rides that ended less than RIDE_VISIBILITY_HOURS_AFTER_END ago
+  // CHANGED: Only show rides that haven't ended yet (removed 48-hour window)
+  const now = new Date();
   rides = rides.filter(ride => {
     const endTime = calculateRideEndTime(ride.start_at, ride.duration_hours);
-    return endTime >= new Date(minEndTimeIso);
+    return endTime >= now; // Not ended yet
   });
 
   // Get unique owner IDs
@@ -259,6 +264,7 @@ function toRad(degrees: number): number {
  * Join logic:
  * - express: insert participant status=joined
  * - approval: insert participant status=requested
+ * - Auto-adds ride type to user's profile if not already there
  */
 export async function joinOrRequestRide(rideId: string, joinMode: JoinMode): Promise<void> {
   const { data: sessionData, error: sessErr } = await supabase.auth.getSession();
@@ -277,18 +283,57 @@ export async function joinOrRequestRide(rideId: string, joinMode: JoinMode): Pro
 
   if (error) throw new Error(error.message);
 
-  // Send notification to owner if approval required
-  if (joinMode === "approval") {
-    // Get ride details and user profile
-    const [{ data: ride }, { data: profile }] = await Promise.all([
-      supabase.from("rides").select("owner_id, ride_type, skill_level").eq("id", rideId).single(),
-      supabase.from("profiles").select("display_name").eq("user_id", userId).single(),
-    ]);
+  // Auto-add ride type to user's profile if not already there
+  try {
+    // Fetch ride details to get ride type
+    const { data: ride, error: rideError } = await supabase
+      .from("rides")
+      .select("owner_id, ride_type, skill_level")
+      .eq("id", rideId)
+      .single();
 
-    if (ride && profile) {
-      const rideTitle = `${ride.ride_type} · ${ride.skill_level}`;
-      await notifyOwnerOfJoinRequest(ride.owner_id, profile.display_name || "משתמש", rideId, rideTitle);
+    if (rideError) {
+      console.log("Failed to fetch ride for auto-add:", rideError.message);
+    } else if (ride) {
+      // Fetch user profile to get current ride types
+      const profile = await fetchMyProfile();
+
+      if (profile && profile.ride_type) {
+        const currentTypes = profile.ride_type.split(',').map(t => t.trim());
+        const newType = ride.ride_type;
+
+        // Only update if the type isn't already in their profile
+        if (!currentTypes.includes(newType)) {
+          const updatedTypes = [...currentTypes, newType];
+          await updateMyProfile({
+            ride_type: updatedTypes.join(','),
+          });
+          console.log(`Auto-added ${newType} to user's ride types when joining ride`);
+        }
+      }
+
+      // Send notification to owner if approval required
+      if (joinMode === "approval") {
+        const { data: requesterProfile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("id", userId)
+          .single();
+
+        if (requesterProfile) {
+          const rideTitle = `${ride.ride_type} · ${ride.skill_level}`;
+          await notifyOwnerOfJoinRequest(
+            ride.owner_id,
+            requesterProfile.display_name || "משתמש",
+            rideId,
+            rideTitle
+          );
+        }
+      }
     }
+  } catch (e) {
+    // Non-critical - don't fail join if profile update fails
+    console.log("Failed to auto-update profile ride types when joining:", e);
   }
 }
 
@@ -575,6 +620,149 @@ export async function getMyRequestedRides(): Promise<Ride[]> {
   });
 
   return rides;
+}
+
+/**
+ * Get active my rides (organized + joined + requested)
+ * Only shows rides that haven't ended yet
+ */
+export async function getActiveMyRides(): Promise<Ride[]> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+  if (!userId) throw new Error("Not signed in");
+
+  // Fetch rides I'm organizing (not ended yet)
+  const { data: organizingData, error: organizingError } = await supabase
+    .from("rides")
+    .select("*, owner:profiles!rides_owner_profile_id_fkey(display_name)")
+    .eq("owner_id", userId)
+    .eq("status", "published")
+    .order("start_at", { ascending: true });
+
+  if (organizingError) throw new Error(organizingError.message);
+
+  // Fetch rides I'm participating in (joined or requested, not ended yet)
+  const { data: participatingData, error: participatingError } = await supabase
+    .from("rides")
+    .select(`
+      *,
+      owner:profiles!rides_owner_profile_id_fkey(display_name),
+      ride_participants!inner(user_id, status)
+    `)
+    .eq("ride_participants.user_id", userId)
+    .in("ride_participants.status", ["joined", "requested"])
+    .neq("owner_id", userId)
+    .eq("status", "published")
+    .order("start_at", { ascending: true });
+
+  if (participatingError) throw new Error(participatingError.message);
+
+  // Combine and flatten
+  let activeRides: Ride[] = [
+    ...(organizingData ?? []).map((item: any) => ({
+      ...item,
+      owner_display_name: item.owner?.display_name ?? "Unknown",
+      owner: undefined,
+      _myRole: "owner" as const,
+    })),
+    ...(participatingData ?? []).map((item: any) => {
+      const { ride_participants, owner, ...ride } = item;
+      return {
+        ...ride,
+        owner_display_name: owner?.display_name ?? "Unknown",
+        _myRole: "participant" as const,
+        _participantStatus: ride_participants[0]?.status,
+      };
+    }),
+  ];
+
+  // Filter by ride end time (client-side)
+  // Only show rides that haven't ended yet
+  const now = new Date();
+  activeRides = activeRides.filter(ride => {
+    const endTime = calculateRideEndTime(ride.start_at, ride.duration_hours);
+    return endTime >= now;
+  });
+
+  // Sort by start_at ascending
+  activeRides.sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
+
+  return activeRides;
+}
+
+/**
+ * Get my ride history (ALL completed rides)
+ * Shows rides that have ended
+ * Default: last 30 days of history
+ */
+export async function getMyRideHistory(maxDaysHistory = 30): Promise<Ride[]> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+  if (!userId) throw new Error("Not signed in");
+
+  // Calculate minimum date for history (default 30 days ago)
+  const minHistoryDate = new Date();
+  minHistoryDate.setDate(minHistoryDate.getDate() - maxDaysHistory);
+  const minHistoryDateIso = minHistoryDate.toISOString();
+
+  // Fetch rides I organized
+  const { data: organizingData, error: organizingError } = await supabase
+    .from("rides")
+    .select("*, owner:profiles!rides_owner_profile_id_fkey(display_name)")
+    .eq("owner_id", userId)
+    .eq("status", "published")
+    .gte("start_at", minHistoryDateIso) // Only last N days
+    .order("start_at", { ascending: false }); // Most recent first
+
+  if (organizingError) throw new Error(organizingError.message);
+
+  // Fetch rides I joined
+  const { data: joinedData, error: joinedError } = await supabase
+    .from("rides")
+    .select(`
+      *,
+      owner:profiles!rides_owner_profile_id_fkey(display_name),
+      ride_participants!inner(user_id, status)
+    `)
+    .eq("ride_participants.user_id", userId)
+    .eq("ride_participants.status", "joined")
+    .neq("owner_id", userId)
+    .eq("status", "published")
+    .gte("start_at", minHistoryDateIso) // Only last N days
+    .order("start_at", { ascending: false }); // Most recent first
+
+  if (joinedError) throw new Error(joinedError.message);
+
+  // Combine and flatten
+  let historyRides: Ride[] = [
+    ...(organizingData ?? []).map((item: any) => ({
+      ...item,
+      owner_display_name: item.owner?.display_name ?? "Unknown",
+      owner: undefined,
+      _myRole: "owner" as const,
+    })),
+    ...(joinedData ?? []).map((item: any) => {
+      const { ride_participants, owner, ...ride } = item;
+      return {
+        ...ride,
+        owner_display_name: owner?.display_name ?? "Unknown",
+        _myRole: "participant" as const,
+      };
+    }),
+  ];
+
+  // Filter by ride end time (client-side)
+  // Show ALL completed rides (any ride that has ended)
+  const now = new Date();
+  historyRides = historyRides.filter(ride => {
+    const endTime = calculateRideEndTime(ride.start_at, ride.duration_hours);
+    return endTime < now;
+  });
+
+  // Sort by start_at descending (most recent first)
+  historyRides.sort((a, b) => new Date(b.start_at).getTime() - new Date(a.start_at).getTime());
+
+  return historyRides;
 }
 
 /**

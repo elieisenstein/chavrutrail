@@ -820,7 +820,7 @@ https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bn
 * On-demand stat fetching (acceptable for MVP <100 users)
 * Marked performance optimization as future TODO
 * Deep link strategy: External → FeedStack, internal maintains context
-* No clickable profiles yet (testing demand first)
+* Clickable profiles: organizer names in orange with underline, stats in muted gray
 
 ### Session: January 5, 2026 - UI/UX Polish
 

@@ -241,8 +241,9 @@ export default function FeedScreen() {
                   <TouchableOpacity
                     onPress={() => navigation.navigate("UserProfile", { userId: r.owner_id })}
                   >
-                    <Text style={{ opacity: 0.7, fontSize: 12, marginTop: 2, color: theme.colors.primary }}>
-                      👤 {r.owner_display_name} · {r.owner_rides_organized ?? 0} organized · {r.owner_rides_joined ?? 0} joined
+                    <Text style={{ fontSize: 12, marginTop: 2 }}>
+                      <Text style={{ color: theme.colors.primary }}>👤 <Text style={{ textDecorationLine: 'underline', color: theme.colors.primary }}>{r.owner_display_name}</Text></Text>
+                      <Text style={{ color: theme.colors.outline }}> · {r.owner_rides_organized ?? 0} organized · {r.owner_rides_joined ?? 0} joined</Text>
                     </Text>
                   </TouchableOpacity>
 

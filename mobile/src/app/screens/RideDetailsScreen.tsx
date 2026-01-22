@@ -306,8 +306,9 @@ export default function RideDetailsScreen() {
           </Text>
 
           <TouchableOpacity onPress={() => navigation.navigate("UserProfile", { userId: ride.owner_id })}>
-            <Text style={{ opacity: 0.7, fontSize: 14, marginTop: 4, color: theme.colors.primary }}>
-              👤 {ride.owner_display_name} · {ride.owner_rides_organized ?? 0} organized · {ride.owner_rides_joined ?? 0} joined
+            <Text style={{ fontSize: 14, marginTop: 4 }}>
+              <Text style={{ color: theme.colors.primary }}>👤 <Text style={{ textDecorationLine: 'underline', color: theme.colors.primary }}>{ride.owner_display_name}</Text></Text>
+              <Text style={{ color: theme.colors.outline }}> · {ride.owner_rides_organized ?? 0} organized · {ride.owner_rides_joined ?? 0} joined</Text>
             </Text>
           </TouchableOpacity>
           

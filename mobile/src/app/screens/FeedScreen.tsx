@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView, View, TouchableOpacity } from "react-native";
 import { Card, Text, useTheme, Button, Portal, Modal, Divider, Icon, ActivityIndicator } from "react-native-paper";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -238,9 +238,13 @@ export default function FeedScreen() {
                     {r.pace ? ` · ${t(`paceOptions.${r.pace}`)}` : ""}
                   </Text>
 
-                  <Text style={{ opacity: 0.7, fontSize: 12, marginTop: 2 }}>
-                    👤 {r.owner_display_name} · {r.owner_rides_organized ?? 0} organized · {r.owner_rides_joined ?? 0} joined
-                  </Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate("UserProfile", { userId: r.owner_id })}
+                  >
+                    <Text style={{ opacity: 0.7, fontSize: 12, marginTop: 2, color: theme.colors.primary }}>
+                      👤 {r.owner_display_name} · {r.owner_rides_organized ?? 0} organized · {r.owner_rides_joined ?? 0} joined
+                    </Text>
+                  </TouchableOpacity>
 
                   <Text style={{ opacity: 0.8 }}>
                     {t("feed.rideCard.when")}: {(() => {

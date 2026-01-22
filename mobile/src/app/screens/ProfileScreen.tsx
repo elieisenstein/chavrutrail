@@ -161,10 +161,15 @@ export default function ProfileScreen() {
         <Text style={{ color: theme.colors.error, marginBottom: 12, ...dirText }}>{err}</Text>
       ) : null}
 
-      {/* Settings Button */}
-      <Button mode="outlined" onPress={() => nav.navigate("Settings")} style={{ marginBottom: 16 }}>
-        {t("settings.title")}
-      </Button>
+      {/* Settings & Following Buttons */}
+      <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+        <Button mode="outlined" onPress={() => nav.navigate("Settings")} style={{ flex: 1 }}>
+          {t("settings.title")}
+        </Button>
+        <Button mode="outlined" onPress={() => nav.navigate("Following")} style={{ flex: 1 }}>
+          {t("followingScreen.title")}
+        </Button>
+      </View>
 
       {/* Display Name */}
       <TextInput

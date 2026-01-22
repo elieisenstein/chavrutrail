@@ -309,6 +309,25 @@
     "today": "היום",
     "days": "{{count}} ימים"
   },
+  "userProfile": {
+    "title": "פרופיל",
+    "stats": "{{organized}} ארגן - {{joined}} הצטרף",
+    "sections": {
+      "about": "אודות",
+      "rideTypes": "סוגי רכיבה",
+      "skillAndPace": "רמה וקצב"
+    },
+    "noProfile": "הפרופיל לא נמצא",
+    "noBio": "אין תיאור עדיין",
+    "follow": "עקוב",
+    "following": "עוקב",
+    "unfollow": "הפסק לעקוב"
+  },
+  "followingScreen": {
+    "title": "עוקב אחרי",
+    "empty": "אתה לא עוקב אחרי אף אחד עדיין",
+    "emptyHint": "עקוב אחרי מארגנים כדי לקבל התראה כשהם יוצרים רכיבה חדשה"
+  },
   "notifications": {
     "joinRequest": {
       "title": "בקשת הצטרפות חדשה",

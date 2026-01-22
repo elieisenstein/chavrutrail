@@ -11,6 +11,8 @@ import SettingsScreen from "../screens/SettingsScreen";
 import CreateRideWizard from "../screens/createRide/CreateRideWizard";
 import RideDetailsScreen from "../screens/RideDetailsScreen";
 import MyRidesScreen from "../screens/MyRidesScreen";
+import UserProfileScreen from "../screens/UserProfileScreen";
+import FollowingScreen from "../screens/FollowingScreen";
 
 export type AppTabsParamList = {
   FeedStack: undefined;
@@ -22,16 +24,19 @@ export type AppTabsParamList = {
 export type FeedStackParamList = {
   FeedList: undefined;
   RideDetails: { rideId: string };
+  UserProfile: { userId: string };
 };
 
 export type MyRidesStackParamList = {
   MyRidesList: undefined;
   RideDetails: { rideId: string };
+  UserProfile: { userId: string };
 };
 
 export type ProfileStackParamList = {
   Profile: undefined;
   Settings: undefined;
+  Following: undefined;
 };
 
 export type CreateRideStackParamList = {
@@ -69,6 +74,11 @@ function FeedStack() {
         component={RideDetailsScreen}
         options={{ title: "Ride" }}
       />
+      <FeedStackNav.Screen
+        name="UserProfile"
+        component={UserProfileScreen}
+        options={{ title: t("userProfile.title") }}
+      />
     </FeedStackNav.Navigator>
   );
 }
@@ -97,6 +107,11 @@ function MyRidesStack() {
         component={RideDetailsScreen}
         options={{ title: "Ride" }}
       />
+      <MyRidesStackNav.Screen
+        name="UserProfile"
+        component={UserProfileScreen}
+        options={{ title: t("userProfile.title") }}
+      />
     </MyRidesStackNav.Navigator>
   );
 }
@@ -117,6 +132,7 @@ function ProfileStack() {
     >
       <ProfileStackNav.Screen name="Profile" component={ProfileScreen} options={{ title: t("tabs.profile") }} />
       <ProfileStackNav.Screen name="Settings" component={SettingsScreen} options={{ title: t("settings.title") }} />
+      <ProfileStackNav.Screen name="Following" component={FollowingScreen} options={{ title: t("followingScreen.title") }} />
     </ProfileStackNav.Navigator>
   );
 }

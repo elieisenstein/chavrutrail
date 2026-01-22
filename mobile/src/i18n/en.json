@@ -309,6 +309,25 @@
     "today": "Today",
     "days": "{{count}}d"
   },
+  "userProfile": {
+    "title": "Profile",
+    "stats": "{{organized}} organized - {{joined}} joined",
+    "sections": {
+      "about": "About",
+      "rideTypes": "Rides",
+      "skillAndPace": "Skill & Pace"
+    },
+    "noProfile": "Profile not found",
+    "noBio": "No bio yet",
+    "follow": "Follow",
+    "following": "Following",
+    "unfollow": "Unfollow"
+  },
+  "followingScreen": {
+    "title": "Following",
+    "empty": "You're not following anyone yet",
+    "emptyHint": "Follow organizers to get notified when they create new rides"
+  },
   "notifications": {
     "joinRequest": {
       "title": "New Join Request",

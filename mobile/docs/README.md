@@ -763,6 +763,49 @@ https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bn
 * Case-insensitive display names
 * RLS bypass via Postgres SECURITY DEFINER function (secure, long-term solution)
 
+### Session: January 22, 2026 - Clickable Profiles & Follow System
+
+**Completed:**
+* **Clickable Profiles:** Tap any user name to view their profile
+  - Created UserProfileScreen (read-only view with display_name, bio, ride types, skill/pace, stats)
+  - Added UserProfile route to FeedStack and MyRidesStack
+  - Made names clickable in RideDetailsScreen (owner, participants, pending requests)
+  - Made owner name clickable in FeedScreen ride cards
+  - Added fetchUserProfile() to profile.ts library
+
+* **Follow System:**
+  - Created follows.ts library (followUser, unfollowUser, isFollowing, getFollowingList, getFollowersCount)
+  - Follow/Following toggle button on UserProfileScreen (hidden for own profile)
+  - FollowingScreen to manage followed users (accessible from Profile tab)
+  - Unfollow navigates back to Profile screen
+
+* **Follower Notifications:**
+  - Edge function notifies followers when user creates new ride
+  - Added CASE 3 to process-ride-event for rides INSERT
+  - Removed notification_preferences check from send-notification (OS handles filtering)
+
+* **Database:** Created `follows` table with RLS policies (manual setup in Supabase)
+
+**Files Created:**
+* mobile/src/lib/follows.ts
+* mobile/src/app/screens/UserProfileScreen.tsx
+* mobile/src/app/screens/FollowingScreen.tsx
+
+**Files Modified:**
+* mobile/src/lib/profile.ts (added fetchUserProfile)
+* mobile/src/app/navigation/AppNavigator.tsx (added UserProfile and Following routes)
+* mobile/src/app/screens/RideDetailsScreen.tsx (clickable names)
+* mobile/src/app/screens/FeedScreen.tsx (clickable owner)
+* mobile/src/app/screens/ProfileScreen.tsx (added Following button)
+* mobile/supabase/functions/process-ride-event/index.ts (notify followers)
+* mobile/supabase/functions/send-notification/index.ts (simplified, OS handles prefs)
+* mobile/src/i18n/en.json & he.json (follow translations)
+
+**Technical Decisions:**
+* OS notification channels handle user preferences (removed in-app notification_preferences check)
+* Cross-stack navigation for viewing profiles from Following screen
+* Deploy commands: `npx supabase functions deploy process-ride-event --no-verify-jwt`
+
 ### Session: January 6-7, 2026 - Organizer Display & Statistics
 
 **Completed:**
@@ -790,6 +833,16 @@ https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bn
 
 ---
 
-**Last Updated:** January 20, 2026
+**Last Updated:** January 22, 2026
 **Stage:** Production-ready MVP with self-service sign-up
 **Next Milestone:** Beta testing with self-registering users
+
+next TODO list:
+
+~~Clickable profiles~~ (Done - Jan 22, 2026)
+
+~~Follow + notifications~~ (Done - Jan 22, 2026)
+
+WhatsApp group link
+
+Ride happened confirmation

@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
 
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('expo_push_token, notification_preferences')
+      .select('expo_push_token')
       .eq('id', userId)
       .single()
 
@@ -34,22 +34,13 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No token found' }), { status: 404 })
     }
 
-    // --- IMPROVED TYPE MAPPING ---
-    // Matches the keys in your profiles schema: requests_approvals, ride_updates, new_rides
-    const typeKey = 
-      (type === 'request' || type === 'approval' || type === 'decision' || type === 'status_update') 
-      ? 'requests_approvals' 
-      : (type === 'new_ride') 
-      ? 'new_rides' 
-      : 'ride_updates'; // Default for ride_cancelled or others
-
-    const prefs = profile.notification_preferences || {}
-    
-    // Safety check: if pref is missing, we assume 'true' to be safe
-    if (prefs[typeKey] === false) {
-      console.log(`Notification suppressed: User ${userId} has ${typeKey} disabled.`);
-      return new Response(JSON.stringify({ message: 'User disabled this type' }), { status: 200 })
-    }
+    // Map notification type to Android channel ID
+    const channelId =
+      (type === 'request' || type === 'approval' || type === 'decision' || type === 'status_update')
+      ? 'requests_approvals'
+      : (type === 'new_ride')
+      ? 'new_rides'
+      : 'ride_updates';
 
     const message = {
       to: profile.expo_push_token,
@@ -57,7 +48,7 @@ Deno.serve(async (req) => {
       title,
       body,
       data: data || {},
-      channelId: typeKey, // Uses the same mapping for Android channels
+      channelId, // Android notification channel - OS handles user preferences
     }
 
     const response = await fetch('https://exp.host/--/api/v2/push/send', {

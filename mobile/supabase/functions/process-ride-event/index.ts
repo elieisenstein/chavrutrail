@@ -1,4 +1,4 @@
-// run in mobile folder to deploy on supabase "npx supabase functions deploy process-ride-event"
+// run in mobile folder to deploy on supabase "npx supabase functions deploy process-ride-event --no-verify-jwt"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -134,6 +134,61 @@ serve(async (req) => {
             });
           }
         }
+      }
+    }
+
+    // CASE 3: New Ride Created - Notify Followers
+    if (table === 'rides' && type === 'INSERT' && record?.status === 'published') {
+      console.log(`New ride created by ${record.owner_id}, notifying followers...`);
+
+      // Get owner's display name
+      const { data: owner, error: ownerErr } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', record.owner_id)
+        .single();
+
+      if (ownerErr) {
+        console.log('Error fetching owner profile:', ownerErr);
+      }
+
+      // Get all followers of this owner
+      const { data: followers, error: followErr } = await supabase
+        .from('follows')
+        .select('follower_id')
+        .eq('following_id', record.owner_id);
+
+      if (followErr) {
+        console.log('Error fetching followers:', followErr);
+      }
+
+      if (followers && followers.length > 0) {
+        console.log(`Found ${followers.length} followers to notify`);
+        const ownerName = owner?.display_name || 'Someone you follow';
+        const rideType = record.ride_type || 'Ride';
+        const location = record.start_name || 'a new location';
+
+        for (const f of followers) {
+          console.log(`Notifying follower ${f.follower_id}...`);
+          const notifyRes = await fetch(functionUrl, {
+            method: 'POST',
+            headers: authHeader,
+            body: JSON.stringify({
+              userId: f.follower_id,
+              type: 'new_ride',
+              title: `${ownerName} created a new ride!`,
+              body: `${rideType} at ${location}`,
+              data: { rideId: record.id }
+            })
+          });
+          console.log(`Follower notification response: ${notifyRes.status}`);
+          if (!notifyRes.ok) {
+            const errText = await notifyRes.text();
+            console.log(`Follower notification error: ${errText}`);
+          }
+        }
+      } else {
+        console.log('No followers to notify');
       }
     }
 

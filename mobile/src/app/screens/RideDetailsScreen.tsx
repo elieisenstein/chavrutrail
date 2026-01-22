@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, View, Linking, Alert } from "react-native";
+import { ScrollView, View, Linking, Alert, TouchableOpacity } from "react-native";
 import { ActivityIndicator, Button, Card, Text, useTheme, Divider } from "react-native-paper";
-import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
+import { RouteProp, useRoute, useNavigation, NavigationProp } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 
 import { formatDateTimeLocal } from "../../lib/datetime";
@@ -29,7 +29,7 @@ type RideDetailsRoute = RouteProp<FeedStackParamList, "RideDetails">;
 
 export default function RideDetailsScreen() {
   const route = useRoute<RideDetailsRoute>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<FeedStackParamList>>();
   const { rideId } = route.params;
   const { t, i18n } = useTranslation();
   const isHebrew = i18n.language === 'he';
@@ -305,9 +305,11 @@ export default function RideDetailsScreen() {
             )}
           </Text>
 
-          <Text style={{ opacity: 0.7, fontSize: 14, marginTop: 4 }}>
-            👤 {ride.owner_display_name} · {ride.owner_rides_organized ?? 0} organized · {ride.owner_rides_joined ?? 0} joined
-          </Text>
+          <TouchableOpacity onPress={() => navigation.navigate("UserProfile", { userId: ride.owner_id })}>
+            <Text style={{ opacity: 0.7, fontSize: 14, marginTop: 4, color: theme.colors.primary }}>
+              👤 {ride.owner_display_name} · {ride.owner_rides_organized ?? 0} organized · {ride.owner_rides_joined ?? 0} joined
+            </Text>
+          </TouchableOpacity>
           
           <Text style={{ opacity: 0.8 }}>
             {t("rideDetails.when")}: {(() => {
@@ -400,9 +402,14 @@ export default function RideDetailsScreen() {
             {t("rideDetails.participants")}
           </Text>
           {joinedParticipants.map((p) => (
-            <Text key={p.user_id} style={{ opacity: 0.8, paddingLeft: 8 }}>
-              • {p.display_name} {p.role === 'owner' ? `(${t("myRides.statusLabels.owner")})` : ''}
-            </Text>
+            <TouchableOpacity
+              key={p.user_id}
+              onPress={() => navigation.navigate("UserProfile", { userId: p.user_id })}
+            >
+              <Text style={{ opacity: 0.8, paddingLeft: 8, color: theme.colors.primary }}>
+                • {p.display_name} {p.role === 'owner' ? `(${t("myRides.statusLabels.owner")})` : ''}
+              </Text>
+            </TouchableOpacity>
           ))}
           {joinedParticipants.length === 1 && joinedParticipants[0]?.role === 'owner' && (
             <Text style={{ opacity: 0.6, paddingLeft: 8, fontStyle: 'italic', marginTop: 4 }}>
@@ -429,9 +436,14 @@ export default function RideDetailsScreen() {
                     marginTop: 8,
                   }}
                 >
-                  <Text style={{ flex: 1, opacity: 0.8 }}>
-                    {p.display_name}
-                  </Text>
+                  <TouchableOpacity
+                    style={{ flex: 1 }}
+                    onPress={() => navigation.navigate("UserProfile", { userId: p.user_id })}
+                  >
+                    <Text style={{ opacity: 0.8, color: theme.colors.primary }}>
+                      {p.display_name}
+                    </Text>
+                  </TouchableOpacity>
                   <Button
                     mode="contained"
                     compact

@@ -69,6 +69,21 @@ export function stringToRideTypes(str: string | null): string[] {
 }
 
 /**
+ * Fetch profile for any user by their ID
+ * Used for viewing other users' public profiles
+ */
+export async function fetchUserProfile(userId: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, display_name, bio, home_region, ride_type, skill, pace, birth_year, gender, preferred_ride_times")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return (data ?? null) as Profile | null;
+}
+
+/**
  * Check if a display name is available (not taken by another user)
  * Returns true if available, false if taken
  * Uses case-insensitive comparison to prevent confusion with similar names

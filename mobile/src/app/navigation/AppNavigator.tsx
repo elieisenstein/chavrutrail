@@ -188,6 +188,11 @@ export default function AppNavigator() {
             <Icon source="bike" size={size} color={color} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            navigation.navigate("FeedStack", { screen: "FeedList" });
+          },
+        })}
       />
 
       <Tab.Screen
@@ -199,6 +204,11 @@ export default function AppNavigator() {
             <Icon source="calendar-account" size={size} color={color} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            navigation.navigate("MyRidesStack", { screen: "MyRidesList" });
+          },
+        })}
       />
 
       <Tab.Screen

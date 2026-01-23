@@ -203,9 +203,22 @@
       "female": "אישה",
       "other": "אחר"
     },
+    "phoneNumber": "מספר טלפון",
+    "phoneNumberPlaceholder": "05XXXXXXXX או 9725XXXXXXXX+",
+    "phoneNumberHelp": "משמש לתיאום בקבוצת ה-WhatsApp של הרכיבה",
+    "invalidPhone": "הזן מספר טלפון ישראלי תקין",
     "saveProfile": "שמור פרופיל",
     "loadingProfile": "טוען פרופיל...",
-     "rideTypesRequired": "יש לבחור לפחות סוג רכיבה אחד"
+    "rideTypesRequired": "יש לבחור לפחות סוג רכיבה אחד"
+  },
+  "phoneModal": {
+    "title": "הוסף מספר טלפון",
+    "message": "הוסף את מספר הטלפון שלך כדי לתאם עם הקבוצה ב-WhatsApp",
+    "messageOrganizer": "הוסף את מספר הטלפון שלך לתיאום ב-WhatsApp עם הרוכבים שיצטרפו",
+    "placeholder": "05XXXXXXXX",
+    "formatHint": "פורמט: 05XXXXXXXX או 9725XXXXXXXX+",
+    "save": "שמור",
+    "invalidPhone": "הזן מספר טלפון ישראלי תקין (05XXXXXXXX או 9725XXXXXXXX+)"
   },
   "createRide": {
     "steps": {

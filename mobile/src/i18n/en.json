@@ -203,9 +203,22 @@
       "female": "Woman",
       "other": "Other"
     },
+    "phoneNumber": "Phone Number",
+    "phoneNumberPlaceholder": "05XXXXXXXX or +9725XXXXXXXX",
+    "phoneNumberHelp": "Used for WhatsApp coordination with ride groups",
+    "invalidPhone": "Please enter a valid Israeli phone number",
     "saveProfile": "Save Profile",
     "loadingProfile": "Loading profile...",
     "rideTypesRequired": "Please select at least one ride type"
+  },
+  "phoneModal": {
+    "title": "Add Your Phone Number",
+    "message": "Please add your phone number to coordinate with the group via WhatsApp",
+    "messageOrganizer": "Please add your phone number for WhatsApp coordination with joined riders",
+    "placeholder": "05XXXXXXXX",
+    "formatHint": "Format: 05XXXXXXXX or +9725XXXXXXXX",
+    "save": "Save",
+    "invalidPhone": "Please enter a valid Israeli phone number (05XXXXXXXX or +9725XXXXXXXX)"
   },
   "createRide": {
     "steps": {

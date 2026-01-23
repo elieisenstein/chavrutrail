@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { Text, Button, TextInput, Chip, useTheme, Divider } from "react-native-paper";
 import { supabase } from "../../lib/supabase";
@@ -9,8 +9,9 @@ import {
   rideTypesToString,
   stringToRideTypes,
 } from "../../lib/profile";
+import { validateIsraeliPhone } from "../../components/PhoneInputModal";
 import { useTranslation } from "react-i18next";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 
 // const RIDE_TYPES = ["XC", "Trail", "Enduro", "Gravel", "Road"];
 const RIDE_TYPES = ["Trail", "Enduro", "Gravel", "Road"];
@@ -32,6 +33,8 @@ export default function ProfileScreen() {
   const [selectedPace, setSelectedPace] = useState<string | null>(null);
   const [birthYear, setBirthYear] = useState<string>("");
   const [selectedGender, setSelectedGender] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const [phoneError, setPhoneError] = useState<string>("");
 
   const nav = useNavigation<any>();
   const theme = useTheme();
@@ -76,9 +79,9 @@ export default function ProfileScreen() {
     justifyContent: isRTL ? ("flex-end" as const) : ("flex-start" as const),
   };
 
-  const loadProfile = async () => {
+  const loadProfile = async (showLoading = true) => {
     setErr(null);
-    setLoading(true);
+    if (showLoading) setLoading(true);
     try {
       const p = await fetchMyProfile();
 
@@ -91,6 +94,7 @@ export default function ProfileScreen() {
         setSelectedPace(null);
         setBirthYear("");
         setSelectedGender(null);
+        setPhoneNumber("");
         return;
       }
 
@@ -102,21 +106,44 @@ export default function ProfileScreen() {
       setSelectedPace(p.pace);
       setBirthYear(p.birth_year ? String(p.birth_year) : "");
       setSelectedGender(p.gender);
+      setPhoneNumber(p.phone_number ?? "");
     } catch (e: any) {
       setErr(e?.message ?? t("profile.loadingProfile"));
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  const isFirstLoad = useRef(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstLoad.current) {
+        isFirstLoad.current = false;
+        loadProfile(true);
+      } else {
+        loadProfile(false);
+      }
+    }, [])
+  );
 
   const saveProfile = async () => {
     setErr(null);
+    setPhoneError("");
     setSaving(true);
     try {
+      // Validate phone if provided
+      let normalizedPhone: string | null = null;
+      if (phoneNumber.trim()) {
+        const validated = validateIsraeliPhone(phoneNumber);
+        if (!validated) {
+          setPhoneError(t("profile.invalidPhone"));
+          setSaving(false);
+          return;
+        }
+        normalizedPhone = validated;
+      }
+
       const updates = {
         display_name: displayName.trim() || null,
         bio: bio.trim() || null,
@@ -125,6 +152,7 @@ export default function ProfileScreen() {
         pace: selectedPace,
         birth_year: birthYear ? parseInt(birthYear, 10) : null,
         gender: selectedGender,
+        phone_number: normalizedPhone,
       };
 
       await updateMyProfile(updates as any);
@@ -195,6 +223,30 @@ export default function ProfileScreen() {
       <Text style={{ opacity: 0.6, fontSize: 12, marginBottom: 16, ...dirText }}>
         {bio.length}/500
       </Text>
+
+      {/* Phone Number */}
+      <TextInput
+        label={t("profile.phoneNumber")}
+        placeholder={t("profile.phoneNumberPlaceholder")}
+        value={phoneNumber}
+        onChangeText={(text) => {
+          setPhoneNumber(text);
+          if (phoneError) setPhoneError("");
+        }}
+        keyboardType="phone-pad"
+        autoComplete="tel"
+        error={!!phoneError}
+        style={{ marginBottom: 4 }}
+        contentStyle={dirText}
+      />
+      <Text style={{ opacity: 0.6, fontSize: 12, marginBottom: phoneError ? 4 : 16, ...dirText }}>
+        {t("profile.phoneNumberHelp")}
+      </Text>
+      {phoneError ? (
+        <Text style={{ color: theme.colors.error, fontSize: 12, marginBottom: 16, ...dirText }}>
+          {phoneError}
+        </Text>
+      ) : null}
 
       <Divider style={{ marginBottom: 16 }} />
 

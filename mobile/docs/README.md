@@ -394,11 +394,16 @@ ADD COLUMN rides_joined_count INTEGER DEFAULT 0;
 
 ### 🎯 Priority 2: Core Features (Next 2 Weeks)
 
-#### Phone Number Collection (Required for WhatsApp Coordination)
-- [ ] When user joins a ride, check if they have phone_number in profile
-- [ ] If missing → Show modal: "Please add your phone number to coordinate with the group"
-- [ ] Save to profiles.phone_number
-- [ ] Files: Update join flow in RideDetailsScreen.tsx, create phone input modal
+#### Phone Number Collection (Required for WhatsApp Coordination) ✅ DONE
+- [x] When user joins a ride, check if they have phone_number in profile
+- [x] If missing → Show modal: "Please add your phone number to coordinate with the group" (required, no skip)
+- [x] When user publishes a ride, also require phone (required, no skip)
+- [x] Save to profiles.phone_number (normalized +972 format)
+- [x] Phone field added to Profile screen with validation
+- [x] Accepts 05XXXXXXXX (local) and +9725XXXXXXXX (international) formats
+- [x] Profile screen silently reloads on focus (reflects phone saved from other screens)
+- [x] My Rides / Feed tabs reset stack on tab press (fixes stale "Ride not found" after cancellation)
+- [x] Files: PhoneInputModal.tsx, RideDetailsScreen.tsx, CreateRideWizard.tsx, ProfileScreen.tsx, AppNavigator.tsx, profile.ts, en.json, he.json
 
 #### WhatsApp Integration
 - [ ] Add optional WhatsApp group link field to ride creation
@@ -842,6 +847,8 @@ next TODO list:
 ~~Clickable profiles~~ (Done - Jan 22, 2026)
 
 ~~Follow + notifications~~ (Done - Jan 22, 2026)
+
+~~Phone number collection for WhatsApp~~ (Done - Jan 23, 2026)
 
 WhatsApp group link
 

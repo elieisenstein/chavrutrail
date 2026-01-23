@@ -8,6 +8,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { supabase } from "../../../lib/supabase";
 import { createRide } from "../../../lib/rides";
 import { fetchMyProfile, updateMyProfile } from "../../../lib/profile";
+import PhoneInputModal from "../../../components/PhoneInputModal";
 import { CreateRideDraft, draftIsStepValid } from "./createRideTypes";
 
 import StepWhen from "./steps/StepWhen";
@@ -55,6 +56,7 @@ export default function CreateRideWizard() {
   const [stepIndex, setStepIndex] = useState(0);
   const [draft, setDraft] = useState<CreateRideDraft>(getInitialDraft());
   const [submitting, setSubmitting] = useState(false);
+  const [phoneModalVisible, setPhoneModalVisible] = useState(false);
   const canGoNext = draftIsStepValid(stepIndex, draft);
 
   const stepTitle = steps[stepIndex]?.title ?? "";
@@ -70,23 +72,7 @@ export default function CreateRideWizard() {
     setDraft((prev) => ({ ...prev, ...patch }));
   }
 
-  async function onPublish() {
-    const requiredOk =
-      draftIsStepValid(0, draft) &&
-      draftIsStepValid(1, draft) &&
-      draftIsStepValid(2, draft) &&
-      draftIsStepValid(3, draft);
-
-    if (!requiredOk) {
-      for (let i = 0; i < 4; i++) {
-        if (!draftIsStepValid(i, draft)) {
-          setStepIndex(i);
-          return;
-        }
-      }
-      return;
-    }
-
+  async function doPublish() {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user.id;
     if (!userId) {
@@ -96,7 +82,6 @@ export default function CreateRideWizard() {
 
     setSubmitting(true);
     try {
-      // 1. Create the ride
       const ride = await createRide({
         owner_id: userId,
         status: "published",
@@ -116,14 +101,13 @@ export default function CreateRideWizard() {
         notes: draft.notes ?? null,
       });
 
-      // 2. Auto-add ride type to user's profile if not already there
+      // Auto-add ride type to user's profile if not already there
       try {
         const profile = await fetchMyProfile();
         if (profile && profile.ride_type) {
           const currentTypes = profile.ride_type.split(',').map(t => t.trim());
           const newType = draft.ride_type!;
 
-          // Only update if the type isn't already in their profile
           if (!currentTypes.includes(newType)) {
             const updatedTypes = [...currentTypes, newType];
             await updateMyProfile({
@@ -133,7 +117,6 @@ export default function CreateRideWizard() {
           }
         }
       } catch (e) {
-        // Non-critical - don't fail ride creation if profile update fails
         console.log("Failed to auto-update profile ride types:", e);
       }
 
@@ -151,6 +134,48 @@ export default function CreateRideWizard() {
       setSubmitting(false);
     }
   }
+
+  async function onPublish() {
+    const requiredOk =
+      draftIsStepValid(0, draft) &&
+      draftIsStepValid(1, draft) &&
+      draftIsStepValid(2, draft) &&
+      draftIsStepValid(3, draft);
+
+    if (!requiredOk) {
+      for (let i = 0; i < 4; i++) {
+        if (!draftIsStepValid(i, draft)) {
+          setStepIndex(i);
+          return;
+        }
+      }
+      return;
+    }
+
+    // Check if user has a phone number before publishing
+    try {
+      const profile = await fetchMyProfile();
+      if (!profile?.phone_number) {
+        setPhoneModalVisible(true);
+        return;
+      }
+    } catch (e) {
+      console.log("Phone check failed:", e);
+    }
+
+    await doPublish();
+  }
+
+  async function handlePhoneSave(phoneNumber: string) {
+    try {
+      await updateMyProfile({ phone_number: phoneNumber });
+    } catch (e) {
+      console.log("Failed to save phone:", e);
+    }
+    setPhoneModalVisible(false);
+    await doPublish();
+  }
+
 
   return (
     <View style={{ flex: 1, padding: 16, backgroundColor: theme.colors.background }}>
@@ -207,6 +232,13 @@ export default function CreateRideWizard() {
           </Button>
         )}
       </View>
+
+      <PhoneInputModal
+        visible={phoneModalVisible}
+        onClose={() => setPhoneModalVisible(false)}
+        onSave={handlePhoneSave}
+        message={t('phoneModal.messageOrganizer')}
+      />
     </View>
   );
 }

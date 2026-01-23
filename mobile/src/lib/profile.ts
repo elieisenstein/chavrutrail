@@ -11,6 +11,7 @@ export type Profile = {
   birth_year: number | null;
   gender: string | null; // "Male" | "Female" | null (optional)
   preferred_ride_times: string | null;
+  phone_number: string | null; // E.164 format, e.g., "+9725XXXXXXXX"
 };
 
 export type ProfileUpdateInput = {
@@ -21,6 +22,7 @@ export type ProfileUpdateInput = {
   pace?: string;
   birth_year?: number | null;
   gender?: string | null;
+  phone_number?: string | null;
 };
 
 export async function fetchMyProfile(): Promise<Profile | null> {
@@ -31,7 +33,7 @@ export async function fetchMyProfile(): Promise<Profile | null> {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, bio, home_region, ride_type, skill, pace, birth_year, gender, preferred_ride_times")
+    .select("id, display_name, bio, home_region, ride_type, skill, pace, birth_year, gender, preferred_ride_times, phone_number")
     .eq("id", user.id)
     .maybeSingle(); // Allows 0 rows without error
 
@@ -75,7 +77,7 @@ export function stringToRideTypes(str: string | null): string[] {
 export async function fetchUserProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, bio, home_region, ride_type, skill, pace, birth_year, gender, preferred_ride_times")
+    .select("id, display_name, bio, home_region, ride_type, skill, pace, birth_year, gender, preferred_ride_times, phone_number")
     .eq("id", userId)
     .maybeSingle();
 

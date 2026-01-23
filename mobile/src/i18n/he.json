@@ -179,6 +179,11 @@
       "beTheFirst": "עדיין אף אחד לא הצטרף. היה הראשון!"
     },
     "notFound": "הרכיבה לא נמצאה (או שאין לך הרשאה)",
+    "whatsappGroup": "קבוצת ווטסאפ",
+    "whatsappOpen": "פתח קבוצה",
+    "whatsappAdd": "הוסף קישור ווטסאפ",
+    "whatsappEdit": "ערוך",
+    "whatsappSave": "שמור",
     "navigation": {
       "title": "ניווט לנקודת מפגש",
       "message": "קבל הוראות הגעה אל:",
@@ -290,6 +295,8 @@
       "groupModeExpress": "מהיר (הצטרפות אוטומטית)",
       "groupModeApproval": "דורש אישור",
       "maxParticipants": "מספר משתתפים מקסימלי:",
+      "whatsappLink": "קישור לקבוצת ווטסאפ (אופציונלי)",
+      "whatsappPlaceholder": "https://chat.whatsapp.com/...",
       "publishPrompt": "לחץ על \"פרסם\" כדי ליצור את הרכיבה!"
     },
     "navigation": {

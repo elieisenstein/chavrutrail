@@ -34,6 +34,7 @@ function getInitialDraft(): CreateRideDraft {
     start_name: null,
     start_at: defaultDate.toISOString(),
     duration_hours: 2,
+    whatsapp_link: null,
   };
 }
 
@@ -99,6 +100,7 @@ export default function CreateRideWizard() {
         max_participants: draft.max_participants!,
         gender_preference: draft.gender_preference ?? "all",
         notes: draft.notes ?? null,
+        whatsapp_link: draft.whatsapp_link ?? null,
       });
 
       // Auto-add ride type to user's profile if not already there
@@ -195,7 +197,7 @@ export default function CreateRideWizard() {
         {stepIndex === 1 && <StepWhere draft={draft} onChange={updateDraft} />}
         {stepIndex === 2 && <StepDetails draft={draft} onChange={updateDraft} />}
         {stepIndex === 3 && <StepGroup draft={draft} onChange={updateDraft} />}
-        {stepIndex === 4 && <StepReview draft={draft} />}
+        {stepIndex === 4 && <StepReview draft={draft} onChange={updateDraft} />}
       </View>
 
       <Divider style={{ marginVertical: 12 }} />

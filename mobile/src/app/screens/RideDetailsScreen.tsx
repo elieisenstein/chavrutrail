@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ScrollView, View, Linking, Alert, TouchableOpacity } from "react-native";
-import { ActivityIndicator, Button, Card, Text, useTheme, Divider } from "react-native-paper";
+import { ActivityIndicator, Button, Card, Text, TextInput, useTheme, Divider } from "react-native-paper";
 import { RouteProp, useRoute, useNavigation, NavigationProp } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 
@@ -46,6 +46,8 @@ export default function RideDetailsScreen() {
   const [approvingUserId, setApprovingUserId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [phoneModalVisible, setPhoneModalVisible] = useState(false);
+  const [editingWhatsapp, setEditingWhatsapp] = useState(false);
+  const [whatsappDraft, setWhatsappDraft] = useState("");
 
   const theme = useTheme();
 
@@ -283,6 +285,18 @@ export default function RideDetailsScreen() {
     }
   }
 
+  async function handleSaveWhatsapp() {
+    if (!ride) return;
+    try {
+      const link = whatsappDraft.trim() || null;
+      await supabase.from("rides").update({ whatsapp_link: link }).eq("id", ride.id);
+      setRide({ ...ride, whatsapp_link: link });
+      setEditingWhatsapp(false);
+    } catch (e: any) {
+      console.log("Save WhatsApp link error:", e?.message ?? e);
+    }
+  }
+
   if (loading) {
     return (
       <View
@@ -384,6 +398,72 @@ export default function RideDetailsScreen() {
           )}
 
           {ride.notes ? <Text style={{ opacity: 0.9 }}>{ride.notes}</Text> : null}
+
+          {/* WhatsApp Group Link - visible to owner and joined participants */}
+          {(isOwner || (myStatus === "joined" && ride.whatsapp_link)) && (
+            <>
+              <Divider style={{ marginVertical: 8 }} />
+              <Text variant="titleMedium" style={{ color: theme.colors.onSurface }}>
+                {t("rideDetails.whatsappGroup")}
+              </Text>
+
+              {editingWhatsapp ? (
+                <View style={{ gap: 8 }}>
+                  <TextInput
+                    mode="outlined"
+                    value={whatsappDraft}
+                    onChangeText={setWhatsappDraft}
+                    placeholder="https://chat.whatsapp.com/..."
+                    keyboardType="url"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    dense
+                  />
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <Button mode="contained" compact onPress={handleSaveWhatsapp}>
+                      {t("rideDetails.whatsappSave")}
+                    </Button>
+                    <Button mode="outlined" compact onPress={() => setEditingWhatsapp(false)}>
+                      {t("common.cancel")}
+                    </Button>
+                  </View>
+                </View>
+              ) : ride.whatsapp_link ? (
+                <View style={{ gap: 8 }}>
+                  <Button
+                    mode="contained"
+                    icon="whatsapp"
+                    onPress={() => Linking.openURL(ride.whatsapp_link!)}
+                  >
+                    {t("rideDetails.whatsappOpen")}
+                  </Button>
+                  {isOwner && !rideHasEnded && (
+                    <Button
+                      mode="outlined"
+                      compact
+                      onPress={() => {
+                        setWhatsappDraft(ride.whatsapp_link ?? "");
+                        setEditingWhatsapp(true);
+                      }}
+                    >
+                      {t("rideDetails.whatsappEdit")}
+                    </Button>
+                  )}
+                </View>
+              ) : (
+                <Button
+                  mode="outlined"
+                  icon="whatsapp"
+                  onPress={() => {
+                    setWhatsappDraft("");
+                    setEditingWhatsapp(true);
+                  }}
+                >
+                  {t("rideDetails.whatsappAdd")}
+                </Button>
+              )}
+            </>
+          )}
 
           {/* Share Buttons */}
           <Divider style={{ marginVertical: 12 }} />

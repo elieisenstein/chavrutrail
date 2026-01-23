@@ -405,11 +405,12 @@ ADD COLUMN rides_joined_count INTEGER DEFAULT 0;
 - [x] My Rides / Feed tabs reset stack on tab press (fixes stale "Ride not found" after cancellation)
 - [x] Files: PhoneInputModal.tsx, RideDetailsScreen.tsx, CreateRideWizard.tsx, ProfileScreen.tsx, AppNavigator.tsx, profile.ts, en.json, he.json
 
-#### WhatsApp Integration
-- [ ] Add optional WhatsApp group link field to ride creation
-- [ ] Display WhatsApp group link in ride details for participants
-- [ ] Update review step to show group link if provided
-- [ ] Files: Add whatsapp_link to rides table, update CreateRideWizard, update RideDetailsScreen
+#### WhatsApp Integration ✅ DONE
+- [x] Add optional WhatsApp group link field to ride creation (review step)
+- [x] Display WhatsApp group link in ride details for joined participants only
+- [x] Update review step to show group link input if provided
+- [x] Owner can add/edit WhatsApp link anytime from ride details (before ride ends)
+- [x] Files: Add whatsapp_link to rides table, update CreateRideWizard, StepReview, RideDetailsScreen, createRideTypes.ts, rides.ts, en.json, he.json
 
 #### Ride Editing (Owner Only)
 - [ ] Edit button on RideDetails (owner only)

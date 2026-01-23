@@ -39,6 +39,7 @@ export type Ride = {
   gender_preference: "all" | "men" | "women";
 
   notes: string | null;
+  whatsapp_link: string | null;
 
   created_at: string;
   updated_at: string;

@@ -1,12 +1,12 @@
 import React from "react";
 import { ScrollView } from "react-native";
-import { Text, Divider, useTheme } from "react-native-paper";
+import { Text, TextInput, Divider, useTheme } from "react-native-paper";
 import { useTranslation } from "react-i18next";
 import { CreateRideDraft } from "../createRideTypes";
 import { formatDateTimeLocal } from "../../../../lib/datetime";
 import IsraelHikingMapView from "../../../../components/IsraelHikingMapView";
 
-export default function StepReview({ draft }: { draft: CreateRideDraft }) {
+export default function StepReview({ draft, onChange }: { draft: CreateRideDraft; onChange: (patch: Partial<CreateRideDraft>) => void }) {
   const theme = useTheme();
   const { t } = useTranslation();
 
@@ -113,6 +113,20 @@ export default function StepReview({ draft }: { draft: CreateRideDraft }) {
       )}
 
       <Divider />
+
+      <Text style={{ color: theme.colors.onBackground, fontWeight: "bold", marginTop: 8 }}>
+        {t("createRide.review.whatsappLink")}
+      </Text>
+      <TextInput
+        mode="outlined"
+        value={draft.whatsapp_link ?? ""}
+        onChangeText={(text) => onChange({ whatsapp_link: text || null })}
+        placeholder={t("createRide.review.whatsappPlaceholder")}
+        keyboardType="url"
+        autoCapitalize="none"
+        autoCorrect={false}
+        dense
+      />
 
       <Text style={{ opacity: 0.7, fontStyle: "italic" }}>
         {t("createRide.review.publishPrompt")}

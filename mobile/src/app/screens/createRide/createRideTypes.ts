@@ -22,6 +22,7 @@ export type CreateRideDraft = {
   gender_preference?: "all" | "men" | "women";
 
   notes?: string | null; // Route description (optional)
+  whatsapp_link?: string | null; // Optional WhatsApp group link
 };
 
 export function draftIsStepValid(step: number, d: CreateRideDraft): boolean {

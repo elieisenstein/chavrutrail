@@ -179,6 +179,11 @@
       "beTheFirst": "No one else has joined yet. Be the first!"
     },
     "notFound": "Ride not found (or you don't have permission).",
+    "whatsappGroup": "WhatsApp Group",
+    "whatsappOpen": "Open Group",
+    "whatsappAdd": "Add WhatsApp link",
+    "whatsappEdit": "Edit",
+    "whatsappSave": "Save",
     "navigation": {
       "title": "Navigate to Meeting Point",
       "message": "Get directions to:",
@@ -290,6 +295,8 @@
       "groupModeExpress": "Express (auto-join)",
       "groupModeApproval": "Approval required",
       "maxParticipants": "Max participants:",
+      "whatsappLink": "WhatsApp group link (optional)",
+      "whatsappPlaceholder": "https://chat.whatsapp.com/...",
       "publishPrompt": "Tap \"Publish\" to create your ride!"
     },
     "navigation": {

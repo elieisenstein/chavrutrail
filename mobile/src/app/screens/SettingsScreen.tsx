@@ -1,6 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import { Text, RadioButton } from "react-native-paper";
+import Constants from "expo-constants";
 import { useTranslation } from "react-i18next";
 import { useAppSettings } from "../state/AppSettingsContext";
 import { useTheme } from "react-native-paper";
@@ -60,6 +61,10 @@ export default function SettingsScreen() {
           <RadioButton.Item label={t("settings.language.en")} value="en" />
         </RadioButton.Group>
       </View>
+
+      <Text style={{ textAlign: "center", opacity: 0.5, marginTop: 24 }}>
+        v{Constants.expoConfig?.version}
+      </Text>
     </View>
   );
 }

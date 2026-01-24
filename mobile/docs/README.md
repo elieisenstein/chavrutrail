@@ -412,6 +412,10 @@ ADD COLUMN rides_joined_count INTEGER DEFAULT 0;
 - [x] Owner can add/edit WhatsApp link anytime from ride details (before ride ends)
 - [x] Files: Add whatsapp_link to rides table, update CreateRideWizard, StepReview, RideDetailsScreen, createRideTypes.ts, rides.ts, en.json, he.json
 
+#### App Version Display ✅ DONE
+- [x] Show app version number (from app.config.js) at the bottom of the Settings screen
+- [x] Files: SettingsScreen.tsx
+
 #### Ride Editing (Owner Only)
 - [ ] Edit button on RideDetails (owner only)
 - [ ] Opens CreateRideWizard with existing data

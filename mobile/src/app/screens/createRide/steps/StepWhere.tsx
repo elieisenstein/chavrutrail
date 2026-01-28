@@ -157,7 +157,9 @@ export default function StepWhere({
           onPress={handlePickGpx}
           loading={pickingGpx}
           disabled={pickingGpx}
-          contentStyle={{ paddingVertical: 4 }}
+          textColor={theme.colors.primary}
+          style={{ borderColor: theme.colors.primary }}
+          contentStyle={{ paddingVertical: 6 }}
         >
           {t("createRide.where.gpxAttach")}
         </Button>
@@ -172,27 +174,20 @@ export default function StepWhere({
         {t("createRide.where.locationInstruction")}
       </Text>
 
-      <View style={{ flexDirection: "row", gap: 8 }}>
+      <View style={{ flexDirection: "row" }}>
         <Button
           mode="contained"
-          icon="crosshairs-gps"
-          onPress={useCurrentLocation}
-          loading={loadingLocation}
-          disabled={loadingLocation}
-          style={{ flex: 1 }}
-        >
-          {t("createRide.where.useCurrentLocation")}
-        </Button>
-
-        <Button
-          mode="outlined"
           icon="map-marker"
           onPress={() => setMapModalVisible(true)}
           style={{ flex: 1 }}
+          buttonColor={theme.colors.primary}     // orange (if your theme primary is orange)
+          textColor={theme.colors.onPrimary}
+          contentStyle={{ paddingVertical: 6 }}
         >
           {t("createRide.where.chooseOnMap")}
         </Button>
       </View>
+
 
       {/* Map Picker Modal */}
       <MapPickerModal

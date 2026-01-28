@@ -43,6 +43,7 @@ export type Ride = {
 
   gpx_url: string | null;
   gpx_coordinates: [number, number][] | null; // [[lng, lat], ...] for map rendering
+  gpx_original_filename: string | null; // Original filename for downloads
 
   created_at: string;
   updated_at: string;

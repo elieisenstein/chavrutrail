@@ -382,5 +382,12 @@
       "title": "🚫 Ride Cancelled",
       "body": "The ride \"{{ride}}\" has been cancelled by the organizer"
     }
+  },
+  "gpxDownload": {
+    "downloadFailed": "Failed to download GPX file. Please try again.",
+    "sharingNotAvailable": "Sharing is not available on this device.",
+    "saveFile": "Save GPX File",
+    "saveToDevice": "Save to Device",
+    "share": "Share"
   }
 }

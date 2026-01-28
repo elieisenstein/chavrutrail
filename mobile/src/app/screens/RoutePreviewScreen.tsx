@@ -1,26 +1,43 @@
-import React from "react";
-import { View, StyleSheet, Linking } from "react-native";
+import React, { useState } from "react";
+import { View, StyleSheet, Alert } from "react-native";
 import { Button, useTheme } from "react-native-paper";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import MapboxGL from "@rnmapbox/maps";
 import { getIsraelHikingTiles } from "../../lib/mapbox";
+import { downloadGpxFile } from "../../lib/gpxDownload";
 
 type RoutePreviewParams = {
   RoutePreview: {
     coordinates: [number, number][];
     gpxUrl?: string;
+    originalFilename?: string;
   };
 };
 
 export default function RoutePreviewScreen() {
   const route = useRoute<RouteProp<RoutePreviewParams, "RoutePreview">>();
-  const { coordinates, gpxUrl } = route.params;
+  const { coordinates, gpxUrl, originalFilename } = route.params;
+  const [downloading, setDownloading] = useState(false);
   const { i18n, t } = useTranslation();
   const theme = useTheme();
   const { baseTiles, trailTiles } = getIsraelHikingTiles(
     i18n.language === "he" ? "he" : "en"
   );
+
+  async function handleDownload() {
+    if (!gpxUrl) return;
+
+    setDownloading(true);
+    try {
+      const result = await downloadGpxFile(gpxUrl, originalFilename ?? null, t);
+      if (!result.success && result.error) {
+        Alert.alert(t("common.error"), result.error);
+      }
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   // Calculate bounding box for camera
   const lngs = coordinates.map((c) => c[0]);
@@ -109,7 +126,9 @@ export default function RoutePreviewScreen() {
           <Button
             mode="contained"
             icon="download"
-            onPress={() => Linking.openURL(gpxUrl)}
+            onPress={handleDownload}
+            loading={downloading}
+            disabled={downloading}
           >
             {t("rideDetails.downloadGpx")}
           </Button>

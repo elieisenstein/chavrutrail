@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { formatDateTimeLocal } from "../../lib/datetime";
 import { supabase } from "../../lib/supabase";
 import type { Ride } from "../../lib/rides";
+import { downloadGpxFile } from "../../lib/gpxDownload";
 import type { FeedStackParamList } from "../navigation/AppNavigator";
 import IsraelHikingMapView from "../../components/IsraelHikingMapView";
 import { ShareRideButton } from "../../components/ShareRideButton";
@@ -48,6 +49,7 @@ export default function RideDetailsScreen() {
   const [phoneModalVisible, setPhoneModalVisible] = useState(false);
   const [editingWhatsapp, setEditingWhatsapp] = useState(false);
   const [whatsappDraft, setWhatsappDraft] = useState("");
+  const [downloadingGpx, setDownloadingGpx] = useState(false);
 
   const theme = useTheme();
 
@@ -297,6 +299,25 @@ export default function RideDetailsScreen() {
     }
   }
 
+  async function handleDownloadGpx() {
+    if (!ride?.gpx_url) return;
+
+    setDownloadingGpx(true);
+    try {
+      const result = await downloadGpxFile(
+        ride.gpx_url,
+        ride.gpx_original_filename ?? null,
+        t
+      );
+
+      if (!result.success && result.error) {
+        Alert.alert(t("common.error"), result.error);
+      }
+    } finally {
+      setDownloadingGpx(false);
+    }
+  }
+
   if (loading) {
     return (
       <View
@@ -520,11 +541,29 @@ export default function RideDetailsScreen() {
                       isOwner || myStatus === "joined"
                         ? ride.gpx_url ?? undefined
                         : undefined,
+                    originalFilename:
+                      isOwner || myStatus === "joined"
+                        ? ride.gpx_original_filename ?? undefined
+                        : undefined,
                   })
                 }
               >
                 {t("rideDetails.previewRoute")}
               </Button>
+
+              {/* Download GPX button - only for owner/joined users */}
+              {(isOwner || myStatus === "joined") && ride.gpx_url && (
+                <Button
+                  mode="outlined"
+                  icon="download"
+                  onPress={handleDownloadGpx}
+                  loading={downloadingGpx}
+                  disabled={downloadingGpx}
+                  style={{ marginTop: 8 }}
+                >
+                  {t("rideDetails.downloadGpx")}
+                </Button>
+              )}
             </>
           )}
 

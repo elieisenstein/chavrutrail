@@ -26,14 +26,14 @@ export type FeedStackParamList = {
   FeedList: undefined;
   RideDetails: { rideId: string };
   UserProfile: { userId: string };
-  RoutePreview: { coordinates: [number, number][]; gpxUrl?: string };
+  RoutePreview: { coordinates: [number, number][]; gpxUrl?: string; originalFilename?: string };
 };
 
 export type MyRidesStackParamList = {
   MyRidesList: undefined;
   RideDetails: { rideId: string };
   UserProfile: { userId: string };
-  RoutePreview: { coordinates: [number, number][]; gpxUrl?: string };
+  RoutePreview: { coordinates: [number, number][]; gpxUrl?: string; originalFilename?: string };
 };
 
 export type ProfileStackParamList = {

@@ -382,5 +382,12 @@
       "title": "🚫 רכיבה בוטלה",
       "body": "הרכיבה \"{{ride}}\" בוטלה על ידי המארגן"
     }
+  },
+  "gpxDownload": {
+    "downloadFailed": "הורדת קובץ GPX נכשלה. נסה שוב.",
+    "sharingNotAvailable": "שיתוף לא זמין במכשיר זה.",
+    "saveFile": "שמור קובץ GPX",
+    "saveToDevice": "שמור במכשיר",
+    "share": "שתף"
   }
 }

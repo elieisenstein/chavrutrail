@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { View, I18nManager, Alert } from "react-native";
 import { Button, Divider, Text, useTheme } from "react-native-paper";
 import { useTranslation } from "react-i18next";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, CommonActions } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { supabase } from "../../../lib/supabase";
@@ -137,6 +137,7 @@ export default function CreateRideWizard() {
         whatsapp_link: draft.whatsapp_link ?? null,
         gpx_url: gpxUrl,
         gpx_coordinates: gpxCoordinates,
+        gpx_original_filename: draft.gpx_file_name ?? null,
       });
 
       // Auto-add ride type to user's profile if not already there
@@ -163,10 +164,20 @@ export default function CreateRideWizard() {
 
       console.log("Ride created:", ride.id);
 
-      navigation.navigate("MyRidesStack", {
-        screen: "RideDetails",
-        params: { rideId: ride.id }
-      });
+      // Navigate to MyRidesStack with RideDetails, ensuring MyRidesList is in the stack
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 1,
+          routes: [
+            { name: "MyRidesStack", state: {
+              routes: [
+                { name: "MyRidesList" },
+                { name: "RideDetails", params: { rideId: ride.id } }
+              ]
+            }}
+          ],
+        })
+      );
 
     } finally {
       setSubmitting(false);

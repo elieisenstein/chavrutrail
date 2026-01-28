@@ -506,6 +506,28 @@ export default function RideDetailsScreen() {
             </>
           ) : null}
 
+          {/* GPX Route Preview */}
+          {ride.gpx_coordinates && ride.gpx_coordinates.length > 0 && (
+            <>
+              <Divider style={{ marginVertical: 12 }} />
+              <Button
+                mode="contained"
+                icon="map-marker-path"
+                onPress={() =>
+                  navigation.navigate("RoutePreview", {
+                    coordinates: ride.gpx_coordinates!,
+                    gpxUrl:
+                      isOwner || myStatus === "joined"
+                        ? ride.gpx_url ?? undefined
+                        : undefined,
+                  })
+                }
+              >
+                {t("rideDetails.previewRoute")}
+              </Button>
+            </>
+          )}
+
           {/* Participants List */}
           <Divider style={{ marginVertical: 8 }} />
           <Text variant="titleMedium" style={{ color: theme.colors.onSurface }}>

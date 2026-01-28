@@ -38,6 +38,14 @@ export default function StepReview({ draft, onChange }: { draft: CreateRideDraft
         </Text>
       )}
 
+      {/* GPX Attachment */}
+      {draft.gpx_file_name && (
+        <Text style={{ color: theme.colors.onBackground }}>
+          <Text style={{ fontWeight: "bold" }}>{t("createRide.review.gpxFile")} </Text>
+          {draft.gpx_file_name} ({draft.gpx_coordinates?.length ?? 0} {t("createRide.review.gpxPoints")})
+        </Text>
+      )}
+
       {/* Meeting Location Map */}
       {(() => {
         const lat = draft.start_lat;

@@ -13,6 +13,7 @@ import RideDetailsScreen from "../screens/RideDetailsScreen";
 import MyRidesScreen from "../screens/MyRidesScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import FollowingScreen from "../screens/FollowingScreen";
+import RoutePreviewScreen from "../screens/RoutePreviewScreen";
 
 export type AppTabsParamList = {
   FeedStack: undefined;
@@ -25,12 +26,14 @@ export type FeedStackParamList = {
   FeedList: undefined;
   RideDetails: { rideId: string };
   UserProfile: { userId: string };
+  RoutePreview: { coordinates: [number, number][]; gpxUrl?: string };
 };
 
 export type MyRidesStackParamList = {
   MyRidesList: undefined;
   RideDetails: { rideId: string };
   UserProfile: { userId: string };
+  RoutePreview: { coordinates: [number, number][]; gpxUrl?: string };
 };
 
 export type ProfileStackParamList = {
@@ -79,6 +82,11 @@ function FeedStack() {
         component={UserProfileScreen}
         options={{ title: t("userProfile.title") }}
       />
+      <FeedStackNav.Screen
+        name="RoutePreview"
+        component={RoutePreviewScreen}
+        options={{ title: t("rideDetails.routePreview") }}
+      />
     </FeedStackNav.Navigator>
   );
 }
@@ -111,6 +119,11 @@ function MyRidesStack() {
         name="UserProfile"
         component={UserProfileScreen}
         options={{ title: t("userProfile.title") }}
+      />
+      <MyRidesStackNav.Screen
+        name="RoutePreview"
+        component={RoutePreviewScreen}
+        options={{ title: t("rideDetails.routePreview") }}
       />
     </MyRidesStackNav.Navigator>
   );

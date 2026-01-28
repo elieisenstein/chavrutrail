@@ -77,6 +77,7 @@ export default {
     "expo-notifications", // 👈 ADD THIS: This initializes Firebase on Android start
     "@react-native-community/datetimepicker",
     "expo-localization",
+    "expo-document-picker",
     [
       "@rnmapbox/maps",
       {

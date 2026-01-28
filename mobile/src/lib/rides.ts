@@ -41,6 +41,9 @@ export type Ride = {
   notes: string | null;
   whatsapp_link: string | null;
 
+  gpx_url: string | null;
+  gpx_coordinates: [number, number][] | null; // [[lng, lat], ...] for map rendering
+
   created_at: string;
   updated_at: string;
 

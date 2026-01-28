@@ -184,6 +184,10 @@
     "whatsappAdd": "הוסף קישור ווטסאפ",
     "whatsappEdit": "ערוך",
     "whatsappSave": "שמור",
+    "previewRoute": "תצוגת מסלול",
+    "downloadGpx": "הורד קובץ GPX",
+    "routePreview": "תצוגת מסלול",
+    "gpxAttached": "מסלול GPX מצורף",
     "navigation": {
       "title": "ניווט לנקודת מפגש",
       "message": "קבל הוראות הגעה אל:",
@@ -250,13 +254,20 @@
       "routeLabel": "תיאור מסלול (אופציונלי)",
       "routePlaceholder": "תיאור קצר של המסלול...",
       "routeHelp": "לדוגמה: סיבוב הר איתן, שטוח למדי, נוף ירוק",
-      "locationInstruction": "סמן את נקודת המפגש על המפה כדי שאחרים יוכלו למצוא את הרכיבה שלך לפי מיקום",
-      "useCurrentLocation": "🎯 השתמש במיקום הנוכחי",
+      "locationInstruction": "סמן על המפה כדי שרוכבים ימצאו את הרכיבה",
+      "useCurrentLocation": "🎯 מיקום נוכחי",
       "chooseOnMap": "🗺 בחר על המפה",
       "summaryMeeting": "נקודת מפגש:",
       "summaryRoute": "מסלול:",
       "locationDenied": "הגישה למיקום נדחתה",
-      "locationFailed": "שליפת המיקום נכשלה. נסה שוב"
+      "locationFailed": "שליפת המיקום נכשלה. נסה שוב",
+      "gpxAttach": "צרף מסלול GPX (אופציונלי)",
+      "gpxAttached": "GPX מצורף: {{name}} ({{points}} נקודות)",
+      "gpxRemove": "הסר GPX",
+      "gpxTooLarge": "קובץ GPX גדול מדי. גודל מקסימלי 2 MB.",
+      "gpxInvalid": "הקובץ לא נראה כקובץ GPX תקין.",
+      "gpxNoPoints": "לא נמצאו נקודות מסלול בקובץ GPX.",
+      "gpxUploadFailed": "העלאת קובץ GPX נכשלה. נסה שוב."
     },
     "details": {
       "rideType": "סוג רכיבה",
@@ -295,6 +306,8 @@
       "groupModeExpress": "מהיר (הצטרפות אוטומטית)",
       "groupModeApproval": "דורש אישור",
       "maxParticipants": "מספר משתתפים מקסימלי:",
+      "gpxFile": "מסלול GPX:",
+      "gpxPoints": "נקודות",
       "whatsappLink": "קישור לקבוצת ווטסאפ (אופציונלי)",
       "whatsappPlaceholder": "https://chat.whatsapp.com/...",
       "publishPrompt": "לחץ על \"פרסם\" כדי ליצור את הרכיבה!"

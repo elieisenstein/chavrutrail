@@ -184,6 +184,10 @@
     "whatsappAdd": "Add WhatsApp link",
     "whatsappEdit": "Edit",
     "whatsappSave": "Save",
+    "previewRoute": "Preview Route",
+    "downloadGpx": "Download GPX File",
+    "routePreview": "Route Preview",
+    "gpxAttached": "GPX route attached",
     "navigation": {
       "title": "Navigate to Meeting Point",
       "message": "Get directions to:",
@@ -250,13 +254,20 @@
       "routeLabel": "Route Description (Optional)",
       "routePlaceholder": "Brief description of the route...",
       "routeHelp": "Example: Loop around Har Eitan, mostly flat, green views",
-      "locationInstruction": "Please drop a pin at the meeting point on the map to enable location-based search",
-      "useCurrentLocation": "🎯 Use Current Location",
+      "locationInstruction": "Drop a pin on the map so riders can find this ride",
+      "useCurrentLocation": "🎯 Current Location",
       "chooseOnMap": "🗺 Choose on Map",
       "summaryMeeting": "Meeting Point:",
       "summaryRoute": "Route:",
       "locationDenied": "Permission to access location was denied",
-      "locationFailed": "Failed to get location. Please try again."
+      "locationFailed": "Failed to get location. Please try again.",
+      "gpxAttach": "Attach GPX Route (Optional)",
+      "gpxAttached": "GPX attached: {{name}} ({{points}} points)",
+      "gpxRemove": "Remove GPX",
+      "gpxTooLarge": "GPX file is too large. Maximum size is 2 MB.",
+      "gpxInvalid": "This file doesn't appear to be a valid GPX file.",
+      "gpxNoPoints": "No track points found in this GPX file.",
+      "gpxUploadFailed": "Failed to upload GPX file. Please try again."
     },
     "details": {
       "rideType": "Ride Type",
@@ -295,6 +306,8 @@
       "groupModeExpress": "Express (auto-join)",
       "groupModeApproval": "Approval required",
       "maxParticipants": "Max participants:",
+      "gpxFile": "GPX Route:",
+      "gpxPoints": "points",
       "whatsappLink": "WhatsApp group link (optional)",
       "whatsappPlaceholder": "https://chat.whatsapp.com/...",
       "publishPrompt": "Tap \"Publish\" to create your ride!"

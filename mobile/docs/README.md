@@ -416,6 +416,17 @@ ADD COLUMN rides_joined_count INTEGER DEFAULT 0;
 - [x] Show app version number (from app.config.js) at the bottom of the Settings screen
 - [x] Files: SettingsScreen.tsx
 
+#### GPX Route Support ✅ DONE
+- [x] Optional GPX file upload on "Where" step (with file validation: size < 2MB, valid GPX content)
+- [x] Parse GPX coordinates on upload (regex-based, no XML library) and store in DB alongside raw file URL
+- [x] Full-screen route preview map (Israel Hiking Map + GPX polyline overlay, magenta-purple #7B2CBF)
+- [x] "Preview Route" button in ride details (visible to all users if GPX exists)
+- [x] GPX file download for owner + joined participants only
+- [x] Camera auto-fits to route bounding box
+- [x] Supabase Storage bucket `gpx-files` for raw GPX files
+- [x] DB: `gpx_url TEXT`, `gpx_coordinates JSONB` columns on rides table
+- [x] Files: gpx.ts (NEW), RoutePreviewScreen.tsx (NEW), StepWhere.tsx, StepReview.tsx, CreateRideWizard.tsx, RideDetailsScreen.tsx, AppNavigator.tsx, createRideTypes.ts, rides.ts, en.json, he.json, app.config.js
+
 #### Ride Editing (Owner Only)
 - [ ] Edit button on RideDetails (owner only)
 - [ ] Opens CreateRideWizard with existing data
@@ -492,6 +503,23 @@ If yes, implement:
 - [ ] iOS app (if Android version proves successful)
 - [ ] Web dashboard for ride management
 - [ ] Admin/moderation tools
+
+### 🗺️ GPX Route Support ✅ DONE
+- [x] Use Supabase Storage for GPX files (bucket: `gpx-files`)
+- [x] Save public URL in rides table (`gpx_url` column) + parsed coordinates (`gpx_coordinates`)
+- [x] Allow organizer to upload GPX when creating a ride (Where step)
+- [x] Render GPX as GeoJSON LineLayer on Mapbox (Israel Hiking Map) in RoutePreviewScreen
+- [x] Show route preview button in ride details, download for joined participants
+
+### 🤖 AI Features (After GPX)
+- [ ] Automatic difficulty grading from GPX (elevation gain vs. distance analysis)
+- [ ] Smart ride description generation (Hebrew) from GPX data
+- [ ] Compatibility check: warn users if ride difficulty doesn't match their profile
+
+### 💳 Payment (Not Yet)
+- **When:** After 100–200 active users or clear "Power Organizers" using the app weekly
+- **Why wait:** Liquidity (enough rides on the map) is more important than revenue at this stage
+- **How:** Use RevenueCat (integrates with React Native + Supabase, handles Pro logic without custom billing backend)
 
 ### ❌ Postponed (Not Now)
 
@@ -621,6 +649,25 @@ https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bn
 ---
 
 ## Recent Session History
+
+### Session: January 28, 2026 - GPX Fixes & Where Step UI Polish
+
+**Completed:**
+* **StepWhere UI Refinements:**
+  * "Current Location" and "Choose on Map" buttons now side-by-side in one row (`flexDirection: "row"`)
+  * Shortened "Use Current Location" → "Current Location" (EN) / "מיקום נוכחי" (HE)
+  * Shortened location instruction to fit one line: "Drop a pin on the map so riders can find this ride"
+  * Reduced margin above "Meeting Point" section title (marginTop 16 → 8)
+* **GPX Upload Fix:** Replaced `response.blob()` with `response.text()` + `new TextEncoder().encode()` for React Native compatibility (blob() is unreliable with local file URIs in RN)
+* **GPX Filename Fix:** Switched to opaque storage keys (`rides/{timestamp}_{randomId}.gpx`) instead of original filename — avoids Supabase Storage errors with Hebrew/Unicode characters and spaces
+* **GPX Route Line Color:** Changed from orange (#ff6b35) to magenta-purple (#7B2CBF) for better visibility on map
+
+**Files Modified:**
+* `src/app/screens/createRide/steps/StepWhere.tsx` — Row layout for location buttons, reduced spacing
+* `src/app/screens/createRide/CreateRideWizard.tsx` — Fixed GPX upload (text+encode), opaque storage key
+* `src/app/screens/RoutePreviewScreen.tsx` — Line color #7B2CBF
+* `src/i18n/en.json` — Shortened button label + instruction text
+* `src/i18n/he.json` — Shortened button label + instruction text
 
 ### Session: January 21, 2026 - My Rides 2-Tab Simplification + Bug Fix
 
@@ -843,7 +890,7 @@ https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bn
 
 ---
 
-**Last Updated:** January 22, 2026
+**Last Updated:** January 28, 2026
 **Stage:** Production-ready MVP with self-service sign-up
 **Next Milestone:** Beta testing with self-registering users
 
@@ -855,6 +902,10 @@ next TODO list:
 
 ~~Phone number collection for WhatsApp~~ (Done - Jan 23, 2026)
 
-WhatsApp group link
+~~WhatsApp group link~~ (Done - Jan 27, 2026)
+
+~~Version display in Settings~~ (Done - Jan 27, 2026)
+
+~~GPX route support~~ (Done - Jan 27, 2026)
 
 Ride happened confirmation

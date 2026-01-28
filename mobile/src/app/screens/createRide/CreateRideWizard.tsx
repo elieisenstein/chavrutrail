@@ -35,6 +35,9 @@ function getInitialDraft(): CreateRideDraft {
     start_at: defaultDate.toISOString(),
     duration_hours: 2,
     whatsapp_link: null,
+    gpx_file_uri: null,
+    gpx_file_name: null,
+    gpx_coordinates: null,
   };
 }
 
@@ -83,6 +86,37 @@ export default function CreateRideWizard() {
 
     setSubmitting(true);
     try {
+      // Upload GPX file to Supabase Storage if attached
+      let gpxUrl: string | null = null;
+      const gpxCoordinates = draft.gpx_coordinates ?? null;
+
+      if (draft.gpx_file_uri) {
+        const id = Math.random().toString(36).substring(2, 12);
+        const fileName = `rides/${Date.now()}_${id}.gpx`;
+        const response = await fetch(draft.gpx_file_uri);
+        const textContent = await response.text();
+        const bytes = new TextEncoder().encode(textContent);
+
+        const { error: uploadError } = await supabase.storage
+          .from("gpx-files")
+          .upload(fileName, bytes, {
+            contentType: "application/gpx+xml",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("GPX upload error:", uploadError);
+          Alert.alert(t("common.error"), t("createRide.where.gpxUploadFailed"));
+          setSubmitting(false);
+          return;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("gpx-files")
+          .getPublicUrl(fileName);
+        gpxUrl = urlData.publicUrl;
+      }
+
       const ride = await createRide({
         owner_id: userId,
         status: "published",
@@ -101,6 +135,8 @@ export default function CreateRideWizard() {
         gender_preference: draft.gender_preference ?? "all",
         notes: draft.notes ?? null,
         whatsapp_link: draft.whatsapp_link ?? null,
+        gpx_url: gpxUrl,
+        gpx_coordinates: gpxCoordinates,
       });
 
       // Auto-add ride type to user's profile if not already there

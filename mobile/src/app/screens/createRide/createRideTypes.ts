@@ -23,6 +23,10 @@ export type CreateRideDraft = {
 
   notes?: string | null; // Route description (optional)
   whatsapp_link?: string | null; // Optional WhatsApp group link
+
+  gpx_file_uri?: string | null; // Local file URI (transient, not sent to DB)
+  gpx_file_name?: string | null; // Original filename for display
+  gpx_coordinates?: [number, number][] | null; // Parsed coordinates from GPX
 };
 
 export function draftIsStepValid(step: number, d: CreateRideDraft): boolean {

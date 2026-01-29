@@ -316,6 +316,23 @@ Fast, low-friction ride discovery and joining for Israeli cyclists, optimized fo
 * **Android:** Custom notification channels with high priority
 * **Verified:** All notification flows tested end-to-end
 
+### ✅ Route Preview with Start/End Markers
+
+* **Visual Route Markers:**
+  * Orange circle for start point (symbolizes energy)
+  * Red circle for end point (indicates finish)
+  * Markers visible on both GPX route preview and ride detail maps
+* **Smart Overlap Handling:**
+  * Detects when start/end points are within 30 pixels on screen
+  * For circular routes (start = end), shows split marker with both colors
+  * Uses pixel-based offset (circleTranslate) to show orange left, red right
+  * Works consistently across all zoom levels
+* **Implementation:**
+  * Screen pixel distance calculation using MapView projection API
+  * Conditional rendering based on overlap detection
+  * White stroke border for visibility against map tiles
+  * Calculated on map load for optimal performance
+
 ### ✅ Internationalization & Theming
 
 * Hebrew and English fully supported
@@ -650,6 +667,48 @@ https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bn
 
 ## Recent Session History
 
+### Session: January 29, 2026 - Route Start/End Point Markers
+
+**Completed:**
+* **Visual Route Markers Implementation:**
+  * Added orange circle for start point (#FF8C00 - symbolizes energy)
+  * Added red circle for end point (#DC143C - crimson red, indicates finish)
+  * 8px radius circles for normal markers, 10px for overlapping markers
+  * 2px white stroke border for visibility against Israel Hiking tiles
+* **Smart Overlap Detection:**
+  * Detects when start/end points are within 30 pixels on screen (circular routes)
+  * Uses screen pixel distance calculation via `mapRef.getPointInView()`
+  * Calculates Euclidean distance between start/end markers
+  * Threshold: MIN_PIXEL_DIST = 30 pixels (accounts for marker size + stroke + visual gap)
+* **Split Marker for Circular Routes:**
+  * When overlap detected, shows two offset circles creating side-by-side appearance
+  * Start circle: offset left by 4 pixels using `circleTranslate: [-4, 0]`
+  * End circle: offset right by 4 pixels using `circleTranslate: [4, 0]`
+  * Creates clear visual distinction: orange on left, red on right
+* **Technical Implementation:**
+  * Added `mapRef` and `markersOverlap` state to RoutePreviewScreen
+  * Created `checkMarkersOverlap()` function for pixel distance calculation
+  * Conditional rendering: separate markers vs. offset markers based on overlap
+  * Works consistently across all zoom levels (pixel-based offset)
+  * Graceful fallback: shows separate markers if projection API fails
+
+**Files Modified:**
+* `src/app/screens/RoutePreviewScreen.tsx` - Added markers, overlap detection, conditional rendering
+* `mobile/docs/README.md` - Documented new feature
+
+**Technical Decisions:**
+* **Screen pixels vs geographic distance:** Using screen pixels ensures correct behavior at all zoom levels
+* **Pixel-based offset approach:** CircleLayer with `circleTranslate` property (simpler than FillLayer polygons)
+* **Static detection:** Checks overlap once on map load (not dynamic on zoom)
+* **No external dependencies:** Uses native Mapbox projection API
+* **Rejected approaches:** FillLayer semi-circle polygons (rendering issues), overlapping semi-transparent circles (not visible)
+
+**Problem Solved:**
+* Users can now quickly identify route direction and type (loop vs. one-way)
+* Circular routes clearly indicated with split-color marker
+* Markers remain visible and consistent across map zoom levels
+* Works with all GPX routes regardless of length or complexity
+
 ### Session: January 28, 2026 - GPX Fixes & Where Step UI Polish
 
 **Completed:**
@@ -890,7 +949,7 @@ https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bn
 
 ---
 
-**Last Updated:** January 28, 2026
+**Last Updated:** January 29, 2026
 **Stage:** Production-ready MVP with self-service sign-up
 **Next Milestone:** Beta testing with self-registering users
 

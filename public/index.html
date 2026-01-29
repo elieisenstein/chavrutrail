@@ -200,7 +200,8 @@
   <script>
     (function () {
       //const VERSION_URL = 'https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bnsj1ed2zv4dd5qpkhy&dl=1';
-      const VERSION_URL = '/version.json';
+      //const VERSION_URL = '/version.json';
+      const VERSION_URL = '/version.json?t=' + Date.now(); // Prevent caching
       const FALLBACK_APK = 'https://www.dropbox.com/scl/fi/b7hw1nm8ru27i5manfhad/bishvil_1.0.5.apk?rlkey=gow6lr1czepfhs9s5w9c9iej0&dl=1';
 
       // Fetch APK URL from version.json
@@ -219,7 +220,7 @@
           const downloadBtn = document.getElementById('downloadApk');
           if (downloadBtn) downloadBtn.href = FALLBACK_APK;
         });
-        
+
       // Extract rideId from /ride/<id>
       const parts = window.location.pathname.split("/").filter(Boolean);
       const rideId = (parts[0] === "ride" && parts[1]) ? parts[1] : null;

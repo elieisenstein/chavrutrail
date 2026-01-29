@@ -1,11 +1,14 @@
 import { Alert, Linking } from 'react-native';
 import Constants from 'expo-constants';
 
-const VERSION_URL = 'https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bnsj1ed2zv4dd5qpkhy&dl=1';
+const VERSION_URL = 'https://bishvil-app.vercel.app/version.json';
 
 export async function checkForUpdate(): Promise<void> {
   try {
-    const response = await fetch(VERSION_URL);
+    // Add cache busting to ensure we always get the latest version
+    const response = await fetch(`${VERSION_URL}?t=${Date.now()}`, {
+      cache: 'no-store'
+    });
     const data = await response.json();
 
     const currentVersion = Constants.expoConfig?.version || '0.0.0';

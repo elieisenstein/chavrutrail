@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx expo install:*)"
+      "Bash(npx expo install:*)",
+      "Bash(.gradlew.bat:*)",
+      "Bash(npx react-native run-android:*)",
+      "Bash(npx expo run:android)"
     ]
   }
 }

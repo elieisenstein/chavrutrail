@@ -14,6 +14,7 @@ import AuthScreen from "./src/app/auth/AuthScreen";
 import AppNavigator from "./src/app/navigation/AppNavigator";
 import { linking } from "./src/app/navigation/linking";
 import { useNotifications } from './src/hooks/useNotifications';
+import { NavigationListener } from './src/components/NavigationListener';
 import * as SplashScreen from 'expo-splash-screen';
 import { Linking } from 'react-native';
 import { checkForUpdate } from './src/lib/versionCheck';
@@ -155,6 +156,7 @@ function InnerApp() {
     <PaperProvider theme={resolvedTheme}>
       <NavigationProvider>
         <NavigationContainer linking={linking}>
+          <NavigationListener />
           {session ? <AppNavigator /> : <AuthScreen />}
         </NavigationContainer>
       </NavigationProvider>

@@ -36,11 +36,11 @@ export type NavCommitEvent = {
 };
 
 export const DEFAULT_NAVIGATION_CONFIG: NavigationConfig = {
-  minDistanceMeters: 15,
-  minHeadingDegrees: 10,
-  minTimeMs: 1000,
-  motionVarianceThreshold: 0.15,
-  motionWindowMs: 800,
+  minDistanceMeters: 3,     // Very responsive - update every 3 meters
+  minHeadingDegrees: 5,     // Update on small heading changes (5 degrees)
+  minTimeMs: 500,           // Update every 500ms
+  motionVarianceThreshold: 0.05,  // Very sensitive motion detection
+  motionWindowMs: 400,      // Faster motion detection window
 };
 
 class NavigationService {

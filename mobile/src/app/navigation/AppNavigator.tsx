@@ -201,7 +201,10 @@ function NavigationStack() {
       <NavigationStackNav.Screen
         name="NavigationMain"
         component={NavigationScreen}
-        options={{ title: t("tabs.navigation") }}
+        options={{
+          title: t("tabs.navigation"),
+          headerShown: false  // Full-screen map, no header
+        }}
       />
     </NavigationStackNav.Navigator>
   );

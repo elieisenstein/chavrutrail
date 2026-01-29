@@ -2,8 +2,8 @@
 // Main navigation orchestration screen
 
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { Button, Text, useTheme, ActivityIndicator } from 'react-native-paper';
+import { View, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { Button, Text, useTheme, ActivityIndicator, IconButton } from 'react-native-paper';
 import { RouteProp, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useNavigation as useNavigationContext } from '../state/NavigationContext';
@@ -34,11 +34,12 @@ export default function NavigationScreen() {
 
   const routeCoords = route.params?.route;
   const routeName = route.params?.routeName;
+  const isFreeNavigation = !routeCoords; // Free navigation mode when no route provided
 
-  // Stop navigation when screen unmounts
+  // Stop navigation when screen unmounts (only for route navigation)
   useEffect(() => {
     return () => {
-      if (activeNavigation.state === 'active' || activeNavigation.state === 'paused') {
+      if (!isFreeNavigation && (activeNavigation.state === 'active' || activeNavigation.state === 'paused')) {
         // Only prompt if there's meaningful data
         if (activeNavigation.breadcrumbs.length > 5) {
           Alert.alert(
@@ -57,14 +58,14 @@ export default function NavigationScreen() {
         }
       }
     };
-  }, []);
+  }, [isFreeNavigation]);
 
-  // Auto-start navigation if route is provided and not already active
+  // Auto-start navigation
   useEffect(() => {
-    if (routeCoords && activeNavigation.state === 'idle') {
+    if (activeNavigation.state === 'idle') {
       handleStartNavigation();
     }
-  }, [routeCoords]);
+  }, []);
 
   const handleStartNavigation = async () => {
     setIsStarting(true);
@@ -115,32 +116,17 @@ export default function NavigationScreen() {
     }
   };
 
-  const elapsedTime = activeNavigation.startTime
+  const elapsedTime = activeNavigation.startTime && !isFreeNavigation
     ? Date.now() - activeNavigation.startTime
     : 0;
 
-  // Idle state - show start button
+  // Idle state - show loading (auto-starting)
   if (activeNavigation.state === 'idle') {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.idleContainer}>
-          <Text style={styles.idleTitle}>{t('navigation.noRoute')}</Text>
-          {routeName && (
-            <Text style={styles.routeName}>{routeName}</Text>
-          )}
-          {isStarting ? (
-            <ActivityIndicator size="large" style={styles.loader} />
-          ) : (
-            <Button
-              mode="contained"
-              icon="navigation"
-              onPress={handleStartNavigation}
-              style={styles.startButton}
-              contentStyle={styles.startButtonContent}
-            >
-              {t('navigation.startNavigation')}
-            </Button>
-          )}
+          <ActivityIndicator size="large" style={styles.loader} />
+          <Text style={styles.idleTitle}>Starting navigation...</Text>
         </View>
       </View>
     );
@@ -155,63 +141,34 @@ export default function NavigationScreen() {
         route={activeNavigation.route}
         mode={activeNavigation.mode}
         onToggleMode={toggleMode}
+        totalDistanceMeters={isFreeNavigation ? undefined : activeNavigation.totalDistanceMeters}
+        elapsedTimeMs={isFreeNavigation ? undefined : elapsedTime}
       />
 
-      {/* Stats Panel */}
-      {activeNavigation.currentPosition && (
-        <View style={[styles.statsPanel, { backgroundColor: 'rgba(18, 18, 18, 0.9)' }]}>
-          <View style={styles.statRow}>
-            <View style={styles.statBox}>
-              <Text style={styles.statLabel}>{t('navigation.distance')}</Text>
-              <Text style={styles.statValue}>
-                {formatDistance(activeNavigation.totalDistanceMeters)}
-              </Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statLabel}>{t('navigation.time')}</Text>
-              <Text style={styles.statValue}>
-                {formatDuration(elapsedTime)}
-              </Text>
-            </View>
-          </View>
-        </View>
-      )}
-
-      {/* Control Buttons */}
-      <View style={[styles.controlPanel, { backgroundColor: theme.colors.surface }]}>
-        {activeNavigation.state === 'active' ? (
-          <Button
-            mode="outlined"
-            icon="pause"
-            onPress={pauseNavigation}
-            style={styles.controlButton}
+      {/* Floating Control Buttons (icon-only) - Only show for route navigation */}
+      {!isFreeNavigation && (
+        <View style={styles.floatingControls}>
+          {activeNavigation.state === 'active' ? (
+            <TouchableOpacity
+              style={[styles.iconButton, { backgroundColor: theme.colors.surface }]}
+              onPress={pauseNavigation}
+            >
+              <IconButton icon="pause" size={24} iconColor={theme.colors.onSurface} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.iconButton, { backgroundColor: theme.colors.primary }]}
+              onPress={resumeNavigation}
+            >
+              <IconButton icon="play" size={24} iconColor="#ffffff" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[styles.iconButton, { backgroundColor: theme.colors.error }]}
+            onPress={handleStopNavigation}
           >
-            {t('navigation.pauseNavigation')}
-          </Button>
-        ) : (
-          <Button
-            mode="contained"
-            icon="play"
-            onPress={resumeNavigation}
-            style={styles.controlButton}
-          >
-            {t('navigation.resumeNavigation')}
-          </Button>
-        )}
-        <Button
-          mode="contained"
-          icon="stop"
-          onPress={handleStopNavigation}
-          style={[styles.controlButton, { backgroundColor: theme.colors.error }]}
-        >
-          {t('navigation.stopNavigation')}
-        </Button>
-      </View>
-
-      {/* Route Name Header */}
-      {activeNavigation.routeName && (
-        <View style={[styles.routeNameHeader, { backgroundColor: 'rgba(0, 0, 0, 0.7)' }]}>
-          <Text style={styles.routeNameText}>{activeNavigation.routeName}</Text>
+            <IconButton icon="stop" size={24} iconColor="#ffffff" />
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -250,66 +207,24 @@ const styles = StyleSheet.create({
   startButtonContent: {
     height: 56,
   },
-  statsPanel: {
+  floatingControls: {
     position: 'absolute',
-    top: 80,
-    left: 16,
+    bottom: 24,
     right: 16,
-    borderRadius: 12,
-    padding: 16,
-    elevation: 4,
+    flexDirection: 'column',
+    gap: 12,
+    alignItems: 'center',
+  },
+  iconButton: {
+    borderRadius: 28,
+    elevation: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-  },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statBox: {
-    flex: 1,
+    width: 56,
+    height: 56,
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  statLabel: {
-    color: '#aaaaaa',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  statValue: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  controlPanel: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  controlButton: {
-    flex: 1,
-  },
-  routeNameHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    alignItems: 'center',
-  },
-  routeNameText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });

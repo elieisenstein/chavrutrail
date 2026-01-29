@@ -32,6 +32,11 @@ export const linking: LinkingOptions<any> = {
           CreateRideWizard: 'create',
         },
       },
+      NavigationStack: {
+        screens: {
+          NavigationMain: 'navigation',
+        },
+      },
     },
   },
 };

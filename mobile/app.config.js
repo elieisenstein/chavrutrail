@@ -4,7 +4,7 @@ export default {
   name: "Bishvil",
   slug: "bishvil",
   owner: "elieisenstein",
-  version: "1.0.5",
+  version: "1.0.6",
   orientation: "portrait",
   icon: "./assets/logo.png",
   userInterfaceStyle: "dark",

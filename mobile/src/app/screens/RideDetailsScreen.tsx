@@ -564,6 +564,26 @@ export default function RideDetailsScreen() {
                   {t("rideDetails.downloadGpx")}
                 </Button>
               )}
+
+              {/* Navigate Route button - only for owner/joined users with GPX */}
+              {(isOwner || myStatus === "joined") && ride.gpx_coordinates && !rideHasEnded && (
+                <Button
+                  mode="contained"
+                  icon="navigation"
+                  onPress={() =>
+                    navigation.navigate("NavigationStack", {
+                      screen: "NavigationMain",
+                      params: {
+                        route: ride.gpx_coordinates!,
+                        routeName: ride.start_name ?? `${ride.ride_type} · ${ride.skill_level}`,
+                      },
+                    })
+                  }
+                  style={{ marginTop: 8 }}
+                >
+                  {t("rideDetails.navigateRoute")}
+                </Button>
+              )}
             </>
           )}
 

@@ -8,6 +8,7 @@ import { Session } from '@supabase/supabase-js';
 
 import { initI18n } from "./src/i18n";
 import { AppSettingsProvider, useAppSettings } from "./src/app/state/AppSettingsContext";
+import { NavigationProvider } from "./src/app/state/NavigationContext";
 import { supabase } from "./src/lib/supabase";
 import AuthScreen from "./src/app/auth/AuthScreen";
 import AppNavigator from "./src/app/navigation/AppNavigator";
@@ -152,9 +153,11 @@ function InnerApp() {
 
   return (
     <PaperProvider theme={resolvedTheme}>
-      <NavigationContainer linking={linking}>
-        {session ? <AppNavigator /> : <AuthScreen />}
-      </NavigationContainer>
+      <NavigationProvider>
+        <NavigationContainer linking={linking}>
+          {session ? <AppNavigator /> : <AuthScreen />}
+        </NavigationContainer>
+      </NavigationProvider>
     </PaperProvider>
   );
 }

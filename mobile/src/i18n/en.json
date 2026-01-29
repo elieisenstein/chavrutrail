@@ -3,6 +3,7 @@
     "feed": "Feed",
     "myRides": "My Rides",
     "create": "New",
+    "navigation": "Navigate",
     "profile": "Profile"
   },
   "screens": {
@@ -188,12 +189,28 @@
     "downloadGpx": "Download GPX File",
     "routePreview": "Route Preview",
     "gpxAttached": "GPX route attached",
+    "navigateRoute": "Navigate Route",
     "navigation": {
       "title": "Navigate to Meeting Point",
       "message": "Get directions to:",
       "googleMaps": "Google Maps",
       "waze": "Waze"
     }
+  },
+  "navigation": {
+    "startNavigation": "Start Navigation",
+    "stopNavigation": "Stop Navigation",
+    "pauseNavigation": "Pause",
+    "resumeNavigation": "Resume",
+    "northUp": "North Up",
+    "headingUp": "Heading Up",
+    "speed": "Speed",
+    "accuracy": "Accuracy",
+    "distance": "Distance",
+    "time": "Time",
+    "noRoute": "No route loaded. Start navigation to track your position.",
+    "permissionDenied": "Location permission is required for navigation.",
+    "requestPermission": "Grant Permission"
   },
   "profile": {
     "title": "Profile",

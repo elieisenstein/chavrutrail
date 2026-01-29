@@ -3,6 +3,7 @@
     "feed": "רכיבות",
     "myRides": "הרכיבות שלי",
     "create": "חדש",
+    "navigation": "ניווט",
     "profile": "פרופיל"
   },
   "screens": {
@@ -188,12 +189,28 @@
     "downloadGpx": "הורד קובץ GPX",
     "routePreview": "תצוגת מסלול",
     "gpxAttached": "מסלול GPX מצורף",
+    "navigateRoute": "נווט מסלול",
     "navigation": {
       "title": "ניווט לנקודת מפגש",
       "message": "קבל הוראות הגעה אל:",
       "googleMaps": "Google Maps",
       "waze": "Waze"
     }
+  },
+  "navigation": {
+    "startNavigation": "התחל ניווט",
+    "stopNavigation": "עצור ניווט",
+    "pauseNavigation": "השהה",
+    "resumeNavigation": "המשך",
+    "northUp": "צפון למעלה",
+    "headingUp": "כיוון נסיעה למעלה",
+    "speed": "מהירות",
+    "accuracy": "דיוק",
+    "distance": "מרחק",
+    "time": "זמן",
+    "noRoute": "לא נטען מסלול. התחל ניווט כדי לעקוב אחר המיקום שלך.",
+    "permissionDenied": "הרשאת מיקום נדרשת לניווט.",
+    "requestPermission": "אפשר הרשאה"
   },
   "profile": {
     "title": "פרופיל",

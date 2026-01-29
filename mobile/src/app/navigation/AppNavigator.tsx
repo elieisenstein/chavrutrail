@@ -14,11 +14,13 @@ import MyRidesScreen from "../screens/MyRidesScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import FollowingScreen from "../screens/FollowingScreen";
 import RoutePreviewScreen from "../screens/RoutePreviewScreen";
+import NavigationScreen from "../screens/NavigationScreen";
 
 export type AppTabsParamList = {
   FeedStack: undefined;
   MyRidesStack: undefined;
   CreateStack: undefined;
+  NavigationStack: undefined;
   ProfileStack: undefined;
 };
 
@@ -46,11 +48,20 @@ export type CreateRideStackParamList = {
   CreateRideWizard: undefined;
 };
 
+export type NavigationStackParamList = {
+  NavigationMain: {
+    route?: [number, number][];
+    routeName?: string;
+    gpxUrl?: string;
+  };
+};
+
 const Tab = createBottomTabNavigator<AppTabsParamList>();
 const FeedStackNav = createNativeStackNavigator<FeedStackParamList>();
 const MyRidesStackNav = createNativeStackNavigator<MyRidesStackParamList>();
 const ProfileStackNav = createNativeStackNavigator<ProfileStackParamList>();
 const CreateStackNav = createNativeStackNavigator<CreateRideStackParamList>();
+const NavigationStackNav = createNativeStackNavigator<NavigationStackParamList>();
 
 function FeedStack() {
   const { t } = useTranslation();
@@ -173,6 +184,29 @@ function CreateStack() {
   );
 }
 
+function NavigationStack() {
+  const { t } = useTranslation();
+  return (
+    <NavigationStackNav.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#121212',
+        },
+        headerTintColor: '#ffffff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
+      <NavigationStackNav.Screen
+        name="NavigationMain"
+        component={NavigationScreen}
+        options={{ title: t("tabs.navigation") }}
+      />
+    </NavigationStackNav.Navigator>
+  );
+}
+
 
 export default function AppNavigator() {
   const { t } = useTranslation();
@@ -231,6 +265,17 @@ export default function AppNavigator() {
           tabBarLabel: t("tabs.create"),
           tabBarIcon: ({ color, size }) => (
             <Icon source="plus-circle" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Tab.Screen
+        name="NavigationStack"
+        component={NavigationStack}
+        options={{
+          tabBarLabel: t("tabs.navigation"),
+          tabBarIcon: ({ color, size }) => (
+            <Icon source="navigation" size={size} color={color} />
           ),
         }}
       />

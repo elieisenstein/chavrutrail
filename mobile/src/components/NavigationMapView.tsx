@@ -285,7 +285,7 @@ export default function NavigationMapView({
     }
   }, [currentPosition, mapCenter]);
 
- 
+
   // Don't render map until we have a valid center position
   const hasValidCenter = mapCenter !== null;
 
@@ -437,11 +437,31 @@ export default function NavigationMapView({
           )}
 
           {/* User Location with heading indicator */}
+          {/*}
           <MapboxGL.UserLocation
             visible={true}
-            showsUserHeadingIndicator={true}
+            showsUserHeadingIndicator={false}
             minDisplacement={1}
           />
+            */}
+          {/* Custom user heading arrow */}
+          {currentPosition && (
+            <MapboxGL.PointAnnotation
+              id="user-heading-marker"
+              coordinate={currentPosition.coordinate}
+            >
+              <View
+                style={[
+                  styles.userHeadingMarker,
+                  mode === 'north-up'
+                    ? { transform: [{ rotate: `${currentPosition.heading ?? 0}deg` }] }
+                    : { transform: [{ rotate: '0deg' }] },
+                ]}
+              >
+                <Icon source="navigation" size={28} color="#ff6b35" />
+              </View>
+            </MapboxGL.PointAnnotation>
+          )}
         </MapboxGL.MapView>
       ) : (
         <View style={styles.map} />
@@ -455,70 +475,81 @@ export default function NavigationMapView({
           style={{ backgroundColor: 'transparent' }}
         >
           <View style={mode === 'north-up' ? styles.northUpIcon : undefined}>
-            <Icon
-              source={mode === 'north-up' ? 'navigation' : 'ship-wheel'}
-              size={40}
-              color={mode === 'north-up' ? '#ff0000' : '#ff6b35'}  // Red navigation arrow for north-up, orange ship wheel for heading-up
-            />
-          </View>
-        </TouchableOpacity>
+          <Icon
+            source={mode === 'north-up' ? 'navigation-variant' : 'ship-wheel'}
+            size={40}
+            color={mode === 'north-up' ? '#ff0f00' : '#ff6b35'}  // Red navigation arrow for north-up, orange ship wheel for heading-up
+          />
       </View>
 
-      {/* Tiny Speed Pill (bottom-left) - Only show when moving */}
-      {currentPosition && speedKmh > 0 && (
-        <View style={styles.speedPill}>
-          <Text style={styles.speedPillText}>{speedKmh.toFixed(0)} km/h</Text>
-        </View>
-      )}
+    </TouchableOpacity>
+      </View >
 
-      {/* Route Metrics Pill (top-center) - Only show for route navigation */}
-      {route && metricsDisplay && (
-        <View style={styles.routeMetricsPill}>
-          <Text style={styles.routeMetricsText}>{metricsDisplay}</Text>
-        </View>
-      )}
+    {/* Tiny Speed Pill (bottom-left) - Only show when moving */ }
+  {
+    currentPosition && speedKmh > 0 && (
+      <View style={styles.speedPill}>
+        <Text style={styles.speedPillText}>{speedKmh.toFixed(0)} km/h</Text>
+      </View>
+    )
+  }
 
-      {/* Recenter Button - show when not following user */}
-      {!shouldFollow && currentPosition && (
-        <TouchableOpacity
-          style={styles.recenterButton}
-          onPress={handleRecenter}
-          activeOpacity={0.7}
-        >
-          <Icon source="crosshairs-gps" size={28} color="#2196F3" />
-        </TouchableOpacity>
-      )}
+  {/* Route Metrics Pill (top-center) - Only show for route navigation */ }
+  {
+    route && metricsDisplay && (
+      <View style={styles.routeMetricsPill}>
+        <Text style={styles.routeMetricsText}>{metricsDisplay}</Text>
+      </View>
+    )
+  }
 
-      {/* Route Action Button (bottom-right) - Load GPX or Clear Route */}
-      {(onLoadRoute || onClearRoute) && (
-        <TouchableOpacity
-          style={styles.routeActionButton}
-          onPress={route ? onClearRoute : handleLoadGpx}
-          disabled={isLoadingGpx}
-          activeOpacity={0.7}
-        >
-          {isLoadingGpx ? (
-            <ActivityIndicator size="small" color="#4CAF50" />
-          ) : (
-            <Icon
-              source={route ? 'close-circle' : 'folder-open'}
-              size={32}
-              color={route ? '#ff4444' : '#4CAF50'}
-            />
-          )}
-        </TouchableOpacity>
-      )}
+  {/* Recenter Button - show when not following user */ }
+  {
+    !shouldFollow && currentPosition && (
+      <TouchableOpacity
+        style={styles.recenterButton}
+        onPress={handleRecenter}
+        activeOpacity={0.7}
+      >
+        <Icon source="crosshairs-gps" size={28} color="#2196F3" />
+      </TouchableOpacity>
+    )
+  }
 
-      {/* No position indicator */}
-      {!currentPosition && (
-        <View style={styles.noPositionOverlay}>
-          <Icon source="map-marker-off" size={48} color="#888" />
-          <Text style={styles.noPositionText}>
-            Waiting for GPS signal...
-          </Text>
-        </View>
-      )}
-    </View>
+  {/* Route Action Button (bottom-right) - Load GPX or Clear Route */ }
+  {
+    (onLoadRoute || onClearRoute) && (
+      <TouchableOpacity
+        style={styles.routeActionButton}
+        onPress={route ? onClearRoute : handleLoadGpx}
+        disabled={isLoadingGpx}
+        activeOpacity={0.7}
+      >
+        {isLoadingGpx ? (
+          <ActivityIndicator size="small" color="#4CAF50" />
+        ) : (
+          <Icon
+            source={route ? 'close-circle' : 'folder-open'}
+            size={32}
+            color={route ? '#ff4444' : '#4CAF50'}
+          />
+        )}
+      </TouchableOpacity>
+    )
+  }
+
+  {/* No position indicator */ }
+  {
+    !currentPosition && (
+      <View style={styles.noPositionOverlay}>
+        <Icon source="map-marker-off" size={48} color="#888" />
+        <Text style={styles.noPositionText}>
+          Waiting for GPS signal...
+        </Text>
+      </View>
+    )
+  }
+    </View >
   );
 }
 
@@ -529,6 +560,13 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
+  northUpIcon: {
+    transform: [{ rotate: '-45deg' }],
+  },
+  userHeadingMarker: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   modeToggleButton: {
     position: 'absolute',
     top: 56,  // Top-right corner where Mapbox compass was
@@ -538,9 +576,7 @@ const styles = StyleSheet.create({
     elevation: 5,  // Must be higher than stats overlay (elevation: 4) to render on top
     zIndex: 5,     // For iOS
   },
-  northUpIcon: {
-    transform: [{ rotate: '-0deg' }],  // Rotate navigation icon to point straight up
-  },
+
   speedPill: {
     position: 'absolute',
     bottom: 24,

@@ -1,7 +1,7 @@
 // NavigationMapView.tsx
 // Specialized map component for navigation with North-Up and Heading-Up modes
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, Icon, useTheme } from 'react-native-paper';
 import MapboxGL from '@rnmapbox/maps';
@@ -35,11 +35,23 @@ export default function NavigationMapView({
 
   // IMPORTANT: Start as null, so we don't render a "default Israel view" first (like MapPickerModal)
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
-  const [mapZoom, setMapZoom] = useState<number | null>(null);
+  const [mapZoom, setMapZoom] = useState<number>(16);
+
+  const mapCenterRef = useRef<[number, number] | null>(null);
+  useEffect(() => {
+    mapCenterRef.current = mapCenter;
+  }, [mapCenter]);
 
   // Auto-recenter state
   const [isUserInteracting, setIsUserInteracting] = useState(false);
   const [recenterTimeout, setRecenterTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const [mapReady, setMapReady] = useState(false);
+
+  useEffect(() => {
+    return () => setMapReady(false);
+  }, []);
+
 
   // Get initial location BEFORE rendering map (like MapPickerModal)
   useEffect(() => {
@@ -54,19 +66,37 @@ export default function NavigationMapView({
           if (req.status !== 'granted') return;
         }
 
-        // Fast path first (prevents delays)
+        // Validation helpers
+        const isSaneCoord = (lng: number, lat: number) =>
+          Number.isFinite(lng) && Number.isFinite(lat) &&
+          Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+
+        const isLikelyIsrael = (lng: number, lat: number) =>
+          lat >= 29 && lat <= 34 && lng >= 34 && lng <= 36.5;
+
+        // Fast path first (prevents delays) - but validate!
         const last = await Location.getLastKnownPositionAsync();
         if (last?.coords && isMounted) {
-          setMapCenter([last.coords.longitude, last.coords.latitude]);
-          setMapZoom(12);
-          return;
+          const { longitude: lng, latitude: lat } = last.coords;
+          const ageMs = Date.now() - (last.timestamp ?? 0);
+
+          // Accept only if sane + not too old + roughly in Israel
+          if (isSaneCoord(lng, lat) && ageMs < 2 * 60 * 1000 && isLikelyIsrael(lng, lat)) {
+            if (!mapCenterRef.current) {
+              setMapCenter([lng, lat]);
+              setMapZoom(16);
+            }
+            return;
+          }
         }
 
-        // Fallback
+        // Fallback - slower but reliable
         const cur = await Location.getCurrentPositionAsync({});
         if (isMounted) {
-          setMapCenter([cur.coords.longitude, cur.coords.latitude]);
-          setMapZoom(12);
+          if (!mapCenterRef.current) {
+            setMapCenter([cur.coords.longitude, cur.coords.latitude]);
+            setMapZoom(16);
+          }
         }
       } catch {
         console.log('Could not get location for map center');
@@ -114,11 +144,12 @@ export default function NavigationMapView({
   const cameraPitch = mode === 'heading-up' && !isUserInteracting ? 45 : 0;
 
   // Convert speed to km/h, but filter out GPS drift
-  // Show 0 if: speed < 0.5 m/s (1.8 km/h) OR accuracy > 20m
+  // Show 0 if: speed < 1.0 m/s (3.6 km/h) OR accuracy > 10m
+  // Indoor GPS can report false speeds of 5-15 km/h due to signal bounce
   const rawSpeedKmh = currentPosition ? (currentPosition.speed * 3.6) : 0;
   const speedKmh = currentPosition &&
-                    currentPosition.speed >= 0.5 &&
-                    currentPosition.accuracy <= 20
+    currentPosition.speed >= 1.0 &&
+    currentPosition.accuracy <= 10
     ? rawSpeedKmh
     : 0;
 
@@ -146,9 +177,25 @@ export default function NavigationMapView({
     }
   };
 
+  // Update mapCenter from currentPosition if expo-location hasn't provided one yet
+  useEffect(() => {
+    if (!mapCenter && currentPosition) {
+      setMapCenter(currentPosition.coordinate);
+      setMapZoom(16);
+    }
+  }, [currentPosition, mapCenter]);
+
+ 
+  // Don't render map until we have a valid center position
+  const hasValidCenter = mapCenter !== null;
+
+  // Pick ONE camera mode: follow when we have position, controlled otherwise
+  const shouldFollow = mapReady && !!currentPosition && !isUserInteracting && currentPosition.accuracy < 50;
+
+
   return (
     <View style={styles.container}>
-      {mapCenter && mapZoom !== null ? (
+      {hasValidCenter ? (
         <MapboxGL.MapView
           style={styles.map}
           styleURL={MapboxGL.StyleURL.Light}
@@ -158,14 +205,23 @@ export default function NavigationMapView({
           pitchEnabled={mode === 'heading-up'}
           rotateEnabled={mode === 'heading-up'}
           onTouchStart={handleMapInteraction}
+          onDidFinishLoadingMap={() => setMapReady(true)}
         >
           <MapboxGL.Camera
-            zoomLevel={mapZoom}
-            centerCoordinate={currentPosition && !isUserInteracting ? undefined : mapCenter}
+            // Pick ONE camera mode: follow when we have position, controlled otherwise
+            defaultSettings={{
+              centerCoordinate: mapCenter!,
+              zoomLevel: mapZoom,
+              pitch: 0,
+              heading: 0,
+            }}
+            // Only drive center/zoom when NOT following (avoid conflict!)
+            centerCoordinate={shouldFollow ? undefined : mapCenter!}
+            zoomLevel={shouldFollow ? undefined : mapZoom}
             pitch={cameraPitch}
             heading={cameraBearing}
-            animationDuration={currentPosition && !isUserInteracting ? 300 : 0}
-            followUserLocation={!!currentPosition && !isUserInteracting}
+            animationDuration={300}
+            followUserLocation={shouldFollow}
             followUserMode={
               mode === 'heading-up' && !isUserInteracting
                 ? MapboxGL.UserTrackingMode.FollowWithCourse
@@ -179,58 +235,58 @@ export default function NavigationMapView({
             }}
           />
 
-        {/* Base tiles */}
-        <MapboxGL.RasterSource
-          id="navigation-ihm-base"
-          tileUrlTemplates={[baseTiles]}
-          tileSize={256}
-        >
-          <MapboxGL.RasterLayer
-            id="navigation-ihm-base-layer"
-            sourceID="navigation-ihm-base"
-          />
-        </MapboxGL.RasterSource>
-
-        {/* Trail overlay tiles */}
-        <MapboxGL.RasterSource
-          id="navigation-ihm-trails"
-          tileUrlTemplates={[trailTiles]}
-          tileSize={256}
-          maxZoomLevel={18}
-          minZoomLevel={7}
-        >
-          <MapboxGL.RasterLayer
-            id="navigation-ihm-trails-layer"
-            sourceID="navigation-ihm-trails"
-            style={{ rasterOpacity: 1.0 }}
-          />
-        </MapboxGL.RasterSource>
-
-        {/* Route LineLayer (if provided) */}
-        {route && (
-          <MapboxGL.ShapeSource
-            id="navigation-route-source"
-            shape={{
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: route,
-              },
-              properties: {},
-            }}
+          {/* Base tiles */}
+          <MapboxGL.RasterSource
+            id="navigation-ihm-base"
+            tileUrlTemplates={[baseTiles]}
+            tileSize={256}
           >
-            <MapboxGL.LineLayer
-              id="navigation-route-line"
-              style={{
-                lineColor: '#7B2CBF',
-                lineWidth: 5,
-                lineOpacity: 0.7,
-                lineCap: 'round',
-                lineJoin: 'round',
-              }}
+            <MapboxGL.RasterLayer
+              id="navigation-ihm-base-layer"
+              sourceID="navigation-ihm-base"
             />
-          </MapboxGL.ShapeSource>
-        )}
+          </MapboxGL.RasterSource>
+
+          {/* Trail overlay tiles */}
+          <MapboxGL.RasterSource
+            id="navigation-ihm-trails"
+            tileUrlTemplates={[trailTiles]}
+            tileSize={256}
+            maxZoomLevel={18}
+            minZoomLevel={7}
+          >
+            <MapboxGL.RasterLayer
+              id="navigation-ihm-trails-layer"
+              sourceID="navigation-ihm-trails"
+              style={{ rasterOpacity: 1.0 }}
+            />
+          </MapboxGL.RasterSource>
+
+          {/* Route LineLayer (if provided) */}
+          {route && (
+            <MapboxGL.ShapeSource
+              id="navigation-route-source"
+              shape={{
+                type: 'Feature',
+                geometry: {
+                  type: 'LineString',
+                  coordinates: route,
+                },
+                properties: {},
+              }}
+            >
+              <MapboxGL.LineLayer
+                id="navigation-route-line"
+                style={{
+                  lineColor: '#7B2CBF',
+                  lineWidth: 5,
+                  lineOpacity: 0.7,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+              />
+            </MapboxGL.ShapeSource>
+          )}
 
           {/* User Location with heading indicator */}
           <MapboxGL.UserLocation
@@ -250,11 +306,13 @@ export default function NavigationMapView({
           activeOpacity={0.7}
           style={{ backgroundColor: 'transparent' }}
         >
-          <Icon
-            source={mode === 'north-up' ? 'compass' : 'ship-wheel'}
-            size={40}
-            color={mode === 'north-up' ? '#ff0000' : '#ff6b35'}  // Red compass needle for north-up, orange ship wheel for heading-up
-          />
+          <View style={mode === 'north-up' ? styles.northUpIcon : undefined}>
+            <Icon
+              source={mode === 'north-up' ? 'navigation' : 'ship-wheel'}
+              size={40}
+              color={mode === 'north-up' ? '#ff0000' : '#ff6b35'}  // Red navigation arrow for north-up, orange ship wheel for heading-up
+            />
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -326,6 +384,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',  // Transparent background, no circle
     elevation: 5,  // Must be higher than stats overlay (elevation: 4) to render on top
     zIndex: 5,     // For iOS
+  },
+  northUpIcon: {
+    transform: [{ rotate: '-0deg' }],  // Rotate navigation icon to point straight up
   },
   statsOverlay: {
     position: 'absolute',

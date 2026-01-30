@@ -1,5 +1,5 @@
 // NavigationContext.tsx
-// Global state management for navigation
+// Global state management for navigation - minimal, stateless design
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,7 +13,7 @@ import {
 } from '../../lib/navigationService';
 
 export type NavigationMode = 'north-up' | 'heading-up';
-export type NavigationState = 'idle' | 'active' | 'paused';
+export type NavigationState = 'idle' | 'active';
 
 export type NavigationPosition = {
   coordinate: [number, number]; // [lng, lat]
@@ -30,17 +30,12 @@ export type ActiveNavigation = {
   routeName: string | null;
   currentPosition: NavigationPosition | null;
   lastUpdateTime: number | null;
-  breadcrumbs: NavigationPosition[];
-  totalDistanceMeters: number;
-  startTime: number | null;
 };
 
 export type NavigationContextValue = {
   activeNavigation: ActiveNavigation;
   startNavigation: (route?: [number, number][], routeName?: string) => Promise<void>;
   stopNavigation: () => Promise<void>;
-  pauseNavigation: () => void;
-  resumeNavigation: () => void;
   toggleMode: () => void;
   setMode: (mode: NavigationMode) => void;
   config: NavigationConfig;
@@ -54,63 +49,20 @@ const defaultNavigation: ActiveNavigation = {
   routeName: null,
   currentPosition: null,
   lastUpdateTime: null,
-  breadcrumbs: [],
-  totalDistanceMeters: 0,
-  startTime: null,
 };
 
 const NavigationContext = createContext<NavigationContextValue | null>(null);
 
-const STORAGE_KEY = '@bishvil_active_navigation';
 const CONFIG_STORAGE_KEY = '@bishvil_navigation_config';
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   const [activeNavigation, setActiveNavigation] = useState<ActiveNavigation>(defaultNavigation);
   const [config, setConfig] = useState<NavigationConfig>(DEFAULT_NAVIGATION_CONFIG);
 
-  // Load persisted state on mount
+  // Load persisted config on mount
   useEffect(() => {
-    loadPersistedState();
     loadPersistedConfig();
   }, []);
-
-  // Persist state when it changes
-  useEffect(() => {
-    if (activeNavigation.state !== 'idle') {
-      persistState();
-    }
-  }, [activeNavigation]);
-
-  const loadPersistedState = async () => {
-    try {
-      const persisted = await AsyncStorage.getItem(STORAGE_KEY);
-      if (persisted) {
-        const parsed = JSON.parse(persisted);
-        // Only restore if it was active
-        if (parsed.state === 'active' || parsed.state === 'paused') {
-          setActiveNavigation(parsed);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading persisted navigation state:', error);
-    }
-  };
-
-  const persistState = async () => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(activeNavigation));
-    } catch (error) {
-      console.error('Error persisting navigation state:', error);
-    }
-  };
-
-  const clearPersistedState = async () => {
-    try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
-    } catch (error) {
-      console.error('Error clearing persisted navigation state:', error);
-    }
-  };
 
   const loadPersistedConfig = async () => {
     try {
@@ -142,24 +94,10 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
         timestamp: event.timestamp,
       };
 
-      // Calculate distance from last position
-      let addedDistance = 0;
-      if (prev.currentPosition) {
-        addedDistance = event.drMeters;
-      }
-
-      // Add to breadcrumbs (keep last 1000 points to avoid memory issues)
-      const newBreadcrumbs = [...prev.breadcrumbs, newPosition];
-      if (newBreadcrumbs.length > 1000) {
-        newBreadcrumbs.shift();
-      }
-
       return {
         ...prev,
         currentPosition: newPosition,
         lastUpdateTime: Date.now(),
-        breadcrumbs: newBreadcrumbs,
-        totalDistanceMeters: prev.totalDistanceMeters + addedDistance,
       };
     });
   }, []);
@@ -188,9 +126,6 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
           routeName: routeName || null,
           currentPosition: null,
           lastUpdateTime: null,
-          breadcrumbs: [],
-          totalDistanceMeters: 0,
-          startTime: Date.now(),
         });
 
         console.log('Navigation started');
@@ -206,26 +141,11 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     try {
       await navigationService.stopTracking();
       setActiveNavigation(defaultNavigation);
-      await clearPersistedState();
       console.log('Navigation stopped');
     } catch (error) {
       console.error('Error stopping navigation:', error);
       Alert.alert('Error', 'Failed to stop navigation.');
     }
-  }, []);
-
-  const pauseNavigation = useCallback(() => {
-    setActiveNavigation((prev) => ({
-      ...prev,
-      state: 'paused',
-    }));
-  }, []);
-
-  const resumeNavigation = useCallback(() => {
-    setActiveNavigation((prev) => ({
-      ...prev,
-      state: 'active',
-    }));
   }, []);
 
   const toggleMode = useCallback(() => {
@@ -257,8 +177,6 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     activeNavigation,
     startNavigation,
     stopNavigation,
-    pauseNavigation,
-    resumeNavigation,
     toggleMode,
     setMode,
     config,

@@ -1,17 +1,17 @@
 // NavigationScreen.tsx
-// Main navigation orchestration screen
+// Main navigation orchestration screen - minimal, stateless navigation
 
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Alert, TouchableOpacity } from 'react-native';
-import { Button, Text, useTheme, ActivityIndicator, IconButton } from 'react-native-paper';
-import { RouteProp, useRoute, useFocusEffect } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Text, useTheme, ActivityIndicator } from 'react-native-paper';
+import { RouteProp, useRoute, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useNavigation as useNavigationContext } from '../state/NavigationContext';
 import NavigationMapView from '../../components/NavigationMapView';
 
 type NavigationScreenParams = {
   NavigationMain: {
     route?: [number, number][];
+    routeElevations?: number[];  // Elevation at each route point
     routeName?: string;
     gpxUrl?: string;
   };
@@ -19,57 +19,92 @@ type NavigationScreenParams = {
 
 export default function NavigationScreen() {
   const route = useRoute<RouteProp<NavigationScreenParams, 'NavigationMain'>>();
-  const { t } = useTranslation();
+  const navigation = useNavigation();
   const theme = useTheme();
   const {
     activeNavigation,
     startNavigation,
     stopNavigation,
-    pauseNavigation,
-    resumeNavigation,
     toggleMode,
   } = useNavigationContext();
 
   const [isStarting, setIsStarting] = useState(false);
 
-  const routeCoords = route.params?.route;
-  const routeName = route.params?.routeName;
-  const isFreeNavigation = !routeCoords; // Free navigation mode when no route provided
+  // Track whether we should use route params or free navigation
+  // When tab is pressed, we reset to free navigation
+  const [forceFreeNavigation, setForceFreeNavigation] = useState(false);
 
-  // Stop navigation when screen unmounts (only for route navigation)
+  // Local route state for ephemeral GPX loading (not saved to database)
+  const [localRoute, setLocalRoute] = useState<{
+    coords: [number, number][];
+    name?: string;
+  } | null>(null);
+
+  // Route priority: params (from ride details) > local GPX > none
+  const paramsRouteCoords = forceFreeNavigation ? undefined : route.params?.route;
+  const routeCoords = paramsRouteCoords || localRoute?.coords || undefined;
+  const routeElevations = forceFreeNavigation ? undefined : route.params?.routeElevations;
+  const routeName = (forceFreeNavigation ? undefined : route.params?.routeName) || localRoute?.name || undefined;
+
+  // Listen for tab press to reset to free navigation
   useEffect(() => {
-    return () => {
-      if (!isFreeNavigation && (activeNavigation.state === 'active' || activeNavigation.state === 'paused')) {
-        // Only prompt if there's meaningful data
-        if (activeNavigation.breadcrumbs.length > 5) {
-          Alert.alert(
-            t('navigation.stopNavigation'),
-            'Are you sure you want to stop navigation?',
-            [
-              { text: t('common.cancel'), style: 'cancel' },
-              {
-                text: t('common.ok'),
-                onPress: () => stopNavigation(),
-              },
-            ]
-          );
-        } else {
+    const unsubscribe = navigation.addListener('tabPress', () => {
+      // When tab is pressed while already on this screen, reset to free navigation
+      setForceFreeNavigation(true);
+      setLocalRoute(null);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  // Reset forceFreeNavigation when new route params come in (from ride details)
+  useEffect(() => {
+    if (route.params?.route) {
+      setForceFreeNavigation(false);
+    }
+  }, [route.params?.route]);
+
+  // Track if we've already handled the current params (by route length + first point)
+  const lastRouteKeyRef = useRef<string | null>(null);
+
+  // Create a simple key to detect route changes
+  const routeKey = routeCoords
+    ? `${routeCoords.length}-${routeCoords[0]?.[0]}-${routeCoords[0]?.[1]}`
+    : null;
+
+  // Start or restart navigation when screen gains focus with (potentially new) params
+  useFocusEffect(
+    useCallback(() => {
+      const routeChanged = routeKey !== lastRouteKeyRef.current;
+      lastRouteKeyRef.current = routeKey;
+
+      // Start navigation if:
+      // 1. Not currently navigating (idle state)
+      // 2. OR route params changed (need to restart with new route)
+      const needsStart = activeNavigation.state === 'idle';
+      const needsRestart = routeChanged && activeNavigation.state === 'active' &&
+        // Only restart if the route actually changed (not just null -> null)
+        (routeKey !== null || activeNavigation.route !== null);
+
+      if (needsStart || needsRestart) {
+        handleStartNavigation();
+      }
+
+      // Cleanup: stop navigation when leaving screen
+      return () => {
+        if (activeNavigation.state === 'active') {
           stopNavigation();
         }
-      }
-    };
-  }, [isFreeNavigation]);
-
-  // Auto-start navigation
-  useEffect(() => {
-    if (activeNavigation.state === 'idle') {
-      handleStartNavigation();
-    }
-  }, []);
+      };
+    }, [routeKey, activeNavigation.state, activeNavigation.route])
+  );
 
   const handleStartNavigation = async () => {
     setIsStarting(true);
     try {
+      // Stop any existing navigation first
+      if (activeNavigation.state === 'active') {
+        await stopNavigation();
+      }
       await startNavigation(routeCoords, routeName);
     } catch (error) {
       console.error('Failed to start navigation:', error);
@@ -78,50 +113,46 @@ export default function NavigationScreen() {
     }
   };
 
-  const handleStopNavigation = () => {
-    Alert.alert(
-      t('navigation.stopNavigation'),
-      'Are you sure you want to stop navigation?',
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.ok'),
-          onPress: async () => {
-            await stopNavigation();
-          },
-        },
-      ]
-    );
-  };
+  // Handle loading a GPX route (ephemeral, not saved)
+  const handleLoadRoute = useCallback(async (coords: [number, number][], name?: string) => {
+    setLocalRoute({ coords, name });
+    setForceFreeNavigation(false);
 
-  const formatDuration = (ms: number): string => {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes % 60}m`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds % 60}s`;
-    } else {
-      return `${seconds}s`;
+    // Restart navigation with the new route
+    setIsStarting(true);
+    try {
+      if (activeNavigation.state === 'active') {
+        await stopNavigation();
+      }
+      await startNavigation(coords, name);
+    } catch (error) {
+      console.error('Failed to start navigation with loaded route:', error);
+    } finally {
+      setIsStarting(false);
     }
-  };
+  }, [activeNavigation.state, stopNavigation, startNavigation]);
 
-  const formatDistance = (meters: number): string => {
-    if (meters >= 1000) {
-      return `${(meters / 1000).toFixed(2)} km`;
-    } else {
-      return `${meters.toFixed(0)} m`;
+  // Handle clearing the current route
+  const handleClearRoute = useCallback(async () => {
+    setLocalRoute(null);
+    setForceFreeNavigation(true);
+
+    // Restart as free navigation
+    setIsStarting(true);
+    try {
+      if (activeNavigation.state === 'active') {
+        await stopNavigation();
+      }
+      await startNavigation(undefined, undefined);
+    } catch (error) {
+      console.error('Failed to restart as free navigation:', error);
+    } finally {
+      setIsStarting(false);
     }
-  };
-
-  const elapsedTime = activeNavigation.startTime && !isFreeNavigation
-    ? Date.now() - activeNavigation.startTime
-    : 0;
+  }, [activeNavigation.state, stopNavigation, startNavigation]);
 
   // Idle state - show loading (auto-starting)
-  if (activeNavigation.state === 'idle') {
+  if (activeNavigation.state === 'idle' || isStarting) {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.idleContainer}>
@@ -132,45 +163,18 @@ export default function NavigationScreen() {
     );
   }
 
-  // Active/Paused state - show map and controls
+  // Active state - show map only (no controls)
   return (
     <View style={styles.container}>
-      {/* Map View */}
       <NavigationMapView
         currentPosition={activeNavigation.currentPosition}
         route={activeNavigation.route}
+        routeElevations={routeElevations}
         mode={activeNavigation.mode}
         onToggleMode={toggleMode}
-        totalDistanceMeters={isFreeNavigation ? undefined : activeNavigation.totalDistanceMeters}
-        elapsedTimeMs={isFreeNavigation ? undefined : elapsedTime}
+        onLoadRoute={handleLoadRoute}
+        onClearRoute={handleClearRoute}
       />
-
-      {/* Floating Control Buttons (icon-only) - Only show for route navigation */}
-      {!isFreeNavigation && (
-        <View style={styles.floatingControls}>
-          {activeNavigation.state === 'active' ? (
-            <TouchableOpacity
-              style={[styles.iconButton, { backgroundColor: theme.colors.surface }]}
-              onPress={pauseNavigation}
-            >
-              <IconButton icon="pause" size={24} iconColor={theme.colors.onSurface} />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.iconButton, { backgroundColor: theme.colors.primary }]}
-              onPress={resumeNavigation}
-            >
-              <IconButton icon="play" size={24} iconColor="#ffffff" />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.iconButton, { backgroundColor: theme.colors.error }]}
-            onPress={handleStopNavigation}
-          >
-            <IconButton icon="stop" size={24} iconColor="#ffffff" />
-          </TouchableOpacity>
-        </View>
-      )}
     </View>
   );
 }
@@ -191,40 +195,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
-  routeName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 32,
-  },
   loader: {
     marginTop: 24,
-  },
-  startButton: {
-    marginTop: 16,
-    minWidth: 200,
-  },
-  startButtonContent: {
-    height: 56,
-  },
-  floatingControls: {
-    position: 'absolute',
-    bottom: 24,
-    right: 16,
-    flexDirection: 'column',
-    gap: 12,
-    alignItems: 'center',
-  },
-  iconButton: {
-    borderRadius: 28,
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    width: 56,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

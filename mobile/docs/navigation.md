@@ -224,10 +224,67 @@ A position update is committed (sent to JavaScript) when ANY of these conditions
 **Mode Toggle:**
 - Icon-only button at top-right (where traditional compass appears)
 - Fully transparent background, no circle
-- North-Up: Red compass icon (`compass`)
+- North-Up: Red compass icon (`navigation`) - pointing up
 - Heading-Up: Orange ship wheel icon (`ship-wheel`)
 - Position: `top: 56, right: 16`
 - Mapbox built-in compass disabled (`compassEnabled={false}`)
+- **North-Up explicitly resets heading**: Uses `cameraRef.setCamera({ heading: 0, pitch: 0 })` to ensure map faces north
+
+### Route Navigation Features
+
+**Route Preview Mode:**
+When a route is loaded (from GPX file picker or ride details), the map enters "preview mode":
+- Camera animates to fit route bounds (shows entire route)
+- `followUserLocation = false` - camera doesn't follow user
+- `isUserInteracting = true` - prevents auto-recenter
+- Shows recenter button (blue crosshairs)
+- Shows distance-to-start metrics: "Route loaded • X.X km to start"
+
+**Recenter Button:**
+- Blue crosshairs icon (`crosshairs-gps`)
+- Position: `bottom: 88, right: 16` (above route action button)
+- **Shows when**: `!shouldFollow` (user panned away OR route just loaded)
+- **Preserves zoom level**: Tracks current zoom via `onRegionDidChange`, uses it when recentering
+- **Two behaviors**:
+  - Route preview mode: Explicit recenter required (no auto-return)
+  - Manual pan/zoom: Auto-returns after 5 seconds of inactivity
+
+**Distance Gating (Performance Optimization):**
+Expensive route calculations are only performed when user is near the route:
+- **Far from route** (outside bbox + 2km margin):
+  - Cheap computation: distance to start point only
+  - Display: `"Route loaded • X.X km to start"`
+- **Near route** (inside bbox + 2km margin):
+  - Full computation: progress, remaining distance, ascent, ETA
+  - Display: `"X.X km • +XXX m • ~XX min"`
+
+**Route Metrics Display:**
+- Position: Top-center pill (below status bar)
+- Always shows all three metrics or none (consistent display)
+- Format: `"X.X km • +XXX m • ~XX min"`
+- ETA shows `"-- min"` when speed is too low to calculate
+
+### GPX Loading
+
+**Load GPX from Navigation Tab:**
+- Green folder icon button (`folder-open`) at bottom-right
+- Uses `expo-document-picker` to select GPX file
+- Validates:
+  - File size < 5MB (`MAX_GPX_FILE_SIZE`)
+  - Valid GPX XML format
+  - At least 2 coordinate points
+- **Ephemeral loading**: Route is not saved to database
+- Clear with red X button (`close-circle`) - same position
+
+**Route Sources Priority:**
+1. **Params from ride details** (highest) - `route.params?.route`
+2. **Local GPX upload** - `localRoute?.coords`
+3. **Free navigation** (no route)
+
+**Route Action Button:**
+- Position: `bottom: 24, right: 16`
+- Green folder when no route (load GPX)
+- Red X when route loaded (clear route)
 
 **Speed Display Filter:**
 ```typescript

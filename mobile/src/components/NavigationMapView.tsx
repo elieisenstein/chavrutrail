@@ -1,34 +1,49 @@
 // NavigationMapView.tsx
 // Specialized map component for navigation with North-Up and Heading-Up modes
 
-import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, Icon, useTheme } from 'react-native-paper';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { Text, Icon, useTheme, ActivityIndicator } from 'react-native-paper';
 import MapboxGL from '@rnmapbox/maps';
 import { useTranslation } from 'react-i18next';
 import * as Location from 'expo-location';
+import * as DocumentPicker from 'expo-document-picker';
 import { getIsraelHikingTiles } from '../lib/mapbox';
 import { NavigationMode, NavigationPosition } from '../app/state/NavigationContext';
+import {
+  computeRouteMetrics,
+  findRouteProgress,
+  computeRemainingMetrics,
+  formatRemainingMetrics,
+  isNearRouteArea,
+  computeDistanceToStart,
+  formatDistanceToStart,
+  RouteMetrics,
+} from '../lib/routeMetrics';
+import { isValidGpx, parseGpxCoordinates, MAX_GPX_FILE_SIZE } from '../lib/gpx';
 
 type NavigationMapViewProps = {
   currentPosition: NavigationPosition | null;
   route: [number, number][] | null;
+  routeElevations?: number[] | null;  // Elevation at each route point for ascent calculations
   mode: NavigationMode;
   onToggleMode: () => void;
-  totalDistanceMeters?: number;  // Optional for free navigation mode
-  elapsedTimeMs?: number;         // Optional for free navigation mode
+  onLoadRoute?: (coords: [number, number][], name?: string) => void;
+  onClearRoute?: () => void;
 };
 
 export default function NavigationMapView({
   currentPosition,
   route,
+  routeElevations,
   mode,
   onToggleMode,
-  totalDistanceMeters,
-  elapsedTimeMs,
+  onLoadRoute,
+  onClearRoute,
 }: NavigationMapViewProps) {
   const { i18n, t } = useTranslation();
   const theme = useTheme();
+  const [isLoadingGpx, setIsLoadingGpx] = useState(false);
   const { baseTiles, trailTiles } = getIsraelHikingTiles(
     i18n.language === 'he' ? 'he' : 'en'
   );
@@ -43,10 +58,22 @@ export default function NavigationMapView({
   }, [mapCenter]);
 
   // Auto-recenter state
-  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  // Initialize to true when route exists so shouldFollow is false on first render
+  // This ensures the camera fits to route bounds instead of following user
+  const [isUserInteracting, setIsUserInteracting] = useState(!!route);
   const [recenterTimeout, setRecenterTimeout] = useState<NodeJS.Timeout | null>(null);
 
+  // Route preview mode - no auto-recenter when a route is first loaded
+  // Initialize to true when route exists (e.g., from ride details params)
+  const [isRoutePreviewMode, setIsRoutePreviewMode] = useState(!!route);
+
   const [mapReady, setMapReady] = useState(false);
+
+  // Camera ref for fitBounds
+  const cameraRef = useRef<MapboxGL.Camera>(null);
+
+  // Track current zoom level to preserve it when recentering
+  const currentZoomRef = useRef<number>(16);
 
   useEffect(() => {
     return () => setMapReady(false);
@@ -111,8 +138,11 @@ export default function NavigationMapView({
   // Don't manually update mapCenter when using followUserLocation
   // The followUserLocation + followPadding will handle positioning automatically
 
-  // Handle map interaction - start timeout for auto-recenter
+  // Handle map interaction - start timeout for auto-recenter (unless in preview mode)
   const handleMapInteraction = () => {
+    // In preview mode, don't override with auto-recenter timer
+    if (isRoutePreviewMode) return;
+
     setIsUserInteracting(true);
 
     // Clear existing timeout
@@ -128,6 +158,28 @@ export default function NavigationMapView({
     setRecenterTimeout(timeout);
   };
 
+  // Track zoom level from map region changes
+  const handleRegionDidChange = (feature: GeoJSON.Feature) => {
+    if (feature.properties?.zoomLevel) {
+      currentZoomRef.current = feature.properties.zoomLevel;
+    }
+  };
+
+  // Handle recenter button press - preserve user's zoom level
+  const handleRecenter = () => {
+    setIsRoutePreviewMode(false);  // Exit preview mode
+    setIsUserInteracting(false);   // Resume following
+
+    // Explicitly center on user at current zoom level (don't reset to default 16)
+    if (cameraRef.current && currentPosition) {
+      cameraRef.current.setCamera({
+        centerCoordinate: currentPosition.coordinate,
+        zoomLevel: currentZoomRef.current,
+        animationDuration: 300,
+      });
+    }
+  };
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -136,6 +188,18 @@ export default function NavigationMapView({
       }
     };
   }, [recenterTimeout]);
+
+  // Explicitly reset camera heading to north when switching to north-up mode
+  // The heading prop alone doesn't work reliably when followUserLocation is active
+  useEffect(() => {
+    if (mode === 'north-up' && cameraRef.current && mapReady) {
+      cameraRef.current.setCamera({
+        heading: 0,
+        pitch: 0,
+        animationDuration: 300,
+      });
+    }
+  }, [mode, mapReady]);
 
   const cameraBearing = mode === 'heading-up' && currentPosition && !isUserInteracting
     ? currentPosition.heading
@@ -153,29 +217,65 @@ export default function NavigationMapView({
     ? rawSpeedKmh
     : 0;
 
-  // Format distance
-  const formatDistance = (meters: number): string => {
-    if (meters >= 1000) {
-      return `${(meters / 1000).toFixed(2)} km`;
-    } else {
-      return `${meters.toFixed(0)} m`;
-    }
-  };
+  // Precompute route metrics when route changes
+  const routeMetrics = useMemo<RouteMetrics | null>(() => {
+    if (!route || route.length < 2) return null;
+    return computeRouteMetrics(route, routeElevations);
+  }, [route, routeElevations]);
 
-  // Format time
-  const formatDuration = (ms: number): string => {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
+  // Fit camera to route bounds when route loads
+  useEffect(() => {
+    if (route && routeMetrics && cameraRef.current && mapReady) {
+      const { bbox } = routeMetrics;
+      const padding = 60;  // Screen padding
 
-    if (hours > 0) {
-      return `${hours}h ${minutes % 60}m`;
-    } else if (minutes > 0) {
-      return `${minutes}m`;
-    } else {
-      return `${seconds}s`;
+      cameraRef.current.fitBounds(
+        [bbox.minLng, bbox.minLat],
+        [bbox.maxLng, bbox.maxLat],
+        padding,
+        1000  // animation duration ms
+      );
+
+      // Enter preview mode (no auto-recenter)
+      setIsRoutePreviewMode(true);
+      setIsUserInteracting(true);
+    } else if (!route) {
+      // Route cleared - exit preview mode
+      setIsRoutePreviewMode(false);
     }
-  };
+  }, [route, routeMetrics, mapReady]);
+
+  // Compute metrics display with distance gating (far vs near route)
+  const metricsDisplay = useMemo<string | null>(() => {
+    if (!routeMetrics || !currentPosition || !route) return null;
+
+    // Check if user is near route area (within bbox + 2km margin)
+    const isNear = isNearRouteArea(currentPosition.coordinate, routeMetrics.bbox);
+
+    if (!isNear) {
+      // FAR: cheap computation - just distance to start
+      const distToStart = computeDistanceToStart(
+        currentPosition.coordinate,
+        routeMetrics.startPoint
+      );
+      return formatDistanceToStart(distToStart);
+    }
+
+    // NEAR: full metrics (expensive computation)
+    const { progressM } = findRouteProgress(
+      currentPosition.coordinate,
+      route,
+      routeMetrics.cumDistances
+    );
+
+    const remaining = computeRemainingMetrics(
+      routeMetrics,
+      progressM,
+      currentPosition.speed
+    );
+
+    return formatRemainingMetrics(remaining);
+  }, [routeMetrics, currentPosition, route]);
 
   // Update mapCenter from currentPosition if expo-location hasn't provided one yet
   useEffect(() => {
@@ -192,6 +292,52 @@ export default function NavigationMapView({
   // Pick ONE camera mode: follow when we have position, controlled otherwise
   const shouldFollow = mapReady && !!currentPosition && !isUserInteracting && currentPosition.accuracy < 50;
 
+  // GPX file picker handler
+  const handleLoadGpx = async () => {
+    if (!onLoadRoute) return;
+
+    setIsLoadingGpx(true);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/gpx+xml', 'text/xml', 'application/xml', '*/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const file = result.assets[0];
+
+      // Validate file size
+      if (file.size && file.size > MAX_GPX_FILE_SIZE) {
+        Alert.alert(t('common.error'), t('createRide.where.gpxTooLarge'));
+        return;
+      }
+
+      // Read and validate GPX content
+      const content = await fetch(file.uri).then((r) => r.text());
+      if (!isValidGpx(content)) {
+        Alert.alert(t('common.error'), t('createRide.where.gpxInvalid'));
+        return;
+      }
+
+      // Parse coordinates
+      const coords = parseGpxCoordinates(content);
+      if (coords.length < 2) {
+        Alert.alert(t('common.error'), t('createRide.where.gpxNoPoints'));
+        return;
+      }
+
+      // Extract name from filename (remove .gpx extension)
+      const name = file.name?.replace(/\.gpx$/i, '') || undefined;
+
+      onLoadRoute(coords, name);
+    } catch (error) {
+      console.error('Error loading GPX:', error);
+      Alert.alert(t('common.error'), t('createRide.where.gpxInvalid'));
+    } finally {
+      setIsLoadingGpx(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -206,8 +352,10 @@ export default function NavigationMapView({
           rotateEnabled={mode === 'heading-up'}
           onTouchStart={handleMapInteraction}
           onDidFinishLoadingMap={() => setMapReady(true)}
+          onRegionDidChange={handleRegionDidChange}
         >
           <MapboxGL.Camera
+            ref={cameraRef}
             // Pick ONE camera mode: follow when we have position, controlled otherwise
             defaultSettings={{
               centerCoordinate: mapCenter!,
@@ -316,44 +464,49 @@ export default function NavigationMapView({
         </TouchableOpacity>
       </View>
 
-      {/* Stats Overlay (top) - Only show in route navigation mode */}
-      {currentPosition && totalDistanceMeters !== undefined && elapsedTimeMs !== undefined && (
-        <View style={[styles.statsOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.85)' }]}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{formatDistance(totalDistanceMeters)}</Text>
-            <Text style={styles.statLabel}>{t('navigation.distance')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{formatDuration(elapsedTimeMs)}</Text>
-            <Text style={styles.statLabel}>{t('navigation.time')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{speedKmh.toFixed(1)} km/h</Text>
-            <Text style={styles.statLabel}>{t('navigation.speed')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>±{currentPosition.accuracy.toFixed(0)}m</Text>
-            <Text style={styles.statLabel}>{t('navigation.accuracy')}</Text>
-          </View>
+      {/* Tiny Speed Pill (bottom-left) - Only show when moving */}
+      {currentPosition && speedKmh > 0 && (
+        <View style={styles.speedPill}>
+          <Text style={styles.speedPillText}>{speedKmh.toFixed(0)} km/h</Text>
         </View>
       )}
 
-      {/* Speed/Accuracy Overlay (top) - Show in free navigation mode */}
-      {currentPosition && totalDistanceMeters === undefined && elapsedTimeMs === undefined && (
-        <View style={[styles.freeNavStatsOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.85)' }]}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{speedKmh.toFixed(1)} km/h</Text>
-            <Text style={styles.statLabel}>{t('navigation.speed')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>±{currentPosition.accuracy.toFixed(0)}m</Text>
-            <Text style={styles.statLabel}>{t('navigation.accuracy')}</Text>
-          </View>
+      {/* Route Metrics Pill (top-center) - Only show for route navigation */}
+      {route && metricsDisplay && (
+        <View style={styles.routeMetricsPill}>
+          <Text style={styles.routeMetricsText}>{metricsDisplay}</Text>
         </View>
+      )}
+
+      {/* Recenter Button - show when not following user */}
+      {!shouldFollow && currentPosition && (
+        <TouchableOpacity
+          style={styles.recenterButton}
+          onPress={handleRecenter}
+          activeOpacity={0.7}
+        >
+          <Icon source="crosshairs-gps" size={28} color="#2196F3" />
+        </TouchableOpacity>
+      )}
+
+      {/* Route Action Button (bottom-right) - Load GPX or Clear Route */}
+      {(onLoadRoute || onClearRoute) && (
+        <TouchableOpacity
+          style={styles.routeActionButton}
+          onPress={route ? onClearRoute : handleLoadGpx}
+          disabled={isLoadingGpx}
+          activeOpacity={0.7}
+        >
+          {isLoadingGpx ? (
+            <ActivityIndicator size="small" color="#4CAF50" />
+          ) : (
+            <Icon
+              source={route ? 'close-circle' : 'folder-open'}
+              size={32}
+              color={route ? '#ff4444' : '#4CAF50'}
+            />
+          )}
+        </TouchableOpacity>
       )}
 
       {/* No position indicator */}
@@ -388,58 +541,78 @@ const styles = StyleSheet.create({
   northUpIcon: {
     transform: [{ rotate: '-0deg' }],  // Rotate navigation icon to point straight up
   },
-  statsOverlay: {
+  speedPill: {
     position: 'absolute',
-    top: 48,  // Lower to avoid Android status bar
-    left: 8,
-    right: 8,
-    borderRadius: 8,
-    padding: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    elevation: 4,
+    bottom: 24,
+    left: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 2,
   },
-  freeNavStatsOverlay: {
-    position: 'absolute',
-    top: 48,  // Same as statsOverlay
-    left: 8,
-    right: 8,
-    borderRadius: 8,
-    padding: 8,
-    flexDirection: 'row',
-    justifyContent: 'center',  // Center the 2 stats
-    alignItems: 'center',
-    gap: 16,  // Gap between speed and accuracy
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  statLabel: {
-    color: '#aaaaaa',
-    fontSize: 9,
-    textTransform: 'uppercase',
-  },
-  statValue: {
+  speedPillText: {
     color: '#ffffff',
-    fontSize: 13,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600',
   },
-  statDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: '#555555',
+  routeMetricsPill: {
+    position: 'absolute',
+    top: 56,
+    left: 60,  // Leave space for mode toggle on right
+    right: 60,
+    alignItems: 'center',
+  },
+  routeMetricsText: {
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
+  recenterButton: {
+    position: 'absolute',
+    bottom: 88,  // Above route action button
+    right: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  routeActionButton: {
+    position: 'absolute',
+    bottom: 24,
+    right: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   noPositionOverlay: {
     position: 'absolute',

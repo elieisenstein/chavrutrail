@@ -320,23 +320,32 @@ const speedKmh = currentPosition &&
 - Permission handling
 - Lifecycle management (stops on unmount)
 
+**Tab Press Reset:**
+- Pressing Navigation tab while already on screen resets to free navigation
+- Clears any loaded route (from params or GPX)
+- Listens to `tabPress` event via `navigation.addListener`
+- Sets `forceFreeNavigation = true` and `localRoute = null`
+
 **UI Layout:**
 ```
 ┌─────────────────────────────────┐
 │ [Android Status Bar]            │  ← System UI
 ├─────────────────────────────────┤
-│ Distance │ Time │ Speed │ Acc   │  ← Stats overlay (top: 48)
-│          ↓       ↓       ↓       │
-│ [Compass/Wheel Icon]            │  ← Mode toggle (top: 56, right: 16)
+│   [Route Metrics Pill]          │  ← "X.X km • +XXX m • ~XX min" (top-center)
+│                [Mode Toggle]    │  ← Mode toggle (top: 56, right: 16)
 │                                  │
 │                                  │
 │        [Full Map View]           │
 │                                  │
 │                                  │
-│                     [Pause/Stop] │  ← Floating controls (bottom: 24, right: 16)
-│                                  │
+│                    [Recenter]   │  ← Blue crosshairs (bottom: 88, right: 16)
+│ [Speed Pill]      [Route Action]│  ← Speed (bottom-left), GPX button (bottom: 24, right: 16)
 └─────────────────────────────────┘
 ```
+
+**Button Stack (bottom-right):**
+1. **Recenter button** (`bottom: 88`) - Blue crosshairs, only when not following
+2. **Route action button** (`bottom: 24`) - Green folder (load GPX) or red X (clear route)
 
 **Floating Controls:**
 - Position: Bottom-right corner (`bottom: 24, right: 16`)
@@ -377,6 +386,29 @@ const speedKmh = currentPosition &&
 - **`NavigationContext.tsx`**: Global navigation state management
 - **`NavigationMapView.tsx`**: Two-mode map component with MapPickerModal pattern
 - **`NavigationScreen.tsx`**: Main navigation orchestration screen
+- **`routeMetrics.ts`**: Route progress and metrics utilities
+
+### routeMetrics.ts Functions
+
+**Types:**
+```typescript
+type RouteBbox = { minLng, minLat, maxLng, maxLat };
+type RouteMetrics = {
+  totalDistanceM, totalAscentM,
+  cumDistances[], cumAscents[],
+  bbox: RouteBbox,        // Bounding box for distance gating
+  startPoint: [lng, lat]  // First coordinate for distance-to-start
+};
+```
+
+**Functions:**
+- `computeRouteMetrics(route, elevations)` - Precomputes cumulative distances, ascents, bbox, startPoint
+- `findRouteProgress(position, route, cumDistances)` - Finds nearest point and progress in meters
+- `computeRemainingMetrics(metrics, progressM, speedMs)` - Remaining distance, ascent, ETA
+- `formatRemainingMetrics(metrics)` - Formats as "X.X km • +XXX m • ~XX min"
+- `isNearRouteArea(position, bbox)` - Checks if within bbox + 2km margin (distance gating)
+- `computeDistanceToStart(position, startPoint)` - Haversine distance to start
+- `formatDistanceToStart(distanceM)` - Formats as "Route loaded • X.X km to start"
 
 ### Integration Points
 - **`AppNavigator.tsx`**: 5th navigation tab
@@ -445,6 +477,63 @@ const speedKmh = currentPosition &&
 ```typescript
 speedKmh = (speed >= 0.5 m/s && accuracy <= 20m) ? realSpeed : 0
 ```
+
+### North-Up Mode Not Facing North
+
+**Problem:** Switching to North-Up mode doesn't rotate map back to north; it freezes at last heading.
+
+**Cause:** The `heading` prop alone doesn't force a rotation when `followUserLocation` is active.
+
+**Solution:** Explicitly call `setCamera` when mode changes:
+```typescript
+useEffect(() => {
+  if (mode === 'north-up' && cameraRef.current && mapReady) {
+    cameraRef.current.setCamera({
+      heading: 0,
+      pitch: 0,
+      animationDuration: 300,
+    });
+  }
+}, [mode, mapReady]);
+```
+
+### Recenter Button Resets Zoom
+
+**Problem:** Pressing recenter resets zoom to default level 16 instead of preserving user's zoom.
+
+**Cause:** Camera defaults to initial `mapZoom` state (16) when recentering.
+
+**Solution:** Track current zoom level and use it when recentering:
+```typescript
+const currentZoomRef = useRef<number>(16);
+
+const handleRegionDidChange = (feature: GeoJSON.Feature) => {
+  if (feature.properties?.zoomLevel) {
+    currentZoomRef.current = feature.properties.zoomLevel;
+  }
+};
+
+const handleRecenter = () => {
+  cameraRef.current.setCamera({
+    centerCoordinate: currentPosition.coordinate,
+    zoomLevel: currentZoomRef.current,  // Preserve zoom
+    animationDuration: 300,
+  });
+};
+```
+
+### Route from Ride Details Doesn't Show Preview
+
+**Problem:** Pressing "Navigate Route" from ride details stays at user location instead of fitting to route.
+
+**Cause:** Timing issue - `shouldFollow` is `true` on first render, camera follows user before `fitBounds` effect runs.
+
+**Solution:** Initialize `isUserInteracting` and `isRoutePreviewMode` to `true` when route exists:
+```typescript
+const [isUserInteracting, setIsUserInteracting] = useState(!!route);
+const [isRoutePreviewMode, setIsRoutePreviewMode] = useState(!!route);
+```
+This ensures `shouldFollow = false` on first render, allowing `fitBounds` to work.
 
 ## Future Enhancements
 
@@ -532,5 +621,21 @@ speedKmh = (speed >= 0.5 m/s && accuracy <= 20m) ? realSpeed : 0
 
 ---
 
-**Last Updated:** 2025-01-29
-**Version:** 1.1.0
+**Last Updated:** 2025-01-31
+**Version:** 1.2.0
+
+---
+
+## Session Summary (v1.2.0)
+
+Features implemented in this session:
+
+1. **Tab Press Reset** - Pressing Navigation tab resets to free navigation mode
+2. **Consistent Metrics Display** - Always shows all three metrics (distance, elevation, ETA) or none
+3. **GPX Loading from Navigation Tab** - Document picker to load GPX files directly (ephemeral)
+4. **Route Preview Mode** - Camera fits to route bounds on load, no auto-follow
+5. **Recenter Button** - Blue crosshairs, shows when not following, explicit recenter
+6. **Distance Gating** - Far from route shows "X km to start", near route shows full metrics
+7. **Recenter Preserves Zoom** - Tracks and preserves user's chosen zoom level
+8. **North-Up Resets Heading** - Explicitly resets camera heading to 0° when switching modes
+9. **Route from Ride Details Preview** - Initializes in preview mode to show route bounds

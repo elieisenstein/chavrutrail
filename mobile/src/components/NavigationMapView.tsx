@@ -201,6 +201,24 @@ export default function NavigationMapView({
     }
   }, [mode, mapReady]);
 
+  useEffect(() => {
+    if (!cameraRef.current) return;
+    if (!mapReady) return;
+    if (!currentPosition) return;
+
+    // Only auto-follow when we are not in manual interaction / preview state
+    if (isUserInteracting) return;
+
+    cameraRef.current.setCamera({
+      centerCoordinate: currentPosition.coordinate,
+      zoomLevel: currentZoomRef.current,
+      heading: cameraBearing, // your computed bearing (0 or heading)
+      pitch: cameraPitch,
+      animationDuration: 300,
+    });
+  }, [currentPosition, mapReady, isUserInteracting, cameraBearing, cameraPitch]);
+
+
   const cameraBearing = mode === 'heading-up' && currentPosition && !isUserInteracting
     ? currentPosition.heading
     : 0;
@@ -369,7 +387,8 @@ export default function NavigationMapView({
             pitch={cameraPitch}
             heading={cameraBearing}
             animationDuration={300}
-            followUserLocation={shouldFollow}
+            //followUserLocation={shouldFollow}
+            followUserLocation={false}
             followUserMode={
               mode === 'heading-up' && !isUserInteracting
                 ? MapboxGL.UserTrackingMode.FollowWithCourse
@@ -475,80 +494,80 @@ export default function NavigationMapView({
           style={{ backgroundColor: 'transparent' }}
         >
           <View style={mode === 'north-up' ? styles.northUpIcon : undefined}>
-          <Icon
-            source={mode === 'north-up' ? 'navigation-variant' : 'ship-wheel'}
-            size={40}
-            color={mode === 'north-up' ? '#ff0f00' : '#ff6b35'}  // Red navigation arrow for north-up, orange ship wheel for heading-up
-          />
-      </View>
+            <Icon
+              source={mode === 'north-up' ? 'navigation-variant' : 'ship-wheel'}
+              size={40}
+              color={mode === 'north-up' ? '#ff0f00' : '#ff6b35'}  // Red navigation arrow for north-up, orange ship wheel for heading-up
+            />
+          </View>
 
-    </TouchableOpacity>
+        </TouchableOpacity>
       </View >
 
-    {/* Tiny Speed Pill (bottom-left) - Only show when moving */ }
-  {
-    currentPosition && speedKmh > 0 && (
-      <View style={styles.speedPill}>
-        <Text style={styles.speedPillText}>{speedKmh.toFixed(0)} km/h</Text>
-      </View>
-    )
-  }
+      {/* Tiny Speed Pill (bottom-left) - Only show when moving */}
+      {
+        currentPosition && speedKmh > 0 && (
+          <View style={styles.speedPill}>
+            <Text style={styles.speedPillText}>{speedKmh.toFixed(0)} km/h</Text>
+          </View>
+        )
+      }
 
-  {/* Route Metrics Pill (top-center) - Only show for route navigation */ }
-  {
-    route && metricsDisplay && (
-      <View style={styles.routeMetricsPill}>
-        <Text style={styles.routeMetricsText}>{metricsDisplay}</Text>
-      </View>
-    )
-  }
+      {/* Route Metrics Pill (top-center) - Only show for route navigation */}
+      {
+        route && metricsDisplay && (
+          <View style={styles.routeMetricsPill}>
+            <Text style={styles.routeMetricsText}>{metricsDisplay}</Text>
+          </View>
+        )
+      }
 
-  {/* Recenter Button - show when not following user */ }
-  {
-    !shouldFollow && currentPosition && (
-      <TouchableOpacity
-        style={styles.recenterButton}
-        onPress={handleRecenter}
-        activeOpacity={0.7}
-      >
-        <Icon source="crosshairs-gps" size={28} color="#2196F3" />
-      </TouchableOpacity>
-    )
-  }
+      {/* Recenter Button - show when not following user */}
+      {
+        !shouldFollow && currentPosition && (
+          <TouchableOpacity
+            style={styles.recenterButton}
+            onPress={handleRecenter}
+            activeOpacity={0.7}
+          >
+            <Icon source="crosshairs-gps" size={28} color="#2196F3" />
+          </TouchableOpacity>
+        )
+      }
 
-  {/* Route Action Button (bottom-right) - Load GPX or Clear Route */ }
-  {
-    (onLoadRoute || onClearRoute) && (
-      <TouchableOpacity
-        style={styles.routeActionButton}
-        onPress={route ? onClearRoute : handleLoadGpx}
-        disabled={isLoadingGpx}
-        activeOpacity={0.7}
-      >
-        {isLoadingGpx ? (
-          <ActivityIndicator size="small" color="#4CAF50" />
-        ) : (
-          <Icon
-            source={route ? 'close-circle' : 'folder-open'}
-            size={32}
-            color={route ? '#ff4444' : '#4CAF50'}
-          />
-        )}
-      </TouchableOpacity>
-    )
-  }
+      {/* Route Action Button (bottom-right) - Load GPX or Clear Route */}
+      {
+        (onLoadRoute || onClearRoute) && (
+          <TouchableOpacity
+            style={styles.routeActionButton}
+            onPress={route ? onClearRoute : handleLoadGpx}
+            disabled={isLoadingGpx}
+            activeOpacity={0.7}
+          >
+            {isLoadingGpx ? (
+              <ActivityIndicator size="small" color="#4CAF50" />
+            ) : (
+              <Icon
+                source={route ? 'close-circle' : 'folder-open'}
+                size={32}
+                color={route ? '#ff4444' : '#4CAF50'}
+              />
+            )}
+          </TouchableOpacity>
+        )
+      }
 
-  {/* No position indicator */ }
-  {
-    !currentPosition && (
-      <View style={styles.noPositionOverlay}>
-        <Icon source="map-marker-off" size={48} color="#888" />
-        <Text style={styles.noPositionText}>
-          Waiting for GPS signal...
-        </Text>
-      </View>
-    )
-  }
+      {/* No position indicator */}
+      {
+        !currentPosition && (
+          <View style={styles.noPositionOverlay}>
+            <Icon source="map-marker-off" size={48} color="#888" />
+            <Text style={styles.noPositionText}>
+              Waiting for GPS signal...
+            </Text>
+          </View>
+        )
+      }
     </View >
   );
 }

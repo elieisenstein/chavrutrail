@@ -178,6 +178,12 @@ export default function NavigationMapView({
 
   // Handle recenter button press - preserve user's zoom level
   const handleRecenter = () => {
+    // Clear any pending auto-recenter timeout
+    if (recenterTimeout) {
+      clearTimeout(recenterTimeout);
+      setRecenterTimeout(null);
+    }
+
     setIsRoutePreviewMode(false);  // Exit preview mode
     setIsUserInteracting(false);   // Resume following
 
@@ -493,9 +499,10 @@ export default function NavigationMapView({
               pitch: 0,
               heading: 0,
             }}
-            // Only drive center/zoom when NOT following (avoid conflict!)
-            centerCoordinate={shouldFollow ? undefined : mapCenter!}
-            zoomLevel={shouldFollow ? undefined : mapZoom}
+            // Always provide a valid center - use currentPosition when following, mapCenter otherwise
+            // (followUserLocation is disabled, so we must set centerCoordinate explicitly)
+            centerCoordinate={shouldFollow ? currentPosition!.coordinate : mapCenter!}
+            zoomLevel={mapZoom}
             pitch={cameraPitch}
             heading={cameraBearing}
             animationDuration={300}
@@ -556,41 +563,78 @@ export default function NavigationMapView({
             </MapboxGL.ShapeSource>
           )}
 
-          {/* Start Point Marker (orange) */}
-          {route && route.length >= 2 && (
-            <MapboxGL.ShapeSource
-              id="nav-start-point-source"
-              shape={{ type: 'Point', coordinates: route[0] }}
-            >
-              <MapboxGL.CircleLayer
-                id="nav-start-point-circle"
-                style={{
-                  circleRadius: 8,
-                  circleColor: '#FF8C00',
-                  circleStrokeWidth: 2,
-                  circleStrokeColor: '#FFFFFF',
-                }}
-              />
-            </MapboxGL.ShapeSource>
-          )}
+          {/* Start and End Point Markers - Conditional rendering based on overlap */}
+          {route && route.length >= 2 && (markersOverlap ? (
+            // Offset circles when overlapping to show both colors
+            <>
+              <MapboxGL.ShapeSource
+                id="nav-overlap-start-marker"
+                shape={{ type: 'Point', coordinates: route[0] }}
+              >
+                <MapboxGL.CircleLayer
+                  id="nav-overlap-start-circle"
+                  style={{
+                    circleRadius: 10,
+                    circleColor: '#FF8C00',
+                    circleStrokeWidth: 2,
+                    circleStrokeColor: '#FFFFFF',
+                    circleTranslate: [-4, 0], // Offset left by 4 pixels
+                  }}
+                />
+              </MapboxGL.ShapeSource>
 
-          {/* End Point Marker (red) */}
-          {route && route.length >= 2 && (
-            <MapboxGL.ShapeSource
-              id="nav-end-point-source"
-              shape={{ type: 'Point', coordinates: route[route.length - 1] }}
-            >
-              <MapboxGL.CircleLayer
-                id="nav-end-point-circle"
-                style={{
-                  circleRadius: 8,
-                  circleColor: '#DC143C',
-                  circleStrokeWidth: 2,
-                  circleStrokeColor: '#FFFFFF',
-                }}
-              />
-            </MapboxGL.ShapeSource>
-          )}
+              <MapboxGL.ShapeSource
+                id="nav-overlap-end-marker"
+                shape={{ type: 'Point', coordinates: route[route.length - 1] }}
+              >
+                <MapboxGL.CircleLayer
+                  id="nav-overlap-end-circle"
+                  style={{
+                    circleRadius: 10,
+                    circleColor: '#DC143C',
+                    circleStrokeWidth: 2,
+                    circleStrokeColor: '#FFFFFF',
+                    circleTranslate: [4, 0], // Offset right by 4 pixels
+                  }}
+                />
+              </MapboxGL.ShapeSource>
+            </>
+          ) : (
+            // Separate markers when not overlapping
+            <>
+              {/* Start Point Marker (orange) */}
+              <MapboxGL.ShapeSource
+                id="nav-start-point-source"
+                shape={{ type: 'Point', coordinates: route[0] }}
+              >
+                <MapboxGL.CircleLayer
+                  id="nav-start-point-circle"
+                  style={{
+                    circleRadius: 8,
+                    circleColor: '#FF8C00',
+                    circleStrokeWidth: 2,
+                    circleStrokeColor: '#FFFFFF',
+                  }}
+                />
+              </MapboxGL.ShapeSource>
+
+              {/* End Point Marker (red) */}
+              <MapboxGL.ShapeSource
+                id="nav-end-point-source"
+                shape={{ type: 'Point', coordinates: route[route.length - 1] }}
+              >
+                <MapboxGL.CircleLayer
+                  id="nav-end-point-circle"
+                  style={{
+                    circleRadius: 8,
+                    circleColor: '#DC143C',
+                    circleStrokeWidth: 2,
+                    circleStrokeColor: '#FFFFFF',
+                  }}
+                />
+              </MapboxGL.ShapeSource>
+            </>
+          ))}
 
           {/* User Location with heading indicator */}
           {/*}
@@ -632,9 +676,9 @@ export default function NavigationMapView({
         >
           <View style={mode === 'north-up' ? styles.northUpIcon : undefined}>
             <Icon
-              source={mode === 'north-up' ? 'navigation-variant' : 'ship-wheel'}
+              source={mode === 'north-up' ? 'compass' : 'ship-wheel'}
               size={40}
-              color={mode === 'north-up' ? '#ff0f00' : '#ff6b35'}  // Red navigation arrow for north-up, orange ship wheel for heading-up
+              color={mode === 'north-up' ? '#ff0f00' : '#ff6b35'}  // Red compass for north-up, orange ship wheel for heading-up
             />
           </View>
 

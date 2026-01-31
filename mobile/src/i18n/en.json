@@ -95,6 +95,11 @@
       "title": "Language",
       "he": "עברית",
       "en": "English"
+    },
+    "navigation": {
+      "title": "Navigation",
+      "autoDim": "Auto-dim screen when stationary",
+      "autoDimLevel": "Dim to"
     }
   },
   "feed": {
@@ -210,7 +215,8 @@
     "time": "Time",
     "noRoute": "No route loaded. Start navigation to track your position.",
     "permissionDenied": "Location permission is required for navigation.",
-    "requestPermission": "Grant Permission"
+    "requestPermission": "Grant Permission",
+    "freeNav": "Free nav"
   },
   "profile": {
     "title": "Profile",

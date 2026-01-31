@@ -19,6 +19,9 @@ export type NavigationConfig = {
   minTimeMs: number;
   motionVarianceThreshold: number;
   motionWindowMs: number;
+  // Auto-dim settings
+  autoDimEnabled: boolean;
+  autoDimLevel: number; // 0.0-1.0 dim factor of baseline (e.g., 0.8 = 80% of baseline)
 };
 
 export type NavCommitEvent = {
@@ -41,6 +44,9 @@ export const DEFAULT_NAVIGATION_CONFIG: NavigationConfig = {
   minTimeMs: 500,           // Update every 500ms
   motionVarianceThreshold: 0.05,  // Very sensitive motion detection
   motionWindowMs: 400,      // Faster motion detection window
+  // Auto-dim defaults
+  autoDimEnabled: true,     // Enabled by default
+  autoDimLevel: 0.8,        // Dim to 80% of baseline brightness
 };
 
 class NavigationService {

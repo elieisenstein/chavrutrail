@@ -26,6 +26,7 @@ export default function NavigationScreen() {
     startNavigation,
     stopNavigation,
     toggleMode,
+    debugInfo,
   } = useNavigationContext();
 
   const [isStarting, setIsStarting] = useState(false);
@@ -174,6 +175,7 @@ export default function NavigationScreen() {
         onToggleMode={toggleMode}
         onLoadRoute={handleLoadRoute}
         onClearRoute={handleClearRoute}
+        debugInfo={debugInfo}
       />
     </View>
   );

@@ -622,7 +622,7 @@ This ensures `shouldFollow = false` on first render, allowing `fitBounds` to wor
 ---
 
 **Last Updated:** 2025-01-31
-**Version:** 1.2.0
+**Version:** 1.3.0
 
 ---
 
@@ -639,3 +639,178 @@ Features implemented in this session:
 7. **Recenter Preserves Zoom** - Tracks and preserves user's chosen zoom level
 8. **North-Up Resets Heading** - Explicitly resets camera heading to 0° when switching modes
 9. **Route from Ride Details Preview** - Initializes in preview mode to show route bounds
+
+---
+
+## Session Summary (v1.3.0)
+
+Features implemented in this session:
+
+### 1. Top Info Bar (Instrument Cluster)
+
+Full-width bar at the top of the navigation screen replacing the old stats overlay:
+
+**Layout:**
+```
+┌──────────────────────────────────────────────────────────┐
+│ Route loaded • 27 km          18:13 🔋 37%              │  ← Top Info Bar
+├──────────────────────────────────────────────────────────┤
+│ DBG: MOVING | dim=ON(0.80) | br=1.00 | dimmed=N         │  ← Debug Row (__DEV__ only)
+├──────────────────────────────────────────────────────────┤
+```
+
+**Components:**
+- **Left side**: Route metrics (`"X.X km • +XXX m • ~XX min"`) or `"Free nav"` when no route
+- **Right side**: Current time (HH:mm format) and battery percentage with 🔋 icon
+
+**Styling:**
+- Height: 52px
+- Background: `rgba(0, 0, 0, 0.80)`
+- Text: White, orange accent on battery icon
+- Only shows when GPS position is available
+
+**Dependencies:**
+- `expo-battery` - for battery level monitoring
+- Time updates every 30 seconds
+- Battery updates every 60 seconds
+
+### 2. Debug Row (Development Only)
+
+A second row below the top info bar showing internal navigation state:
+
+**Format:**
+```
+DBG: MOVING | dim=ON(0.80) | br=0.85 | dimmed=N
+```
+
+**Fields:**
+- `motionState`: `MOVING` or `STATIONARY` (from native module)
+- `dim=ON/OFF(level)`: Auto-dim enabled state and target brightness
+- `br=X.XX`: Current screen brightness (0.0-1.0)
+- `dimmed=Y/N`: Whether screen is currently dimmed
+
+**Visibility:**
+- Only renders when `__DEV__` is true (development builds)
+- Automatically hidden in production builds
+- To test in production mode: `npx expo run:android --variant release`
+
+### 3. Auto-Dim Feature
+
+Automatically dims the screen when stationary to save battery:
+
+**Behavior:**
+- After 15 seconds of `STATIONARY` motion state → dims to configured level
+- When motion resumes (`MOVING`) → restores original brightness
+- Brightness is captured before first dim and restored on stop/resume
+
+**Settings (SettingsScreen):**
+- Toggle: "Auto-dim screen when stationary"
+- Level selector: 60%, 70%, 80%, 90% (segmented buttons)
+- Persisted to AsyncStorage
+
+**Configuration:**
+```typescript
+type NavigationConfig = {
+  // ... existing fields
+  autoDimEnabled: boolean;  // default: true
+  autoDimLevel: number;     // default: 0.8 (80%)
+};
+```
+
+### 4. DebugInfo Type
+
+New type exposed from NavigationContext for UI consumption:
+
+```typescript
+export type DebugInfo = {
+  motionState: 'MOVING' | 'STATIONARY' | null;
+  brightnessCurrent: number | null;
+  brightnessTarget: number;
+  isDimmed: boolean;
+  autoDimEnabled: boolean;
+};
+```
+
+**Flow:**
+1. NavigationContext maintains `debugInfo` state
+2. Updates on motion state changes, brightness changes, config changes
+3. Passed through NavigationScreen → NavigationMapView
+4. Rendered only in `__DEV__` builds
+
+### 5. Status Bar Hiding
+
+Android status bar is hidden when the top info bar is visible:
+
+```typescript
+useEffect(() => {
+  if (currentPosition) {
+    StatusBar.setHidden(true, 'fade');
+  } else {
+    StatusBar.setHidden(false, 'fade');
+  }
+  return () => StatusBar.setHidden(false, 'fade');
+}, [currentPosition]);
+```
+
+**Rationale:**
+- Top info bar shows time and battery, replacing system status bar
+- Provides more immersive full-screen experience
+- Status bar restored when leaving navigation
+
+### 6. i18n Additions
+
+**English (`en.json`):**
+```json
+"navigation": {
+  "freeNav": "Free nav"
+},
+"settings": {
+  "navigation": {
+    "title": "Navigation",
+    "autoDim": "Auto-dim screen when stationary",
+    "autoDimLevel": "Dim to"
+  }
+}
+```
+
+**Hebrew (`he.json`):**
+```json
+"navigation": {
+  "freeNav": "ניווט חופשי"
+},
+"settings": {
+  "navigation": {
+    "title": "ניווט",
+    "autoDim": "עמעם מסך אוטומטית בעמידה",
+    "autoDimLevel": "עמעם ל-"
+  }
+}
+```
+
+### Updated UI Layout
+
+```
+┌─────────────────────────────────────────┐
+│ Free nav            18:13 🔋 37%        │  ← Top Info Bar (height: 52)
+├─────────────────────────────────────────┤
+│ DBG: MOVING | dim=ON(0.80) | br=...     │  ← Debug Row (__DEV__ only, height: 24)
+├─────────────────────────────────────────┤
+│                            [Mode Toggle]│  ← top: 56 (or 84 in dev)
+│                                         │
+│              [Map View]                 │
+│                                         │
+│                            [Recenter]   │  ← bottom: 88
+│ [Speed Pill]              [Route Action]│  ← bottom: 24
+└─────────────────────────────────────────┘
+```
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `NavigationContext.tsx` | Added DebugInfo type, exposed through context, brightness control logic |
+| `NavigationMapView.tsx` | Added top info bar, debug row, time/battery state, StatusBar hiding |
+| `NavigationScreen.tsx` | Pass debugInfo to NavigationMapView |
+| `navigationService.ts` | Added autoDimEnabled, autoDimLevel to config |
+| `SettingsScreen.tsx` | Added Navigation settings section with auto-dim toggle and level |
+| `en.json` / `he.json` | Added "freeNav" and settings.navigation translations |

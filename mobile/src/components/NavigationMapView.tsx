@@ -2,14 +2,15 @@
 // Specialized map component for navigation with North-Up and Heading-Up modes
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, StatusBar, Platform } from 'react-native';
 import { Text, Icon, useTheme, ActivityIndicator } from 'react-native-paper';
 import MapboxGL from '@rnmapbox/maps';
 import { useTranslation } from 'react-i18next';
 import * as Location from 'expo-location';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Battery from 'expo-battery';
 import { getIsraelHikingTiles } from '../lib/mapbox';
-import { NavigationMode, NavigationPosition } from '../app/state/NavigationContext';
+import { NavigationMode, NavigationPosition, DebugInfo } from '../app/state/NavigationContext';
 import {
   computeRouteMetrics,
   findRouteProgress,
@@ -30,6 +31,7 @@ type NavigationMapViewProps = {
   onToggleMode: () => void;
   onLoadRoute?: (coords: [number, number][], name?: string) => void;
   onClearRoute?: () => void;
+  debugInfo?: DebugInfo;  // For dev debug row
 };
 
 export default function NavigationMapView({
@@ -40,6 +42,7 @@ export default function NavigationMapView({
   onToggleMode,
   onLoadRoute,
   onClearRoute,
+  debugInfo,
 }: NavigationMapViewProps) {
   const { i18n, t } = useTranslation();
   const theme = useTheme();
@@ -47,6 +50,10 @@ export default function NavigationMapView({
   const { baseTiles, trailTiles } = getIsraelHikingTiles(
     i18n.language === 'he' ? 'he' : 'en'
   );
+
+  // Top info bar state
+  const [currentTime, setCurrentTime] = useState<string>('');
+  const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
 
   // IMPORTANT: Start as null, so we don't render a "default Israel view" first (like MapPickerModal)
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
@@ -171,10 +178,23 @@ export default function NavigationMapView({
     setIsUserInteracting(false);   // Resume following
 
     // Explicitly center on user at current zoom level (don't reset to default 16)
+    // Use padding to position user at bottom 1/3 of screen
+    // Restore heading/pitch based on current mode
     if (cameraRef.current && currentPosition) {
+      const heading = mode === 'heading-up' ? currentPosition.heading : 0;
+      const pitch = mode === 'heading-up' ? 45 : 0;
+
       cameraRef.current.setCamera({
         centerCoordinate: currentPosition.coordinate,
         zoomLevel: currentZoomRef.current,
+        heading,
+        pitch,
+        padding: {
+          paddingTop: 400,
+          paddingBottom: 100,
+          paddingLeft: 50,
+          paddingRight: 50,
+        },
         animationDuration: 300,
       });
     }
@@ -188,6 +208,50 @@ export default function NavigationMapView({
       }
     };
   }, [recenterTimeout]);
+
+  // Update current time every 30 seconds
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('he-IL', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }));
+    };
+    updateTime(); // Initial update
+    const interval = setInterval(updateTime, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update battery level every 60 seconds
+  useEffect(() => {
+    const updateBattery = async () => {
+      try {
+        const level = await Battery.getBatteryLevelAsync();
+        if (level >= 0) {
+          setBatteryLevel(Math.round(level * 100));
+        }
+      } catch {
+        // Battery API may not be available on all devices
+      }
+    };
+    updateBattery(); // Initial update
+    const interval = setInterval(updateBattery, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Hide Android status bar when GPS is available (our top info bar replaces it)
+  useEffect(() => {
+    if (currentPosition) {
+      StatusBar.setHidden(true, 'fade');
+    } else {
+      StatusBar.setHidden(false, 'fade');
+    }
+    return () => {
+      StatusBar.setHidden(false, 'fade');
+    };
+  }, [currentPosition]);
 
   // Explicitly reset camera heading to north when switching to north-up mode
   // The heading prop alone doesn't work reliably when followUserLocation is active
@@ -209,11 +273,18 @@ export default function NavigationMapView({
     // Only auto-follow when we are not in manual interaction / preview state
     if (isUserInteracting) return;
 
+    // Use padding to position user at bottom 1/3 of screen
     cameraRef.current.setCamera({
       centerCoordinate: currentPosition.coordinate,
       zoomLevel: currentZoomRef.current,
       heading: cameraBearing, // your computed bearing (0 or heading)
       pitch: cameraPitch,
+      padding: {
+        paddingTop: 400,
+        paddingBottom: 100,
+        paddingLeft: 50,
+        paddingRight: 50,
+      },
       animationDuration: 300,
     });
   }, [currentPosition, mapReady, isUserInteracting, cameraBearing, cameraPitch]);
@@ -513,14 +584,36 @@ export default function NavigationMapView({
         )
       }
 
-      {/* Route Metrics Pill (top-center) - Only show for route navigation */}
-      {
-        route && metricsDisplay && (
-          <View style={styles.routeMetricsPill}>
-            <Text style={styles.routeMetricsText}>{metricsDisplay}</Text>
+      {/* Top Info Bar - Show when GPS available */}
+      {currentPosition && (
+        <>
+          <View style={styles.topInfoBar}>
+            {/* Left: Route metrics or Free nav */}
+            <Text style={styles.topInfoMetrics} numberOfLines={1}>
+              {route ? (metricsDisplay || 'Route loaded') : t('navigation.freeNav')}
+            </Text>
+
+            {/* Right: Time & Battery */}
+            <View style={styles.topInfoRight}>
+              <Text style={styles.topInfoTime}>{currentTime}</Text>
+              {batteryLevel !== null && (
+                <Text style={styles.topInfoBattery}>
+                  <Text style={styles.topInfoBatteryIcon}>🔋</Text> {batteryLevel}%
+                </Text>
+              )}
+            </View>
           </View>
-        )
-      }
+
+          {/* Dev Debug Row - Only in __DEV__ */}
+          {__DEV__ && debugInfo && (
+            <View style={styles.debugRow}>
+              <Text style={styles.debugText}>
+                DBG: {debugInfo.motionState || 'N/A'} | dim={debugInfo.autoDimEnabled ? 'ON' : 'OFF'}({debugInfo.brightnessTarget != null ? debugInfo.brightnessTarget.toFixed(2) : 'N/A'}) | br={debugInfo.brightnessCurrent != null ? debugInfo.brightnessCurrent.toFixed(2) : 'N/A'} | dimmed={debugInfo.isDimmed ? 'Y' : 'N'}
+              </Text>
+            </View>
+          )}
+        </>
+      )}
 
       {/* Recenter Button - show when not following user */}
       {
@@ -588,12 +681,12 @@ const styles = StyleSheet.create({
   },
   modeToggleButton: {
     position: 'absolute',
-    top: 56,  // Top-right corner where Mapbox compass was
-    right: 16,
+    top: 6,  // Centered in top info bar (52px height)
+    right: 8,
     padding: 0,
     backgroundColor: 'transparent',  // Transparent background, no circle
-    elevation: 5,  // Must be higher than stats overlay (elevation: 4) to render on top
-    zIndex: 5,     // For iOS
+    elevation: 15,  // Must be higher than top info bar (elevation: 10)
+    zIndex: 15,     // For iOS
   },
 
   speedPill: {
@@ -615,27 +708,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  routeMetricsPill: {
+  topInfoBar: {
     position: 'absolute',
-    top: 56,
-    left: 60,  // Leave space for mode toggle on right
-    right: 60,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 52,
+    backgroundColor: '#121212',
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  routeMetricsText: {
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
+    paddingTop: 4,
+    paddingRight: 56, // Leave space for mode toggle button
+    zIndex: 10,
+    elevation: 10,
+  },
+  topInfoMetrics: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '500',
+    flex: 1,
+  },
+  topInfoRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  topInfoTime: {
+    color: '#ffffff',
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  topInfoBattery: {
+    color: '#ffffff',
+    fontSize: 15,
+  },
+  topInfoBatteryIcon: {
+    color: '#ff6b35',
+  },
+  debugRow: {
+    position: 'absolute',
+    top: 52,  // Right below main info bar
+    left: 0,
+    right: 0,
+    height: 24,
+    backgroundColor: 'rgba(30, 30, 30, 0.95)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    zIndex: 9,
+    elevation: 9,
+  },
+  debugText: {
+    color: '#aaaaaa',
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   recenterButton: {
     position: 'absolute',

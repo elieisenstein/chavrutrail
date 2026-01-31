@@ -1,9 +1,10 @@
 // AppNavigator.tsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import { Icon } from "react-native-paper";
+import { getLastTab, setLastTab, TabName } from "../../lib/preferences";
 
 import FeedScreen from "../screens/FeedScreen";
 import ProfileScreen from "../screens/ProfileScreen";
@@ -213,10 +214,28 @@ function NavigationStack() {
 
 export default function AppNavigator() {
   const { t } = useTranslation();
+  const [initialTab, setInitialTab] = useState<TabName | null>(null);
 
- 
+  useEffect(() => {
+    getLastTab().then(setInitialTab);
+  }, []);
+
+  if (!initialTab) {
+    return null;
+  }
+
   return (
     <Tab.Navigator
+      initialRouteName={initialTab}
+      screenListeners={{
+        state: (e) => {
+          const state = e.data.state;
+          if (state?.routes && state.index !== undefined) {
+            const currentTab = state.routes[state.index].name as TabName;
+            setLastTab(currentTab);
+          }
+        },
+      }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#ff6b35",  // Orange for active tab

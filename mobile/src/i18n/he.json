@@ -95,6 +95,11 @@
       "title": "שפה",
       "he": "עברית",
       "en": "English"
+    },
+    "navigation": {
+      "title": "ניווט",
+      "autoDim": "עמעם מסך אוטומטית בעמידה",
+      "autoDimLevel": "עמעם ל-"
     }
   },
   "feed": {
@@ -210,7 +215,8 @@
     "time": "זמן",
     "noRoute": "לא נטען מסלול. התחל ניווט כדי לעקוב אחר המיקום שלך.",
     "permissionDenied": "הרשאת מיקום נדרשת לניווט.",
-    "requestPermission": "אפשר הרשאה"
+    "requestPermission": "אפשר הרשאה",
+    "freeNav": "ניווט חופשי"
   },
   "profile": {
     "title": "פרופיל",

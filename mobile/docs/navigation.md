@@ -814,3 +814,129 @@ useEffect(() => {
 | `navigationService.ts` | Added autoDimEnabled, autoDimLevel to config |
 | `SettingsScreen.tsx` | Added Navigation settings section with auto-dim toggle and level |
 | `en.json` / `he.json` | Added "freeNav" and settings.navigation translations |
+
+---
+
+## Session Summary (v1.3.1)
+
+Bug fixes and improvements:
+
+### 1. Navigation Bar Flickering Fix
+
+**Problem:** Top info bar flickered repeatedly when navigation was active.
+
+**Root Cause:** `useFocusEffect` with dependencies like `activeNavigation.state` ran cleanup on every state change, calling `stopNavigation()` repeatedly.
+
+**Solution:** Separated into two effects:
+```typescript
+// Blur cleanup only (empty deps)
+useFocusEffect(
+  useCallback(() => {
+    return () => { stopNavigation(); };
+  }, [])
+);
+
+// Start logic (regular useEffect)
+useEffect(() => {
+  if (needsStart || needsRestart) {
+    void handleStartNavigation();
+  }
+}, [routeKey, activeNavigation.state, ...]);
+```
+
+### 2. Fast GPS Acquisition
+
+**Problem:** GPS took 30+ seconds to acquire position when stationary, while Google Maps showed location instantly.
+
+**Root Cause:** `BishvilNavigationModule.kt` switched to `PRIORITY_BALANCED_POWER_ACCURACY` when motion state was `STATIONARY`.
+
+**Solution:** Always use `PRIORITY_HIGH_ACCURACY`:
+```kotlin
+// Always use high accuracy during navigation - the UX cost of slow GPS
+// acquisition (30+ seconds) outweighs the battery savings from balanced mode.
+// Battery is saved via longer intervals when stationary + screen dimming.
+val priority = Priority.PRIORITY_HIGH_ACCURACY
+```
+
+Battery savings now achieved via:
+- Longer update intervals when stationary (3x)
+- Screen auto-dim feature
+
+### 3. Brightness User Override
+
+**Problem:** When auto-dim activated, users couldn't manually adjust brightness - Android showed "controlled by app" message.
+
+**Root Cause:** `Brightness.setBrightnessAsync()` sets a **window-level override** that blocks user control.
+
+**Solution:** Use `Brightness.setSystemBrightnessAsync()` instead:
+```typescript
+// Before (blocks user control)
+await Brightness.setBrightnessAsync(target);
+
+// After (allows user override)
+await Brightness.setSystemBrightnessAsync(target);
+```
+
+**Behavior:**
+- Auto-dim still works (dims screen when stationary for 15s)
+- User can manually adjust brightness at any time via system settings
+- When motion resumes, restores to original captured brightness
+
+**Permission Added:**
+```xml
+<uses-permission android:name="android.permission.WRITE_SETTINGS"/>
+```
+
+### 4. Route Start/End Markers
+
+**Feature:** Added visual markers for route start and end points when a GPX file is loaded in navigation tab.
+
+**Implementation:**
+```typescript
+{/* Start Point Marker (orange) */}
+{route && route.length >= 2 && (
+  <MapboxGL.ShapeSource id="nav-start-point-source"
+    shape={{ type: 'Point', coordinates: route[0] }}>
+    <MapboxGL.CircleLayer id="nav-start-point-circle"
+      style={{
+        circleRadius: 8,
+        circleColor: '#FF8C00',  // Orange
+        circleStrokeWidth: 2,
+        circleStrokeColor: '#FFFFFF',
+      }}
+    />
+  </MapboxGL.ShapeSource>
+)}
+
+{/* End Point Marker (red) */}
+{route && route.length >= 2 && (
+  <MapboxGL.ShapeSource id="nav-end-point-source"
+    shape={{ type: 'Point', coordinates: route[route.length - 1] }}>
+    <MapboxGL.CircleLayer id="nav-end-point-circle"
+      style={{
+        circleRadius: 8,
+        circleColor: '#DC143C',  // Crimson red
+        circleStrokeWidth: 2,
+        circleStrokeColor: '#FFFFFF',
+      }}
+    />
+  </MapboxGL.ShapeSource>
+)}
+```
+
+**Styling:** Matches RoutePreviewScreen markers.
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `NavigationScreen.tsx` | Separated useFocusEffect for blur cleanup vs start logic |
+| `BishvilNavigationModule.kt` | Always use PRIORITY_HIGH_ACCURACY |
+| `NavigationContext.tsx` | Changed to setSystemBrightnessAsync for user override |
+| `AndroidManifest.xml` | Added WRITE_SETTINGS permission |
+| `NavigationMapView.tsx` | Added start/end point circle markers |
+
+---
+
+**Last Updated:** 2025-02-01
+**Version:** 1.3.1

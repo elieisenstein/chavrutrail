@@ -2,7 +2,7 @@
 // Specialized map component for navigation with North-Up and Heading-Up modes
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert, StatusBar, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Text, Icon, useTheme, ActivityIndicator } from 'react-native-paper';
 import MapboxGL from '@rnmapbox/maps';
 import { useTranslation } from 'react-i18next';
@@ -76,8 +76,12 @@ export default function NavigationMapView({
 
   const [mapReady, setMapReady] = useState(false);
 
-  // Camera ref for fitBounds
+  // Map and camera refs
+  const mapRef = useRef<MapboxGL.MapView>(null);
   const cameraRef = useRef<MapboxGL.Camera>(null);
+
+  // Start/end marker overlap detection
+  const [markersOverlap, setMarkersOverlap] = useState(false);
 
   // Track current zoom level to preserve it when recentering
   const currentZoomRef = useRef<number>(16);
@@ -241,17 +245,12 @@ export default function NavigationMapView({
     return () => clearInterval(interval);
   }, []);
 
-  // Hide Android status bar when GPS is available (our top info bar replaces it)
-  useEffect(() => {
-    if (currentPosition) {
-      StatusBar.setHidden(true, 'fade');
-    } else {
-      StatusBar.setHidden(false, 'fade');
-    }
-    return () => {
-      StatusBar.setHidden(false, 'fade');
-    };
-  }, [currentPosition]);
+
+  const cameraBearing = mode === 'heading-up' && currentPosition && !isUserInteracting
+    ? currentPosition.heading
+    : 0;
+
+  const cameraPitch = mode === 'heading-up' && !isUserInteracting ? 45 : 0;
 
   // Explicitly reset camera heading to north when switching to north-up mode
   // The heading prop alone doesn't work reliably when followUserLocation is active
@@ -272,6 +271,7 @@ export default function NavigationMapView({
 
     // Only auto-follow when we are not in manual interaction / preview state
     if (isUserInteracting) return;
+    if (isRoutePreviewMode) return;
 
     // Use padding to position user at bottom 1/3 of screen
     cameraRef.current.setCamera({
@@ -287,14 +287,10 @@ export default function NavigationMapView({
       },
       animationDuration: 300,
     });
-  }, [currentPosition, mapReady, isUserInteracting, cameraBearing, cameraPitch]);
+  }, [currentPosition, mapReady, isUserInteracting, isRoutePreviewMode, cameraBearing, cameraPitch]);
 
 
-  const cameraBearing = mode === 'heading-up' && currentPosition && !isUserInteracting
-    ? currentPosition.heading
-    : 0;
 
-  const cameraPitch = mode === 'heading-up' && !isUserInteracting ? 45 : 0;
 
   // Convert speed to km/h, but filter out GPS drift
   // Show 0 if: speed < 1.0 m/s (3.6 km/h) OR accuracy > 10m
@@ -312,6 +308,34 @@ export default function NavigationMapView({
     return computeRouteMetrics(route, routeElevations);
   }, [route, routeElevations]);
 
+  // Check if start and end markers overlap based on screen pixel distance
+  const checkMarkersOverlap = async () => {
+    if (!mapRef.current || !route || route.length < 2) {
+      setMarkersOverlap(false);
+      return;
+    }
+
+    try {
+      const startCoords = route[0];
+      const endCoords = route[route.length - 1];
+
+      const pixel1 = await mapRef.current.getPointInView(startCoords);
+      const pixel2 = await mapRef.current.getPointInView(endCoords);
+
+      if (!pixel1 || !pixel2) return;
+
+      const dx = pixel2[0] - pixel1[0];
+      const dy = pixel2[1] - pixel1[1];
+      const pixelDistance = Math.sqrt(dx * dx + dy * dy);
+
+      const MIN_PIXEL_DIST = 30; // Threshold for overlap
+      setMarkersOverlap(pixelDistance < MIN_PIXEL_DIST);
+    } catch (error) {
+      console.warn('Failed to calculate marker distance:', error);
+      setMarkersOverlap(false);
+    }
+  };
+
   // Fit camera to route bounds when route loads
   useEffect(() => {
     if (route && routeMetrics && cameraRef.current && mapReady) {
@@ -328,9 +352,13 @@ export default function NavigationMapView({
       // Enter preview mode (no auto-recenter)
       setIsRoutePreviewMode(true);
       setIsUserInteracting(true);
+
+      // Check marker overlap after camera animation
+      setTimeout(checkMarkersOverlap, 1100);
     } else if (!route) {
       // Route cleared - exit preview mode
       setIsRoutePreviewMode(false);
+      setMarkersOverlap(false);
     }
   }, [route, routeMetrics, mapReady]);
 
@@ -379,7 +407,12 @@ export default function NavigationMapView({
   const hasValidCenter = mapCenter !== null;
 
   // Pick ONE camera mode: follow when we have position, controlled otherwise
-  const shouldFollow = mapReady && !!currentPosition && !isUserInteracting && currentPosition.accuracy < 50;
+  const shouldFollow =
+  mapReady &&
+  !!currentPosition &&
+  !isUserInteracting &&
+  !isRoutePreviewMode &&
+  currentPosition.accuracy < 50;
 
   // GPX file picker handler
   const handleLoadGpx = async () => {
@@ -432,6 +465,7 @@ export default function NavigationMapView({
     <View style={styles.container}>
       {hasValidCenter ? (
         <MapboxGL.MapView
+          ref={mapRef}
           style={styles.map}
           styleURL={MapboxGL.StyleURL.Light}
           logoEnabled={false}
@@ -440,8 +474,15 @@ export default function NavigationMapView({
           pitchEnabled={mode === 'heading-up'}
           rotateEnabled={mode === 'heading-up'}
           onTouchStart={handleMapInteraction}
-          onDidFinishLoadingMap={() => setMapReady(true)}
-          onRegionDidChange={handleRegionDidChange}
+          onDidFinishLoadingMap={() => {
+            setMapReady(true);
+            checkMarkersOverlap();
+          }}
+          onRegionDidChange={(feature) => {
+            handleRegionDidChange(feature);
+            // Re-check overlap when zoom changes
+            if (route) checkMarkersOverlap();
+          }}
         >
           <MapboxGL.Camera
             ref={cameraRef}
@@ -460,18 +501,7 @@ export default function NavigationMapView({
             animationDuration={300}
             //followUserLocation={shouldFollow}
             followUserLocation={false}
-            followUserMode={
-              mode === 'heading-up' && !isUserInteracting
-                ? MapboxGL.UserTrackingMode.FollowWithCourse
-                : MapboxGL.UserTrackingMode.Follow
-            }
-            followPadding={{
-              paddingTop: 400,     // More space ahead (user at bottom 1/3)
-              paddingBottom: 100,  // Less space behind
-              paddingLeft: 50,     // Centered horizontally
-              paddingRight: 50,    // Centered horizontally
-            }}
-          />
+            />
 
           {/* Base tiles */}
           <MapboxGL.RasterSource
@@ -521,6 +551,42 @@ export default function NavigationMapView({
                   lineOpacity: 0.7,
                   lineCap: 'round',
                   lineJoin: 'round',
+                }}
+              />
+            </MapboxGL.ShapeSource>
+          )}
+
+          {/* Start Point Marker (orange) */}
+          {route && route.length >= 2 && (
+            <MapboxGL.ShapeSource
+              id="nav-start-point-source"
+              shape={{ type: 'Point', coordinates: route[0] }}
+            >
+              <MapboxGL.CircleLayer
+                id="nav-start-point-circle"
+                style={{
+                  circleRadius: 8,
+                  circleColor: '#FF8C00',
+                  circleStrokeWidth: 2,
+                  circleStrokeColor: '#FFFFFF',
+                }}
+              />
+            </MapboxGL.ShapeSource>
+          )}
+
+          {/* End Point Marker (red) */}
+          {route && route.length >= 2 && (
+            <MapboxGL.ShapeSource
+              id="nav-end-point-source"
+              shape={{ type: 'Point', coordinates: route[route.length - 1] }}
+            >
+              <MapboxGL.CircleLayer
+                id="nav-end-point-circle"
+                style={{
+                  circleRadius: 8,
+                  circleColor: '#DC143C',
+                  circleStrokeWidth: 2,
+                  circleStrokeColor: '#FFFFFF',
                 }}
               />
             </MapboxGL.ShapeSource>
@@ -584,36 +650,37 @@ export default function NavigationMapView({
         )
       }
 
-      {/* Top Info Bar - Show when GPS available */}
-      {currentPosition && (
-        <>
-          <View style={styles.topInfoBar}>
-            {/* Left: Route metrics or Free nav */}
-            <Text style={styles.topInfoMetrics} numberOfLines={1}>
-              {route ? (metricsDisplay || 'Route loaded') : t('navigation.freeNav')}
+      {/* Top Info Bar - Always shown (content changes if GPS not ready) */}
+      <View style={styles.topInfoBar}>
+        {/* Left: Route metrics or Free nav or GPS acquiring */}
+        <Text style={styles.topInfoMetrics} numberOfLines={1}>
+          {!currentPosition
+            ? 'Acquiring GPS…'
+            : route
+              ? (metricsDisplay || 'Route loaded')
+              : t('navigation.freeNav')}
+        </Text>
+
+        {/* Right: Time & Battery */}
+        <View style={styles.topInfoRight}>
+          <Text style={styles.topInfoTime}>{currentTime}</Text>
+          {batteryLevel !== null && (
+            <Text style={styles.topInfoBattery}>
+              <Text style={styles.topInfoBatteryIcon}>🔋</Text> {batteryLevel}%
             </Text>
-
-            {/* Right: Time & Battery */}
-            <View style={styles.topInfoRight}>
-              <Text style={styles.topInfoTime}>{currentTime}</Text>
-              {batteryLevel !== null && (
-                <Text style={styles.topInfoBattery}>
-                  <Text style={styles.topInfoBatteryIcon}>🔋</Text> {batteryLevel}%
-                </Text>
-              )}
-            </View>
-          </View>
-
-          {/* Dev Debug Row - Only in __DEV__ */}
-          {__DEV__ && debugInfo && (
-            <View style={styles.debugRow}>
-              <Text style={styles.debugText}>
-                DBG: {debugInfo.motionState || 'N/A'} | dim={debugInfo.autoDimEnabled ? 'ON' : 'OFF'}({debugInfo.brightnessTarget != null ? debugInfo.brightnessTarget.toFixed(2) : 'N/A'}) | br={debugInfo.brightnessCurrent != null ? debugInfo.brightnessCurrent.toFixed(2) : 'N/A'} | dimmed={debugInfo.isDimmed ? 'Y' : 'N'}
-              </Text>
-            </View>
           )}
-        </>
+        </View>
+      </View>
+
+      {/* Dev Debug Row - Only in __DEV__ */}
+      {__DEV__ && debugInfo && (
+        <View style={styles.debugRow}>
+          <Text style={styles.debugText}>
+            DBG: {debugInfo.motionState || 'N/A'} | dim={debugInfo.autoDimEnabled ? 'ON' : 'OFF'}({debugInfo.brightnessTarget != null ? debugInfo.brightnessTarget.toFixed(2) : 'N/A'}) | br={debugInfo.brightnessCurrent != null ? debugInfo.brightnessCurrent.toFixed(2) : 'N/A'} | dimmed={debugInfo.isDimmed ? 'Y' : 'N'}
+          </Text>
+        </View>
       )}
+
 
       {/* Recenter Button - show when not following user */}
       {

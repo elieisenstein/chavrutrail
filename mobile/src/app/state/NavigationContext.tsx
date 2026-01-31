@@ -110,9 +110,9 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       if (pendingDimTimerRef.current) {
         clearTimeout(pendingDimTimerRef.current);
       }
-      // Restore brightness synchronously if possible (best effort)
+      // Restore system brightness if dimmed (best effort)
       if (isDimmedRef.current && originalBrightnessRef.current !== null) {
-        Brightness.setBrightnessAsync(originalBrightnessRef.current).catch(() => { });
+        Brightness.setSystemBrightnessAsync(originalBrightnessRef.current).catch(() => { });
       }
     };
   }, []);
@@ -141,7 +141,8 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const captureOriginalBrightness = async () => {
     if (originalBrightnessRef.current === null) {
       try {
-        const brightness = await Brightness.getBrightnessAsync();
+        // Use system brightness (not window override) so user can still adjust manually
+        const brightness = await Brightness.getSystemBrightnessAsync();
         originalBrightnessRef.current = brightness;
       } catch (error) {
         console.error('Error capturing original brightness:', error);
@@ -162,7 +163,8 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
         Math.max(minBrightness, baseline * dimFactor)
       );
 
-      await Brightness.setBrightnessAsync(target);
+      // Use system brightness - user can still override manually
+      await Brightness.setSystemBrightnessAsync(target);
 
       isDimmedRef.current = true;
 
@@ -183,7 +185,8 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const restoreBrightness = async () => {
     if (isDimmedRef.current && originalBrightnessRef.current !== null) {
       try {
-        await Brightness.setBrightnessAsync(originalBrightnessRef.current);
+        // Restore system brightness to original value
+        await Brightness.setSystemBrightnessAsync(originalBrightnessRef.current);
         // Update debug info
         setDebugInfo(prev => ({
           ...prev,

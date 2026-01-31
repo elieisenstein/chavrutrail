@@ -2,16 +2,21 @@
 // Main navigation orchestration screen - minimal, stateless navigation
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, StatusBar } from 'react-native';
 import { Text, useTheme, ActivityIndicator } from 'react-native-paper';
-import { RouteProp, useRoute, useFocusEffect, useNavigation } from '@react-navigation/native';
+import {
+  RouteProp,
+  useRoute,
+  useFocusEffect,
+  useNavigation,
+} from '@react-navigation/native';
 import { useNavigation as useNavigationContext } from '../state/NavigationContext';
 import NavigationMapView from '../../components/NavigationMapView';
 
 type NavigationScreenParams = {
   NavigationMain: {
     route?: [number, number][];
-    routeElevations?: number[];  // Elevation at each route point
+    routeElevations?: number[]; // Elevation at each route point
     routeName?: string;
     gpxUrl?: string;
   };
@@ -21,6 +26,7 @@ export default function NavigationScreen() {
   const route = useRoute<RouteProp<NavigationScreenParams, 'NavigationMain'>>();
   const navigation = useNavigation();
   const theme = useTheme();
+
   const {
     activeNavigation,
     startNavigation,
@@ -44,13 +50,40 @@ export default function NavigationScreen() {
   // Route priority: params (from ride details) > local GPX > none
   const paramsRouteCoords = forceFreeNavigation ? undefined : route.params?.route;
   const routeCoords = paramsRouteCoords || localRoute?.coords || undefined;
-  const routeElevations = forceFreeNavigation ? undefined : route.params?.routeElevations;
-  const routeName = (forceFreeNavigation ? undefined : route.params?.routeName) || localRoute?.name || undefined;
+  const routeElevations = forceFreeNavigation
+    ? undefined
+    : route.params?.routeElevations;
+  const routeName =
+    (forceFreeNavigation ? undefined : route.params?.routeName) ||
+    localRoute?.name ||
+    undefined;
+
+  // Track if we've already handled the current route params (by route length + first point)
+  const lastRouteKeyRef = useRef<string | null>(null);
+
+  // Create a simple key to detect route changes
+  const routeKey = routeCoords
+    ? `${routeCoords.length}-${routeCoords[0]?.[0]}-${routeCoords[0]?.[1]}`
+    : null;
+
+  /**
+   * Hide Android status bar while this screen is focused.
+   * IMPORTANT: do NOT tie this to currentPosition or any streaming state.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setHidden(true, 'none');
+      StatusBar.setBarStyle('light-content');
+
+      return () => {
+        StatusBar.setHidden(false, 'none');
+      };
+    }, [])
+  );
 
   // Listen for tab press to reset to free navigation
   useEffect(() => {
     const unsubscribe = navigation.addListener('tabPress', () => {
-      // When tab is pressed while already on this screen, reset to free navigation
       setForceFreeNavigation(true);
       setLocalRoute(null);
     });
@@ -64,45 +97,13 @@ export default function NavigationScreen() {
     }
   }, [route.params?.route]);
 
-  // Track if we've already handled the current params (by route length + first point)
-  const lastRouteKeyRef = useRef<string | null>(null);
-
-  // Create a simple key to detect route changes
-  const routeKey = routeCoords
-    ? `${routeCoords.length}-${routeCoords[0]?.[0]}-${routeCoords[0]?.[1]}`
-    : null;
-
-  // Start or restart navigation when screen gains focus with (potentially new) params
-  useFocusEffect(
-    useCallback(() => {
-      const routeChanged = routeKey !== lastRouteKeyRef.current;
-      lastRouteKeyRef.current = routeKey;
-
-      // Start navigation if:
-      // 1. Not currently navigating (idle state)
-      // 2. OR route params changed (need to restart with new route)
-      const needsStart = activeNavigation.state === 'idle';
-      const needsRestart = routeChanged && activeNavigation.state === 'active' &&
-        // Only restart if the route actually changed (not just null -> null)
-        (routeKey !== null || activeNavigation.route !== null);
-
-      if (needsStart || needsRestart) {
-        handleStartNavigation();
-      }
-
-      // Cleanup: stop navigation when leaving screen
-      return () => {
-        if (activeNavigation.state === 'active') {
-          stopNavigation();
-        }
-      };
-    }, [routeKey, activeNavigation.state, activeNavigation.route])
-  );
-
-  const handleStartNavigation = async () => {
+  /**
+   * Start (or restart) navigation.
+   * Wrapped in useCallback to avoid stale captures inside focus effects.
+   */
+  const handleStartNavigation = useCallback(async () => {
     setIsStarting(true);
     try {
-      // Stop any existing navigation first
       if (activeNavigation.state === 'active') {
         await stopNavigation();
       }
@@ -112,33 +113,79 @@ export default function NavigationScreen() {
     } finally {
       setIsStarting(false);
     }
-  };
+  }, [
+    activeNavigation.state,
+    routeCoords,
+    routeName,
+    startNavigation,
+    stopNavigation,
+  ]);
+
+  /**
+   * Stop navigation when screen loses focus (separate effect with no deps).
+   * This prevents stopNavigation from being called on every state change.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      // No setup needed here - just cleanup on blur
+      return () => {
+        stopNavigation();
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []) // Empty deps: cleanup only runs on actual blur, not state changes
+  );
+
+  /**
+   * Start/restart navigation when screen gains focus with (potentially new) params.
+   * Uses regular useEffect to avoid cleanup issues with useFocusEffect dependencies.
+   */
+  useEffect(() => {
+    const routeChanged = routeKey !== lastRouteKeyRef.current;
+    lastRouteKeyRef.current = routeKey;
+
+    const needsStart = activeNavigation.state === 'idle';
+    const needsRestart =
+      routeChanged &&
+      activeNavigation.state === 'active' &&
+      (routeKey !== null || activeNavigation.route !== null);
+
+    if (needsStart || needsRestart) {
+      // Fire-and-forget; handleStartNavigation manages internal state
+      void handleStartNavigation();
+    }
+  }, [
+    routeKey,
+    activeNavigation.state,
+    activeNavigation.route,
+    handleStartNavigation,
+  ]);
 
   // Handle loading a GPX route (ephemeral, not saved)
-  const handleLoadRoute = useCallback(async (coords: [number, number][], name?: string) => {
-    setLocalRoute({ coords, name });
-    setForceFreeNavigation(false);
+  const handleLoadRoute = useCallback(
+    async (coords: [number, number][], name?: string) => {
+      setLocalRoute({ coords, name });
+      setForceFreeNavigation(false);
 
-    // Restart navigation with the new route
-    setIsStarting(true);
-    try {
-      if (activeNavigation.state === 'active') {
-        await stopNavigation();
+      setIsStarting(true);
+      try {
+        if (activeNavigation.state === 'active') {
+          await stopNavigation();
+        }
+        await startNavigation(coords, name);
+      } catch (error) {
+        console.error('Failed to start navigation with loaded route:', error);
+      } finally {
+        setIsStarting(false);
       }
-      await startNavigation(coords, name);
-    } catch (error) {
-      console.error('Failed to start navigation with loaded route:', error);
-    } finally {
-      setIsStarting(false);
-    }
-  }, [activeNavigation.state, stopNavigation, startNavigation]);
+    },
+    [activeNavigation.state, stopNavigation, startNavigation]
+  );
 
   // Handle clearing the current route
   const handleClearRoute = useCallback(async () => {
     setLocalRoute(null);
     setForceFreeNavigation(true);
 
-    // Restart as free navigation
     setIsStarting(true);
     try {
       if (activeNavigation.state === 'active') {

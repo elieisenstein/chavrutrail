@@ -16,6 +16,9 @@ import {
 // Auto-dim delay when stationary (hardcoded for v1)
 const AUTO_DIM_DELAY_MS = 15000;
 
+// Storage key for tracking if we've prompted for WRITE_SETTINGS permission
+const WRITE_SETTINGS_PROMPTED_KEY = '@bishvil_write_settings_prompted';
+
 export type NavigationMode = 'north-up' | 'heading-up';
 export type NavigationState = 'idle' | 'active';
 
@@ -54,6 +57,12 @@ export type NavigationContextValue = {
   config: NavigationConfig;
   updateConfig: (config: Partial<NavigationConfig>) => Promise<void>;
   debugInfo: DebugInfo;
+  // Permission helpers for SettingsScreen
+  checkAndRequestWriteSettingsPermission: (
+    showDialog: (onOpenSettings: () => void, onNotNow: () => void) => void,
+    forcePrompt?: boolean
+  ) => Promise<boolean>;
+  resetWriteSettingsPromptFlag: () => Promise<void>;
 };
 
 const defaultNavigation: ActiveNavigation = {
@@ -89,6 +98,8 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const lastMotionStateRef = useRef<'MOVING' | 'STATIONARY' | null>(null);
   // Keep a ref to config for use in callbacks without stale closure issues
   const configRef = useRef<NavigationConfig>(config);
+  // WRITE_SETTINGS permission status (null = not checked yet)
+  const writeSettingsGrantedRef = useRef<boolean | null>(null);
   useEffect(() => {
     configRef.current = config;
     // Update debug info when config changes
@@ -110,8 +121,8 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       if (pendingDimTimerRef.current) {
         clearTimeout(pendingDimTimerRef.current);
       }
-      // Restore system brightness if dimmed (best effort)
-      if (isDimmedRef.current && originalBrightnessRef.current !== null) {
+      // Restore system brightness if dimmed (best effort, only if permission granted)
+      if (isDimmedRef.current && originalBrightnessRef.current !== null && writeSettingsGrantedRef.current) {
         Brightness.setSystemBrightnessAsync(originalBrightnessRef.current).catch(() => { });
       }
     };
@@ -137,6 +148,64 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
+  // WRITE_SETTINGS permission helpers
+  const checkWriteSettingsPermission = async (): Promise<boolean> => {
+    try {
+      const { status } = await Brightness.getPermissionsAsync();
+      const granted = status === 'granted';
+      writeSettingsGrantedRef.current = granted;
+      return granted;
+    } catch (error) {
+      console.error('Error checking WRITE_SETTINGS permission:', error);
+      return false;
+    }
+  };
+
+  const requestWriteSettingsPermission = async (): Promise<boolean> => {
+    try {
+      const { status } = await Brightness.requestPermissionsAsync();
+      const granted = status === 'granted';
+      writeSettingsGrantedRef.current = granted;
+      return granted;
+    } catch (error) {
+      console.error('Error requesting WRITE_SETTINGS permission:', error);
+      return false;
+    }
+  };
+
+  const shouldPromptForWriteSettingsPermission = async (): Promise<boolean> => {
+    try {
+      const prompted = await AsyncStorage.getItem(WRITE_SETTINGS_PROMPTED_KEY);
+      if (!prompted) return true;
+
+      const { timestamp } = JSON.parse(prompted);
+      const daysSince = (Date.now() - timestamp) / (1000 * 60 * 60 * 24);
+      return daysSince > 30; // 30-day cooldown
+    } catch (error) {
+      console.error('Error checking prompt status:', error);
+      return true;
+    }
+  };
+
+  const markWriteSettingsPrompted = async () => {
+    try {
+      await AsyncStorage.setItem(
+        WRITE_SETTINGS_PROMPTED_KEY,
+        JSON.stringify({ timestamp: Date.now() })
+      );
+    } catch (error) {
+      console.error('Error marking prompt status:', error);
+    }
+  };
+
+  const resetWriteSettingsPromptFlag = async () => {
+    try {
+      await AsyncStorage.removeItem(WRITE_SETTINGS_PROMPTED_KEY);
+    } catch (error) {
+      console.error('Error resetting prompt flag:', error);
+    }
+  };
+
   // Brightness control helpers
   const captureOriginalBrightness = async () => {
     if (originalBrightnessRef.current === null) {
@@ -152,6 +221,17 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
 
   const dimScreen = async (dimFactor: number) => {
     try {
+      // Check permission first (lazy check - only query if not known)
+      if (writeSettingsGrantedRef.current === null) {
+        await checkWriteSettingsPermission();
+      }
+
+      if (!writeSettingsGrantedRef.current) {
+        // Permission not granted - skip dimming silently
+        console.log('WRITE_SETTINGS permission not granted, skipping dim');
+        return;
+      }
+
       await captureOriginalBrightness();
 
       const baseline = originalBrightnessRef.current;
@@ -185,15 +265,17 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const restoreBrightness = async () => {
     if (isDimmedRef.current && originalBrightnessRef.current !== null) {
       try {
-        // Restore system brightness to original value
-        await Brightness.setSystemBrightnessAsync(originalBrightnessRef.current);
+        // Only restore if we have permission
+        if (writeSettingsGrantedRef.current) {
+          await Brightness.setSystemBrightnessAsync(originalBrightnessRef.current);
+          console.log('Screen brightness restored');
+        }
         // Update debug info
         setDebugInfo(prev => ({
           ...prev,
           brightnessCurrent: originalBrightnessRef.current,
           isDimmed: false,
         }));
-        console.log('Screen brightness restored');
       } catch (error) {
         console.error('Error restoring brightness:', error);
       }
@@ -353,6 +435,38 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     }
   }, [config]);
 
+  // Permission check and request for SettingsScreen
+  // showDialog callback receives handlers for "Open Settings" and "Not now" buttons
+  const checkAndRequestWriteSettingsPermission = useCallback(async (
+    showDialog: (onOpenSettings: () => void, onNotNow: () => void) => void,
+    forcePrompt = false
+  ): Promise<boolean> => {
+    // First check if already granted
+    const granted = await checkWriteSettingsPermission();
+    if (granted) return true;
+
+    // Check if we should prompt (respects 30-day cooldown unless forced)
+    const shouldPrompt = forcePrompt || await shouldPromptForWriteSettingsPermission();
+    if (!shouldPrompt) return false;
+
+    // Show dialog and wait for user response
+    return new Promise((resolve) => {
+      showDialog(
+        // onOpenSettings
+        async () => {
+          await markWriteSettingsPrompted();
+          const result = await requestWriteSettingsPermission();
+          resolve(result);
+        },
+        // onNotNow
+        async () => {
+          await markWriteSettingsPrompted();
+          resolve(false);
+        }
+      );
+    });
+  }, []);
+
   const value: NavigationContextValue = {
     activeNavigation,
     startNavigation,
@@ -362,6 +476,8 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     config,
     updateConfig,
     debugInfo,
+    checkAndRequestWriteSettingsPermission,
+    resetWriteSettingsPromptFlag,
   };
 
   return <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>;

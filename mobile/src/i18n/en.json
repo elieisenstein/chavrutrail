@@ -412,5 +412,13 @@
     "saveFile": "Save GPX File",
     "saveToDevice": "Save to Device",
     "share": "Share"
+  },
+  "permissions": {
+    "writeSettings": {
+      "title": "Allow Auto-Dim",
+      "message": "To dim your screen during navigation and save battery, Android requires enabling 'Modify system settings'. We'll take you to a settings screen where you can turn it on.",
+      "openSettings": "Open Settings",
+      "notNow": "Not now"
+    }
   }
 }

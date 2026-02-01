@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { View, Alert } from "react-native";
 import { Text, RadioButton, Switch, SegmentedButtons } from "react-native-paper";
 import Constants from "expo-constants";
 import { useTranslation } from "react-i18next";
@@ -12,10 +12,43 @@ export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const { themeMode, setThemeMode } = useAppSettings();
   const theme = useTheme();
-  const { config, updateConfig } = useNavigation();
+  const { config, updateConfig, checkAndRequestWriteSettingsPermission, resetWriteSettingsPromptFlag } = useNavigation();
 
   const handleLanguageChange = async (newLanguage: string) => {
     await changeLanguage(newLanguage);
+  };
+
+  // Handler for auto-dim toggle that checks WRITE_SETTINGS permission
+  const handleAutoDimToggle = async (value: boolean) => {
+    if (value) {
+      // User is enabling auto-dim - reset cooldown and check permission
+      await resetWriteSettingsPromptFlag();
+
+      const showDialog = (onOpenSettings: () => void, onNotNow: () => void) => {
+        Alert.alert(
+          t('permissions.writeSettings.title'),
+          t('permissions.writeSettings.message'),
+          [
+            {
+              text: t('permissions.writeSettings.notNow'),
+              style: 'cancel',
+              onPress: onNotNow,
+            },
+            {
+              text: t('permissions.writeSettings.openSettings'),
+              onPress: onOpenSettings,
+            },
+          ]
+        );
+      };
+
+      // Check and request permission (forcePrompt = true since user explicitly enabled)
+      await checkAndRequestWriteSettingsPermission(showDialog, true);
+
+      // Enable the setting regardless of permission result
+      // (will just silently not dim if permission not granted)
+    }
+    updateConfig({ autoDimEnabled: value });
   };
 
   // Dim level options for segmented buttons
@@ -86,7 +119,7 @@ export default function SettingsScreen() {
           </Text>
           <Switch
             value={config.autoDimEnabled}
-            onValueChange={(value) => updateConfig({ autoDimEnabled: value })}
+            onValueChange={handleAutoDimToggle}
           />
         </View>
 

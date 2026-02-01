@@ -77,6 +77,7 @@ const defaultNavigation: ActiveNavigation = {
 const NavigationContext = createContext<NavigationContextValue | null>(null);
 
 const CONFIG_STORAGE_KEY = '@bishvil_navigation_config';
+const MODE_STORAGE_KEY = '@bishvil_navigation_mode';
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   const [activeNavigation, setActiveNavigation] = useState<ActiveNavigation>(defaultNavigation);
@@ -100,6 +101,8 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const configRef = useRef<NavigationConfig>(config);
   // WRITE_SETTINGS permission status (null = not checked yet)
   const writeSettingsGrantedRef = useRef<boolean | null>(null);
+  // Saved mode ref for use in startNavigation
+  const savedModeRef = useRef<NavigationMode>('north-up');
   useEffect(() => {
     configRef.current = config;
     // Update debug info when config changes
@@ -110,9 +113,10 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     }));
   }, [config]);
 
-  // Load persisted config on mount
+  // Load persisted config and mode on mount
   useEffect(() => {
     loadPersistedConfig();
+    loadPersistedMode();
   }, []);
 
   // Cleanup on unmount: restore brightness and clear timers
@@ -145,6 +149,26 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       await AsyncStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(newConfig));
     } catch (error) {
       console.error('Error persisting navigation config:', error);
+    }
+  };
+
+  const loadPersistedMode = async () => {
+    try {
+      const persisted = await AsyncStorage.getItem(MODE_STORAGE_KEY);
+      if (persisted === 'heading-up' || persisted === 'north-up') {
+        savedModeRef.current = persisted;
+      }
+    } catch (error) {
+      console.error('Error loading persisted navigation mode:', error);
+    }
+  };
+
+  const persistMode = async (mode: NavigationMode) => {
+    try {
+      savedModeRef.current = mode;
+      await AsyncStorage.setItem(MODE_STORAGE_KEY, mode);
+    } catch (error) {
+      console.error('Error persisting navigation mode:', error);
     }
   };
 
@@ -368,15 +392,15 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
         // Start native tracking
         await navigationService.startTracking(config, handleNavCommit);
 
-        // Update state
-        setActiveNavigation({
+        // Update state (use saved mode preference, preserve existing position)
+        setActiveNavigation((prev) => ({
           state: 'active',
-          mode: 'north-up',
+          mode: savedModeRef.current,
           route: route || null,
           routeName: routeName || null,
-          currentPosition: null,
-          lastUpdateTime: null,
-        });
+          currentPosition: prev.currentPosition,
+          lastUpdateTime: prev.lastUpdateTime,
+        }));
 
         console.log('Navigation started');
       } catch (error) {
@@ -395,6 +419,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       lastMotionStateRef.current = null;
 
       await navigationService.stopTracking();
+
       setActiveNavigation(defaultNavigation);
       // Reset debug info motion state
       setDebugInfo(prev => ({
@@ -411,13 +436,15 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const toggleMode = useCallback(() => {
-    setActiveNavigation((prev) => ({
-      ...prev,
-      mode: prev.mode === 'north-up' ? 'heading-up' : 'north-up',
-    }));
+    setActiveNavigation((prev) => {
+      const newMode = prev.mode === 'north-up' ? 'heading-up' : 'north-up';
+      persistMode(newMode);
+      return { ...prev, mode: newMode };
+    });
   }, []);
 
   const setMode = useCallback((mode: NavigationMode) => {
+    persistMode(mode);
     setActiveNavigation((prev) => ({
       ...prev,
       mode,

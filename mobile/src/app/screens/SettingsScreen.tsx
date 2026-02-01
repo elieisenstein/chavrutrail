@@ -59,6 +59,13 @@ export default function SettingsScreen() {
     { value: '0.9', label: '90%' },
   ];
 
+  // Update interval options (minTimeMs)
+  const updateIntervalOptions = [
+    { value: '1000', label: '1s' },
+    { value: '2000', label: '2s' },
+    { value: '3000', label: '3s' },
+  ];
+
   return (
     <View
       style={{
@@ -135,6 +142,17 @@ export default function SettingsScreen() {
             />
           </View>
         )}
+
+        <View style={{ gap: 8, marginTop: 8 }}>
+          <Text style={{ color: theme.colors.onSurface }}>
+            {t("settings.navigation.updateInterval")}
+          </Text>
+          <SegmentedButtons
+            value={config.minTimeMs.toString()}
+            onValueChange={(value) => updateConfig({ minTimeMs: parseInt(value, 10) })}
+            buttons={updateIntervalOptions}
+          />
+        </View>
       </View>
 
       <Text style={{ textAlign: "center", opacity: 0.5, marginTop: 24 }}>

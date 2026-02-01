@@ -99,7 +99,8 @@
     "navigation": {
       "title": "Navigation",
       "autoDim": "Auto-dim screen when stationary",
-      "autoDimLevel": "Dim to"
+      "autoDimLevel": "Dim to",
+      "updateInterval": "Map update interval"
     }
   },
   "feed": {

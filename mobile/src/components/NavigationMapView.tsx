@@ -195,7 +195,7 @@ const handleRecenter = () => {
   // Restore heading/pitch based on current mode
   if (cameraRef.current && currentPosition) {
     const heading = mode === 'heading-up' ? currentPosition.heading : 0;
-    const pitch = mode === 'heading-up' ? 45 : 0;
+    const pitch = 0;
 
     cameraRef.current.setCamera({
       centerCoordinate: currentPosition.coordinate,
@@ -259,7 +259,7 @@ const cameraBearing = mode === 'heading-up' && currentPosition && !isUserInterac
   ? currentPosition.heading
   : 0;
 
-const cameraPitch = mode === 'heading-up' && !isUserInteracting ? 45 : 0;
+const cameraPitch = 0;
 
 // Explicitly reset camera heading to north when switching to north-up mode
 // The heading prop alone doesn't work reliably when followUserLocation is active
@@ -494,7 +494,7 @@ return (
         logoEnabled={false}
         attributionEnabled={false}
         compassEnabled={false}
-        pitchEnabled={mode === 'heading-up'}
+        pitchEnabled={false}
         rotateEnabled={mode === 'heading-up'}
         onTouchStart={handleMapInteraction}
         onDidFinishLoadingMap={() => {
@@ -675,7 +675,7 @@ return (
                   : { transform: [{ rotate: '0deg' }] },
               ]}
             >
-              <Icon source="navigation" size={28} color="#ff6b35" />
+              <Icon source="navigation" size={35} color="#ff6b35" />
             </View>
           </MapboxGL.PointAnnotation>
         )}

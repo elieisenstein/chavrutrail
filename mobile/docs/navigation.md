@@ -217,7 +217,7 @@ A position update is committed (sent to JavaScript) when ANY of these conditions
 2. **Heading-Up Mode:**
    - Map orientation: Rotates with user heading
    - Icon: Orange ship wheel
-   - Camera pitch: 45° for 3D perspective
+   - Camera pitch: 0° (flat 2D, same as North-Up)
    - User perspective: Forward-facing view (what's ahead is up)
    - Best for: Turn-by-turn navigation, following trails
 
@@ -717,7 +717,34 @@ type NavigationConfig = {
 };
 ```
 
-### 4. DebugInfo Type
+### 4. Keep Screen On
+
+Prevents screen from turning off while Navigation tab is visible using `expo-keep-awake`.
+
+- Activated when Navigation screen gains focus (`useFocusEffect`)
+- Deactivated when Navigation screen loses focus (switching tabs)
+- Implemented in `NavigationScreen.tsx`, not `NavigationContext.tsx`
+- No user setting - always on while on Navigation tab
+
+### 5. Mode Persistence
+
+Saves the last used map mode (North-Up / Heading-Up) to AsyncStorage.
+
+- Stored under `@bishvil_navigation_mode` key
+- Loaded on context mount into `savedModeRef`
+- Used in `startNavigation` instead of hardcoded 'north-up'
+- Persisted on every `toggleMode` or `setMode` call
+
+### 6. User Location Arrow
+
+Orange arrow with black outline for visibility against any map background.
+
+- **Fill**: Orange `#ff6b35`, 35px (Material Design `navigation` icon)
+- **Outline**: Black `#000000`, 38px (layered behind fill)
+- Layered approach: two icons absolutely positioned, larger black one behind
+- Rotates with heading in north-up mode, fixed in heading-up mode
+
+### 7. DebugInfo Type
 
 New type exposed from NavigationContext for UI consumption:
 
@@ -737,7 +764,7 @@ export type DebugInfo = {
 3. Passed through NavigationScreen → NavigationMapView
 4. Rendered only in `__DEV__` builds
 
-### 5. Status Bar Hiding
+### 8. Status Bar Hiding
 
 Android status bar is hidden when the top info bar is visible:
 
@@ -757,7 +784,7 @@ useEffect(() => {
 - Provides more immersive full-screen experience
 - Status bar restored when leaving navigation
 
-### 6. i18n Additions
+### 9. i18n Additions
 
 **English (`en.json`):**
 ```json

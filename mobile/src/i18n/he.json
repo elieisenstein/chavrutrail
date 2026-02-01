@@ -99,7 +99,8 @@
     "navigation": {
       "title": "ניווט",
       "autoDim": "עמעם מסך אוטומטית בעמידה",
-      "autoDimLevel": "עמעם ל-"
+      "autoDimLevel": "עמעם ל-",
+      "updateInterval": "תדירות עדכון מפה"
     }
   },
   "feed": {

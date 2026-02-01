@@ -10,7 +10,10 @@ import {
   useFocusEffect,
   useNavigation,
 } from '@react-navigation/native';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useNavigation as useNavigationContext } from '../state/NavigationContext';
+
+const KEEP_AWAKE_TAG = 'bishvil-navigation';
 import NavigationMapView from '../../components/NavigationMapView';
 
 type NavigationScreenParams = {
@@ -77,6 +80,19 @@ export default function NavigationScreen() {
 
       return () => {
         StatusBar.setHidden(false, 'none');
+      };
+    }, [])
+  );
+
+  /**
+   * Keep screen on while Navigation tab is focused.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => {});
+
+      return () => {
+        deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => {});
       };
     }, [])
   );

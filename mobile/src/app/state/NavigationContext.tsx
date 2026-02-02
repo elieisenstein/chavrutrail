@@ -389,17 +389,55 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
           return;
         }
 
+        // Get initial position immediately so arrow shows right away
+        // This prevents the gap between entering navigation and first native GPS event
+        let initialPosition: NavigationPosition | null = null;
+        try {
+          // Try fast path first (last known position)
+          const lastKnown = await Location.getLastKnownPositionAsync();
+          if (lastKnown) {
+            const ageMs = Date.now() - (lastKnown.timestamp ?? 0);
+            // Accept if less than 2 minutes old
+            if (ageMs < 2 * 60 * 1000) {
+              initialPosition = {
+                coordinate: [lastKnown.coords.longitude, lastKnown.coords.latitude],
+                heading: lastKnown.coords.heading ?? 0,
+                speed: lastKnown.coords.speed ?? 0,
+                accuracy: lastKnown.coords.accuracy ?? 50,
+                timestamp: lastKnown.timestamp,
+              };
+            }
+          }
+
+          // If no valid last known, get current position (slower but reliable)
+          if (!initialPosition) {
+            const current = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.High,
+            });
+            initialPosition = {
+              coordinate: [current.coords.longitude, current.coords.latitude],
+              heading: current.coords.heading ?? 0,
+              speed: current.coords.speed ?? 0,
+              accuracy: current.coords.accuracy ?? 50,
+              timestamp: current.timestamp,
+            };
+          }
+        } catch (locError) {
+          console.warn('Could not get initial position for navigation:', locError);
+          // Continue anyway - native module will provide position eventually
+        }
+
         // Start native tracking
         await navigationService.startTracking(config, handleNavCommit);
 
-        // Update state (use saved mode preference, preserve existing position)
+        // Update state (use saved mode preference, use initial position if available)
         setActiveNavigation((prev) => ({
           state: 'active',
           mode: savedModeRef.current,
           route: route || null,
           routeName: routeName || null,
-          currentPosition: prev.currentPosition,
-          lastUpdateTime: prev.lastUpdateTime,
+          currentPosition: initialPosition || prev.currentPosition,
+          lastUpdateTime: initialPosition ? Date.now() : prev.lastUpdateTime,
         }));
 
         console.log('Navigation started');

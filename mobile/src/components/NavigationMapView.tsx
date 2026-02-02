@@ -654,18 +654,15 @@ return (
         ))}
 
         {/* User Location with heading indicator */}
-        {/*}
-          <MapboxGL.UserLocation
-            visible={true}
-            showsUserHeadingIndicator={false}
-            minDisplacement={1}
-          />
-            */}
-        {/* Custom user heading arrow */}
-        {currentPosition && (
-          <MapboxGL.PointAnnotation
+        {/* Custom user heading arrow - only render when map is ready and coordinates are valid */}
+        {mapReady && currentPosition &&
+         Number.isFinite(currentPosition.coordinate[0]) &&
+         Number.isFinite(currentPosition.coordinate[1]) && (
+          <MapboxGL.MarkerView
             id="user-heading-marker"
             coordinate={currentPosition.coordinate}
+            allowOverlap={true}
+            allowOverlapWithPuck={true}
           >
             <View
               style={[
@@ -677,7 +674,7 @@ return (
             >
               <Icon source="navigation" size={35} color="#ff6b35" />
             </View>
-          </MapboxGL.PointAnnotation>
+          </MapboxGL.MarkerView>
         )}
       </MapboxGL.MapView>
     ) : (

@@ -1,10 +1,17 @@
 import "dotenv/config";
 
+function versionCodeFrom(version) {
+  const [maj, min, patch] = version.split(".").map(Number);
+  return maj * 10000 + min * 100 + patch;
+}
+
+const APP_VERSION = "1.0.9";
+
 export default {
   name: "Bishvil",
   slug: "bishvil",
   owner: "elieisenstein",
-  version: "1.0.7",
+  version: APP_VERSION,
   orientation: "portrait",
   icon: "./assets/logo.png",
   userInterfaceStyle: "dark",
@@ -25,6 +32,7 @@ export default {
   android: {
     supportsRtl: true,
     package: "com.elieisenstein.bishvil",
+    versionCode: versionCodeFrom(APP_VERSION),
     jsEngine: "hermes",
     config: {
       // ONLY build for actual phone architectures (saves ~30MB)

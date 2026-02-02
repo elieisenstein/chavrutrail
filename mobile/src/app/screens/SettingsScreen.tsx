@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Alert } from "react-native";
+import { View, Alert, ScrollView } from "react-native";
 import { Text, RadioButton, Switch, SegmentedButtons } from "react-native-paper";
 import Constants from "expo-constants";
 import { useTranslation } from "react-i18next";
@@ -67,12 +67,14 @@ export default function SettingsScreen() {
   ];
 
   return (
-    <View
+    <ScrollView
       style={{
         flex: 1,
+        backgroundColor: theme.colors.background,
+      }}
+      contentContainerStyle={{
         padding: 16,
         gap: 12,
-        backgroundColor: theme.colors.background,
       }}
     >
       <Text
@@ -155,9 +157,9 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <Text style={{ textAlign: "center", opacity: 0.5, marginTop: 24 }}>
+      <Text style={{ textAlign: "center", opacity: 0.5, marginTop: 24, paddingBottom: 24 }}>
         v{Constants.expoConfig?.version}
       </Text>
-    </View>
+    </ScrollView>
   );
 }

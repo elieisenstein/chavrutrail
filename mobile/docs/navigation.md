@@ -965,5 +965,77 @@ await Brightness.setSystemBrightnessAsync(target);
 
 ---
 
-**Last Updated:** 2025-02-01
-**Version:** 1.3.1
+## Session Summary (v1.3.2)
+
+Improvements to map mode behavior:
+
+### 1. Auto-Recenter When Moving
+
+**Problem:** When loading a GPX file, the camera fits to route bounds and stays there until user manually presses recenter button. Users didn't realize they needed to press the button and thought the map was frozen.
+
+**Solution:** Automatically exit route preview mode when user starts moving:
+
+```typescript
+// Auto-recenter when user starts moving (exits route preview mode automatically)
+useEffect(() => {
+  if (debugInfo?.motionState === 'MOVING' && isRoutePreviewMode) {
+    // User started moving - exit preview mode and follow them
+    handleRecenter();
+  }
+}, [debugInfo?.motionState, isRoutePreviewMode]);
+```
+
+**Behavior:**
+| State | Camera Behavior |
+|-------|----------------|
+| Route loaded + STATIONARY | Shows route bounds (preview mode) |
+| Route loaded + MOVING | Auto-recenters and follows user |
+| Manual pan/zoom | 5-second timeout then auto-recenter |
+
+### 2. Stable Heading When Stationary
+
+**Problem:** In heading-up mode, when the user is stationary, the map rotates randomly due to noisy GPS heading data.
+
+**Root Cause:** GPS heading is unreliable/meaningless when not moving - the device can't determine direction without displacement.
+
+**Solution:** Save the last known heading when MOVING, and use that saved heading when STATIONARY:
+
+```typescript
+// Store last heading when moving (for stable heading-up when stationary)
+const lastMovingHeadingRef = useRef<number>(0);
+
+// Update last known heading only when moving
+useEffect(() => {
+  if (debugInfo?.motionState === 'MOVING' && currentPosition?.heading != null) {
+    lastMovingHeadingRef.current = currentPosition.heading;
+  }
+}, [debugInfo?.motionState, currentPosition?.heading]);
+
+// Use stable heading for camera and arrow
+const stableHeading = debugInfo?.motionState === 'MOVING'
+  ? currentPosition?.heading ?? lastMovingHeadingRef.current
+  : lastMovingHeadingRef.current;
+```
+
+**Behavior:**
+| Motion State | Heading Behavior |
+|--------------|-----------------|
+| MOVING | Uses live GPS heading (accurate when moving) |
+| STATIONARY | Uses last heading from when moving (stable) |
+
+**Applied to:**
+- `cameraBearing` - map rotation in heading-up mode
+- Arrow rotation - user location marker in north-up mode
+
+**UX Improvement:** If user is heading south and stops, the map stays facing south instead of randomly rotating to various directions.
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `NavigationMapView.tsx` | Added `lastMovingHeadingRef`, auto-recenter effect, `stableHeading` calculation |
+
+---
+
+**Last Updated:** 2025-02-03
+**Version:** 1.3.2

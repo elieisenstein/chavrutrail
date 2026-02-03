@@ -89,6 +89,9 @@ const [markersOverlap, setMarkersOverlap] = useState(false);
 // Track current zoom level to preserve it when recentering
 const currentZoomRef = useRef<number>(16);
 
+// Store last heading when moving (for stable heading-up when stationary)
+const lastMovingHeadingRef = useRef<number>(0);
+
 useEffect(() => {
   return () => setMapReady(false);
 }, []);
@@ -222,6 +225,21 @@ useEffect(() => {
   };
 }, [recenterTimeout]);
 
+// Auto-recenter when user starts moving (exits route preview mode automatically)
+useEffect(() => {
+  if (debugInfo?.motionState === 'MOVING' && isRoutePreviewMode) {
+    // User started moving - exit preview mode and follow them
+    handleRecenter();
+  }
+}, [debugInfo?.motionState, isRoutePreviewMode]);
+
+// Update last known heading only when moving (GPS heading is unreliable when stationary)
+useEffect(() => {
+  if (debugInfo?.motionState === 'MOVING' && currentPosition?.heading != null) {
+    lastMovingHeadingRef.current = currentPosition.heading;
+  }
+}, [debugInfo?.motionState, currentPosition?.heading]);
+
 // Update current time every 30 seconds
 useEffect(() => {
   const updateTime = () => {
@@ -255,8 +273,13 @@ useEffect(() => {
 }, []);
 
 
+// Use last known heading when stationary (GPS heading is noisy when not moving)
+const stableHeading = debugInfo?.motionState === 'MOVING'
+  ? currentPosition?.heading ?? lastMovingHeadingRef.current
+  : lastMovingHeadingRef.current;
+
 const cameraBearing = mode === 'heading-up' && currentPosition && !isUserInteracting
-  ? currentPosition.heading
+  ? stableHeading
   : 0;
 
 const cameraPitch = 0;
@@ -668,7 +691,7 @@ return (
               style={[
                 styles.userHeadingMarker,
                 mode === 'north-up'
-                  ? { transform: [{ rotate: `${currentPosition.heading ?? 0}deg` }] }
+                  ? { transform: [{ rotate: `${stableHeading}deg` }] }
                   : { transform: [{ rotate: '0deg' }] },
               ]}
             >

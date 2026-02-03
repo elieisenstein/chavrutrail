@@ -1207,5 +1207,90 @@ useEffect(() => {
 
 ---
 
+## Session Summary (v1.3.5)
+
+Bug fixes for map and motion detection:
+
+### 1. Zoom Level Preservation After Auto-Recenter
+
+**Problem:** When user zoomed out and the map auto-recentered (after 5 seconds of inactivity), the zoom reset to default level 16 instead of preserving the user's chosen zoom.
+
+**Root Cause:** The `mapZoom` state was initialized to 16 and never updated when user changed zoom. The Camera component used `zoomLevel={mapZoom}` which always returned 16, fighting with the `setCamera()` calls that correctly used `currentZoomRef.current`.
+
+**Solution:** Update `mapZoom` state when user changes zoom in `handleRegionDidChange`:
+
+```typescript
+// Track zoom level from map region changes - update both ref and state
+// State is needed so Camera component uses user's zoom level after auto-recenter
+const handleRegionDidChange = (feature: GeoJSON.Feature) => {
+  if (feature.properties?.zoomLevel) {
+    currentZoomRef.current = feature.properties.zoomLevel;
+    setMapZoom(feature.properties.zoomLevel);  // NEW: sync state with ref
+  }
+};
+```
+
+**Behavior:**
+- User zooms out → `mapZoom` state updates to new level
+- Auto-recenter triggers after 5 seconds
+- Camera uses user's zoom level instead of resetting to 16
+
+### 2. Hybrid Motion Detection (GPS + Accelerometer)
+
+**Problem:** When user stopped moving during navigation, the map appeared "frozen" showing stale speed (e.g., 10 km/h) and the arrow didn't pulse as expected in STATIONARY state.
+
+**Root Cause:** Timing/latency issue between GPS and accelerometer:
+1. Accelerometer needs ~1.6 seconds to detect STATIONARY (8 samples at 200ms each)
+2. GPS continues reporting stale speed until new fix acquired
+3. GPS events fire faster than accelerometer can catch up
+4. Result: `motionState="MOVING"` embedded in GPS event even when physically stopped
+
+**Solution:** Use GPS speed as **secondary signal** for motion detection:
+
+```kotlin
+// HYBRID MOTION DETECTION: Use GPS speed as secondary signal
+// If GPS shows essentially zero speed (<1 km/h) with good accuracy, override to STATIONARY
+// This catches the case where accelerometer hasn't detected stop yet
+// Threshold: 0.3 m/s = 1 km/h (standing still with GPS drift)
+val gpsIndicatesStationary = currentSpeed < 0.3f && currentAccuracy < 10f
+val effectiveMotionState = if (gpsIndicatesStationary) "STATIONARY" else motionState
+
+// Emit event with effective motion state
+emitNavCommitEvent(location, heading, dr, dTheta, dt, commitReason, effectiveMotionState)
+```
+
+**Speed Thresholds:**
+| Speed | Value | Classification |
+|-------|-------|----------------|
+| < 0.3 m/s | < 1 km/h | STATIONARY (via GPS) |
+| 1.4 m/s | 5 km/h | MOVING (slow ride) |
+| 2.8 m/s | 10 km/h | MOVING (normal ride) |
+
+**Additional Optimizations:**
+1. **Faster accelerometer sampling**: Changed from `SENSOR_DELAY_NORMAL` (~200ms) to `SENSOR_DELAY_GAME` (~50ms)
+2. **Reduced minimum samples**: Changed from 8 to 5 samples for faster state transitions (~250ms instead of ~1.6s)
+
+**Updated `emitNavCommitEvent` signature:**
+```kotlin
+private fun emitNavCommitEvent(
+    location: Location,
+    heading: Double,
+    dr: Double,
+    dTheta: Double,
+    dt: Long,
+    reason: String,
+    effectiveMotionState: String  // NEW parameter
+)
+```
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `NavigationMapView.tsx` | Added `setMapZoom()` call in `handleRegionDidChange` |
+| `BishvilNavigationModule.kt` | Added hybrid motion detection, `effectiveMotionState`, faster accelerometer (GAME delay, 5 samples) |
+
+---
+
 **Last Updated:** 2025-02-03
-**Version:** 1.3.4
+**Version:** 1.3.5

@@ -183,10 +183,12 @@ const handleMapInteraction = () => {
   setRecenterTimeout(timeout);
 };
 
-// Track zoom level from map region changes
+// Track zoom level from map region changes - update both ref and state
+// State is needed so Camera component uses user's zoom level after auto-recenter
 const handleRegionDidChange = (feature: GeoJSON.Feature) => {
   if (feature.properties?.zoomLevel) {
     currentZoomRef.current = feature.properties.zoomLevel;
+    setMapZoom(feature.properties.zoomLevel);
   }
 };
 

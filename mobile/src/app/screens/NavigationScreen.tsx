@@ -9,6 +9,7 @@ import {
   useRoute,
   useFocusEffect,
   useNavigation,
+  useIsFocused,
 } from '@react-navigation/native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useNavigation as useNavigationContext } from '../state/NavigationContext';
@@ -29,6 +30,7 @@ export default function NavigationScreen() {
   const route = useRoute<RouteProp<NavigationScreenParams, 'NavigationMain'>>();
   const navigation = useNavigation();
   const theme = useTheme();
+  const isFocused = useIsFocused();
 
   const {
     activeNavigation,
@@ -166,7 +168,10 @@ export default function NavigationScreen() {
       activeNavigation.state === 'active' &&
       (routeKey !== null || activeNavigation.route !== null);
 
-    if (needsStart || needsRestart) {
+    // Only start/restart navigation if the screen is focused
+    // This prevents restarting navigation when stopNavigation() sets state to 'idle'
+    // while the user is switching to another tab
+    if ((needsStart || needsRestart) && isFocused) {
       // Fire-and-forget; handleStartNavigation manages internal state
       void handleStartNavigation();
     }
@@ -175,6 +180,7 @@ export default function NavigationScreen() {
     activeNavigation.state,
     activeNavigation.route,
     handleStartNavigation,
+    isFocused,
   ]);
 
   // Handle loading a GPX route (ephemeral, not saved)

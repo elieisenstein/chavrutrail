@@ -1,6 +1,6 @@
 {
-  "latestVersion": "1.0.10",
-  "latestVersionCode": 10010,
+  "latestVersion": "1.0.11",
+  "latestVersionCode": 10011,
   "releaseNotes": "Improved navigation",
   "installUrl": "https://appdistribution.firebase.dev/i/0038d2f2fc868e06"
 }

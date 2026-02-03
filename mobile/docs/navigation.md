@@ -1463,5 +1463,77 @@ After `fitBounds()` set the camera to the route bbox, the next React render caus
 
 ---
 
+## Session Summary (v1.3.8)
+
+Bug fix for auto-dim not restoring brightness when switching tabs.
+
+### Auto-Dim Tab Switch Fix
+
+**Problem:** When auto-dim was active (screen dimmed on Navigation tab while stationary), switching to another tab (e.g., "Feed") should restore the original brightness. Instead, the dim stayed even after leaving the Navigation tab.
+
+**Root Cause:** Race condition between two effects in `NavigationScreen.tsx`:
+
+1. **Blur Cleanup Effect** (lines 145-153):
+   ```typescript
+   useFocusEffect(
+     useCallback(() => {
+       return () => {
+         stopNavigation(); // Called when screen loses focus
+       };
+     }, [])
+   );
+   ```
+
+2. **Auto-Start Effect** (lines 159-182):
+   ```typescript
+   useEffect(() => {
+     const needsStart = activeNavigation.state === 'idle';
+     if (needsStart || needsRestart) {
+       void handleStartNavigation();
+     }
+   }, [routeKey, activeNavigation.state, ...]);
+   ```
+
+**The Bug Flow:**
+1. User is on Navigation tab, screen is dimmed (stationary for 15s)
+2. User switches to Feed tab
+3. `useFocusEffect` cleanup runs → `stopNavigation()` → brightness restored → state = `'idle'`
+4. BUT... the Navigation screen is still **mounted** (tabs keep screens alive)
+5. The state change triggers the `useEffect`
+6. It sees `activeNavigation.state === 'idle'` → `needsStart = true`
+7. It calls `handleStartNavigation()` immediately, **restarting navigation even though the screen is not focused!**
+8. The native module starts tracking again, and if stationary, a new dim timer starts
+
+**Solution:** Add `useIsFocused` hook to check if the screen is focused before starting navigation:
+
+```typescript
+import { useIsFocused } from '@react-navigation/native';
+
+// In component:
+const isFocused = useIsFocused();
+
+// In useEffect:
+if ((needsStart || needsRestart) && isFocused) {
+  void handleStartNavigation();
+}
+```
+
+**Fixed Flow:**
+1. User is on Navigation tab, screen is dimmed
+2. User switches to Feed tab
+3. `isFocused` becomes `false`
+4. `stopNavigation()` runs → brightness restored → state = `'idle'`
+5. The `useEffect` runs due to state change
+6. BUT `isFocused` is `false`, so `handleStartNavigation()` is NOT called
+7. Brightness stays restored!
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `NavigationScreen.tsx` | Added `useIsFocused` import and hook, added focus check to auto-start useEffect |
+
+---
+
 **Last Updated:** 2025-02-03
-**Version:** 1.3.7
+**Version:** 1.3.8

@@ -32,6 +32,7 @@ type NavigationMapViewProps = {
   onLoadRoute?: (coords: [number, number][], name?: string) => void;
   onClearRoute?: () => void;
   debugInfo?: DebugInfo;  // For dev debug row
+  onWakeBrightness?: () => void;  // Tap to wake from dimmed state
 };
 
 export default function NavigationMapView({
@@ -43,6 +44,7 @@ export default function NavigationMapView({
   onLoadRoute,
   onClearRoute,
   debugInfo,
+  onWakeBrightness,
 }: NavigationMapViewProps) {
   const { i18n, t } = useTranslation();
   const theme = useTheme();
@@ -157,6 +159,9 @@ useEffect(() => {
 
 // Handle map interaction - start timeout for auto-recenter (unless in preview mode)
 const handleMapInteraction = () => {
+  // Wake brightness if dimmed (tap to wake)
+  onWakeBrightness?.();
+
   // In preview mode, don't override with auto-recenter timer
   if (isRoutePreviewMode) return;
 

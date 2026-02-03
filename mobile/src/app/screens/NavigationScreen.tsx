@@ -36,6 +36,7 @@ export default function NavigationScreen() {
     stopNavigation,
     toggleMode,
     debugInfo,
+    wakeBrightness,
   } = useNavigationContext();
 
   const [isStarting, setIsStarting] = useState(false);
@@ -239,6 +240,7 @@ export default function NavigationScreen() {
         onLoadRoute={handleLoadRoute}
         onClearRoute={handleClearRoute}
         debugInfo={debugInfo}
+        onWakeBrightness={wakeBrightness}
       />
     </View>
   );

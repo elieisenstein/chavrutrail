@@ -1037,5 +1037,104 @@ const stableHeading = debugInfo?.motionState === 'MOVING'
 
 ---
 
+## Session Summary (v1.3.3)
+
+Auto-dim improvements:
+
+### 1. Expanded Dim Level Range
+
+**Problem:** Auto-dim level selector only offered 60-90%, limiting testing of lower brightness values.
+
+**Solution:** Changed from `SegmentedButtons` to +/- stepper with expanded range:
+
+```typescript
+<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+  <IconButton
+    icon="minus"
+    disabled={config.autoDimLevel <= 0.3}
+    onPress={() => updateConfig({ autoDimLevel: Math.round((config.autoDimLevel - 0.1) * 10) / 10 })}
+  />
+  <Text>{Math.round(config.autoDimLevel * 100)}%</Text>
+  <IconButton
+    icon="plus"
+    disabled={config.autoDimLevel >= 0.9}
+    onPress={() => updateConfig({ autoDimLevel: Math.round((config.autoDimLevel + 0.1) * 10) / 10 })}
+  />
+</View>
+```
+
+**Settings UI:**
+```
+┌────────────────────────────────────────┐
+│ Dim to              [-]  80%  [+]      │
+└────────────────────────────────────────┘
+```
+
+- Range: 30% to 90%
+- Steps: 10%
+- Default: 80%
+
+### 2. Tap to Wake Brightness
+
+**Problem:** When screen is dimmed (stationary for 15s), user has no way to temporarily restore brightness without moving.
+
+**Solution:** Tapping the map restores brightness, then dims again after 15s if still stationary.
+
+**NavigationContext.tsx:**
+```typescript
+const wakeBrightness = useCallback(async () => {
+  // Only wake if currently dimmed and auto-dim is enabled
+  if (!isDimmedRef.current || !configRef.current.autoDimEnabled) return;
+
+  // Restore brightness
+  await restoreBrightness();
+
+  // If still stationary, start a new dim timer
+  if (lastMotionStateRef.current === 'STATIONARY') {
+    pendingDimTimerRef.current = setTimeout(() => {
+      if (configRef.current.autoDimEnabled && lastMotionStateRef.current === 'STATIONARY') {
+        dimScreen(configRef.current.autoDimLevel);
+      }
+      pendingDimTimerRef.current = null;
+    }, AUTO_DIM_DELAY_MS);
+  }
+}, []);
+```
+
+**NavigationMapView.tsx:**
+```typescript
+const handleMapInteraction = () => {
+  // Wake brightness if dimmed (tap to wake)
+  onWakeBrightness?.();
+  // ... existing interaction handling
+};
+```
+
+**Flow:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ STATIONARY for 15s → Screen dims                            │
+│                                                             │
+│ User taps screen:                                           │
+│   1. Restore brightness immediately                         │
+│   2. Start new 15s timer                                    │
+│                                                             │
+│ After 15s:                                                  │
+│   - If STILL STATIONARY → dim again                         │
+│   - If MOVING → timer cancelled, stay bright                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `SettingsScreen.tsx` | Changed dim level from SegmentedButtons to +/- stepper (30-90% range) |
+| `NavigationContext.tsx` | Added `wakeBrightness()` function |
+| `NavigationMapView.tsx` | Added `onWakeBrightness` prop, called on map touch |
+| `NavigationScreen.tsx` | Passes `wakeBrightness` to NavigationMapView |
+
+---
+
 **Last Updated:** 2025-02-03
-**Version:** 1.3.2
+**Version:** 1.3.3

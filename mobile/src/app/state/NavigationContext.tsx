@@ -63,6 +63,7 @@ export type NavigationContextValue = {
     forcePrompt?: boolean
   ) => Promise<boolean>;
   resetWriteSettingsPromptFlag: () => Promise<void>;
+  wakeBrightness: () => Promise<void>;
 };
 
 const defaultNavigation: ActiveNavigation = {
@@ -317,6 +318,25 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
+  // Wake brightness on user interaction (tap to wake)
+  const wakeBrightness = useCallback(async () => {
+    // Only wake if currently dimmed and auto-dim is enabled
+    if (!isDimmedRef.current || !configRef.current.autoDimEnabled) return;
+
+    // Restore brightness
+    await restoreBrightness();
+
+    // If still stationary, start a new dim timer
+    if (lastMotionStateRef.current === 'STATIONARY') {
+      pendingDimTimerRef.current = setTimeout(() => {
+        if (configRef.current.autoDimEnabled && lastMotionStateRef.current === 'STATIONARY') {
+          dimScreen(configRef.current.autoDimLevel);
+        }
+        pendingDimTimerRef.current = null;
+      }, AUTO_DIM_DELAY_MS);
+    }
+  }, []);
+
   const handleNavCommit = useCallback((event: NavCommitEvent) => {
     // Update position state
     setActiveNavigation((prev) => {
@@ -543,6 +563,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     debugInfo,
     checkAndRequestWriteSettingsPermission,
     resetWriteSettingsPromptFlag,
+    wakeBrightness,
   };
 
   return <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>;

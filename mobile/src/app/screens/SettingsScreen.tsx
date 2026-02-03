@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Alert, ScrollView } from "react-native";
-import { Text, RadioButton, Switch, SegmentedButtons } from "react-native-paper";
+import { Text, RadioButton, Switch, SegmentedButtons, IconButton } from "react-native-paper";
 import Constants from "expo-constants";
 import { useTranslation } from "react-i18next";
 import { useAppSettings } from "../state/AppSettingsContext";
@@ -50,14 +50,6 @@ export default function SettingsScreen() {
     }
     updateConfig({ autoDimEnabled: value });
   };
-
-  // Dim level options for segmented buttons
-  const dimLevelOptions = [
-    { value: '0.6', label: '60%' },
-    { value: '0.7', label: '70%' },
-    { value: '0.8', label: '80%' },
-    { value: '0.9', label: '90%' },
-  ];
 
   // Update interval options (minTimeMs)
   const updateIntervalOptions = [
@@ -134,14 +126,30 @@ export default function SettingsScreen() {
 
         {config.autoDimEnabled && (
           <View style={{ gap: 8 }}>
-            <Text style={{ color: theme.colors.onSurface }}>
-              {t("settings.navigation.autoDimLevel")}
-            </Text>
-            <SegmentedButtons
-              value={config.autoDimLevel.toString()}
-              onValueChange={(value) => updateConfig({ autoDimLevel: parseFloat(value) })}
-              buttons={dimLevelOptions}
-            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ color: theme.colors.onSurface }}>
+                {t("settings.navigation.autoDimLevel")}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <IconButton
+                  icon="minus"
+                  size={20}
+                  mode="contained-tonal"
+                  disabled={config.autoDimLevel <= 0.3}
+                  onPress={() => updateConfig({ autoDimLevel: Math.round((config.autoDimLevel - 0.1) * 10) / 10 })}
+                />
+                <Text style={{ color: theme.colors.onSurface, fontWeight: 'bold', minWidth: 45, textAlign: 'center' }}>
+                  {Math.round(config.autoDimLevel * 100)}%
+                </Text>
+                <IconButton
+                  icon="plus"
+                  size={20}
+                  mode="contained-tonal"
+                  disabled={config.autoDimLevel >= 0.9}
+                  onPress={() => updateConfig({ autoDimLevel: Math.round((config.autoDimLevel + 0.1) * 10) / 10 })}
+                />
+              </View>
+            </View>
           </View>
         )}
 

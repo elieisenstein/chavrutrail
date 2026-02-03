@@ -1136,5 +1136,76 @@ const handleMapInteraction = () => {
 
 ---
 
+## Session Summary (v1.3.4)
+
+Visual feedback for stationary state:
+
+### Stationary Pulse Animation
+
+**Problem:** No visual feedback when stationary - the arrow looks identical whether moving or stopped.
+
+**Solution:** Add a pulse animation to the location arrow when `motionState === 'STATIONARY'`.
+
+**Implementation:**
+
+```typescript
+// Pulse animation for stationary state
+const pulseAnim = useRef(new Animated.Value(1)).current;
+
+useEffect(() => {
+  if (debugInfo?.motionState === 'STATIONARY') {
+    // Start infinite pulse loop (1.0 → 0.75 → 1.0, 1s period, ease in-out)
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 0.75,
+          duration: 500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1.0,
+          duration: 500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  } else {
+    // Reset to normal scale when moving
+    pulseAnim.setValue(1);
+  }
+}, [debugInfo?.motionState, pulseAnim]);
+
+// Apply to arrow
+<Animated.View style={{ transform: [{ rotate }, { scale: pulseAnim }] }}>
+  <Icon source="navigation" ... />
+</Animated.View>
+```
+
+**Animation Parameters:**
+| Parameter | Value |
+|-----------|-------|
+| Scale | 1.0 → 0.75 → 1.0 (25% shrink) |
+| Period | 1 second (500ms each direction) |
+| Easing | `Easing.inOut(Easing.ease)` |
+| Driver | Native (60fps, off JS thread) |
+
+**Behavior:**
+| Motion State | Arrow Behavior |
+|--------------|----------------|
+| MOVING | Static arrow (scale = 1.0) |
+| STATIONARY | Pulsing arrow (smooth 25% shrink/grow) |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `NavigationMapView.tsx` | Added `Animated`, `Easing` imports, `pulseAnim` ref, pulse useEffect, `Animated.View` wrapper |
+
+---
+
 **Last Updated:** 2025-02-03
-**Version:** 1.3.3
+**Version:** 1.3.4

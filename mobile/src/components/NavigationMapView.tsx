@@ -2,7 +2,7 @@
 // Specialized map component for navigation with North-Up and Heading-Up modes
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, Platform, Animated, Easing } from 'react-native';
 import { Text, Icon, useTheme, ActivityIndicator } from 'react-native-paper';
 import MapboxGL from '@rnmapbox/maps';
 import { useTranslation } from 'react-i18next';
@@ -93,6 +93,9 @@ const currentZoomRef = useRef<number>(16);
 
 // Store last heading when moving (for stable heading-up when stationary)
 const lastMovingHeadingRef = useRef<number>(0);
+
+// Pulse animation for stationary state
+const pulseAnim = useRef(new Animated.Value(1)).current;
 
 useEffect(() => {
   return () => setMapReady(false);
@@ -244,6 +247,34 @@ useEffect(() => {
     lastMovingHeadingRef.current = currentPosition.heading;
   }
 }, [debugInfo?.motionState, currentPosition?.heading]);
+
+// Pulse animation when stationary
+useEffect(() => {
+  if (debugInfo?.motionState === 'STATIONARY') {
+    // Start infinite pulse loop (1.0 → 0.75 → 1.0, 1s period, ease in-out)
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 0.75,
+          duration: 500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1.0,
+          duration: 500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  } else {
+    // Reset to normal scale when moving
+    pulseAnim.setValue(1);
+  }
+}, [debugInfo?.motionState, pulseAnim]);
 
 // Update current time every 30 seconds
 useEffect(() => {
@@ -692,16 +723,19 @@ return (
             allowOverlap={true}
             allowOverlapWithPuck={true}
           >
-            <View
+            <Animated.View
               style={[
                 styles.userHeadingMarker,
-                mode === 'north-up'
-                  ? { transform: [{ rotate: `${stableHeading}deg` }] }
-                  : { transform: [{ rotate: '0deg' }] },
+                {
+                  transform: [
+                    { rotate: mode === 'north-up' ? `${stableHeading}deg` : '0deg' },
+                    { scale: pulseAnim },
+                  ],
+                },
               ]}
             >
               <Icon source="navigation" size={35} color="#ff6b35" />
-            </View>
+            </Animated.View>
           </MapboxGL.MarkerView>
         )}
       </MapboxGL.MapView>

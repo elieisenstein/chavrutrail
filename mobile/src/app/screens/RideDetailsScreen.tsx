@@ -141,7 +141,6 @@ export default function RideDetailsScreen() {
     }
   };
 
-
   useEffect(() => {
     let mounted = true;
 

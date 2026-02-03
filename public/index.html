@@ -2,12 +2,11 @@
 <html lang="he" dir="rtl">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bishvil - בשביל לפגוש אנשים בשביל</title>
   <style>
     :root {
-      /* Indigo/Dark Blue Base from Image 2 */
       --bg0: #0b0f19;
       --bg1: #121a2b;
       --text: #e5e7eb;
@@ -15,11 +14,9 @@
       --border: rgba(255, 255, 255, 0.10);
       --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
 
-      /* High-Energy Colors from Image 1 */
       --orange: #FF6B35;
       --green: #4CAF50;
 
-      /* Purple/Indigo Accents for Background Glow */
       --accent: #667eea;
       --accent2: #8b5cf6;
     }
@@ -32,8 +29,8 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      /* Background gradient matching Image 2's indigo tones */
-      background: radial-gradient(1200px 700px at 20% 10%, rgba(102, 126, 234, 0.15), transparent 60%),
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(102, 126, 234, 0.15), transparent 60%),
         radial-gradient(1000px 600px at 85% 20%, rgba(139, 92, 246, 0.12), transparent 55%),
         linear-gradient(135deg, var(--bg0) 0%, var(--bg1) 100%);
       min-height: 100vh;
@@ -56,15 +53,12 @@
       backdrop-filter: blur(12px);
     }
 
-    /* Fix: Ensuring only the circular logo shows without a square background */
     .logo-container {
       width: 120px;
       height: 120px;
       margin: 0 auto 24px;
       border-radius: 40%;
-      /* Forces circular clipping */
       overflow: hidden;
-      /* Hides any square corners of the image */
       background: transparent;
       display: flex;
       align-items: center;
@@ -82,7 +76,6 @@
       font-size: 32px;
       letter-spacing: 2px;
       color: var(--orange);
-      /* Branding from Image 1 */
     }
 
     .tagline {
@@ -92,7 +85,6 @@
       margin-bottom: 24px;
     }
 
-    /* Primary Action Button (Orange) */
     .btn-primary {
       display: inline-block;
       background: var(--orange);
@@ -113,7 +105,6 @@
       filter: brightness(1.1);
     }
 
-    /* Secondary Action (Ghost Button) */
     .btn-secondary {
       display: block;
       width: fit-content;
@@ -133,6 +124,14 @@
     .btn-secondary:hover {
       transform: translateY(-2px);
       filter: brightness(1.1);
+    }
+
+    .hint {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      opacity: 0.85;
+      line-height: 1.4;
     }
 
     .features {
@@ -163,15 +162,15 @@
 <body>
   <div class="container">
     <div class="logo-container">
-      <img src="../mobile/assets/logo_apk.png" alt="Bishvil Logo">
+      <img src="../mobile/assets/logo_apk.png" alt="Bishvil Logo" />
     </div>
 
     <h1>BISHVIL</h1>
     <p class="tagline">בשביל לפגוש אנשים בשביל</p>
 
     <a href="#" id="openApp" class="btn-primary">פתח רכיבה באפליקציה</a>
-
-    <a href="#" class="btn-secondary" id="downloadApk">הורד APK</a>
+    <a href="#" class="btn-secondary" id="installBeta">התקנה / בקשת גישה (בטא)</a>
+    <div class="hint" id="pageHint"></div>
 
     <div class="features">
       <div class="feature">
@@ -199,54 +198,60 @@
 
   <script>
     (function () {
-      //const VERSION_URL = 'https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bnsj1ed2zv4dd5qpkhy&dl=1';
-      //const VERSION_URL = '/version.json';
-      const VERSION_URL = '/version.json?t=' + Date.now(); // Prevent caching
-      const FALLBACK_APK = 'https://www.dropbox.com/scl/fi/b7hw1nm8ru27i5manfhad/bishvil_1.0.5.apk?rlkey=gow6lr1czepfhs9s5w9c9iej0&dl=1';
+      // Firebase App Distribution invite link (email signup -> you approve -> install)
+      const FIREBASE_INVITE = "https://appdistribution.firebase.dev/i/0038d2f2fc868e06";
 
-      // Fetch APK URL from version.json
-      fetch(VERSION_URL, { cache: "no-store" })
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          window.apkUrl = data.downloadUrl;
-          const downloadBtn = document.getElementById('downloadApk');
-          if (downloadBtn) downloadBtn.href = data.downloadUrl;
-        })
-        .catch(() => {
-          window.apkUrl = FALLBACK_APK;
-          const downloadBtn = document.getElementById('downloadApk');
-          if (downloadBtn) downloadBtn.href = FALLBACK_APK;
-        });
+      // How long to wait after attempting deep link before redirecting to Firebase
+      const FALLBACK_DELAY_MS = 1200;
+
+      // If true, we auto-redirect to Firebase after initial auto-open attempt (for non-installed users)
+      // Set to false if you prefer "no automatic redirect" and only manual button usage.
+      const AUTO_REDIRECT_TO_FIREBASE_ON_LOAD = true;
+      const AUTO_REDIRECT_DELAY_MS = 1500;
+
+      // Wire "Install / Request access" button
+      const installBtn = document.getElementById("installBeta");
+      if (installBtn) installBtn.href = FIREBASE_INVITE;
 
       // Extract rideId from /ride/<id>
       const parts = window.location.pathname.split("/").filter(Boolean);
       const rideId = (parts[0] === "ride" && parts[1]) ? parts[1] : null;
 
-      // If not on a ride page, just set download link
+      const hint = document.getElementById("pageHint");
+      if (hint) {
+        hint.textContent = rideId
+          ? "אם האפליקציה לא מותקנת, תועבר למסך בקשת גישה (בטא)."
+          : "כדי לפתוח רכיבה, השתמש בקישור שיתוף מסוג /ride/<id>.";
+      }
+
+      // If not on a ride page, do not attempt deep link
       if (!rideId) return;
 
       const deepLink = `bishvil://ride/${rideId}`;
 
-      // Wire the button to retry opening the app
-      const btn = document.getElementById("openApp");
-      if (btn) {
-        btn.href = deepLink;
-        btn.addEventListener("click", (e) => {
+      // Primary button: try opening the app; if it doesn't open, go to Firebase invite page
+      const openBtn = document.getElementById("openApp");
+      if (openBtn) {
+        openBtn.href = deepLink;
+        openBtn.addEventListener("click", (e) => {
           e.preventDefault();
           window.location.href = deepLink;
 
-          // fallback if app didn't open
           setTimeout(() => {
-            window.location.href = window.apkUrl || FALLBACK_APK;
-          }, 1200);
+            window.location.href = FIREBASE_INVITE;
+          }, FALLBACK_DELAY_MS);
         });
       }
 
-      // Attempt auto-open on page load (best-effort)
+      // Best-effort auto-open on page load
       window.location.href = deepLink;
+
+      // Optional: automatically send non-installed users to Firebase after a short delay
+      if (AUTO_REDIRECT_TO_FIREBASE_ON_LOAD) {
+        setTimeout(() => {
+          window.location.href = FIREBASE_INVITE;
+        }, AUTO_REDIRECT_DELAY_MS);
+      }
     })();
   </script>
 </body>

@@ -88,7 +88,10 @@ function FeedStack() {
       <FeedStackNav.Screen
         name="RideDetails"
         component={RideDetailsScreen}
-        options={{ title: "Ride" }}
+        options={{
+          title: "Ride",
+          headerBackVisible: true,
+        }}
       />
       <FeedStackNav.Screen
         name="UserProfile"
@@ -126,7 +129,10 @@ function MyRidesStack() {
       <MyRidesStackNav.Screen
         name="RideDetails"
         component={RideDetailsScreen}
-        options={{ title: "Ride" }}
+        options={{
+          title: "Ride",
+          headerBackVisible: true,
+        }}
       />
       <MyRidesStackNav.Screen
         name="UserProfile"

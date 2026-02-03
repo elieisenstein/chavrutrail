@@ -19,7 +19,7 @@ eas build --platform android --profile test_apk
 
 
 build:
-change version in app.config.js - 2 places e.g. version: "1.0.7", and versionCode: 10007,
+change version in app.config.js - 2 places e.g. version: "1.0.7",
 cd mobile
 npx expo prebuild -p android
 npx expo run:android --variant release OR (cd android;./gradlew assembleRelease)
@@ -32,7 +32,7 @@ per testers:
 firebase appdistribution:distribute "C:\Users\eliei\Documents\bishvil\mobile\android\app\build\outputs\apk\release\app-release.apk" --app "1:659322080392:android:0fd47d83f3c55e7876e33d" --testers "elisequr@gmail.com" --release-notes "Beta build"
 
 per group (of testers), manage them on firebase (web console)
-firebase appdistribution:distribute "android/app/build/outputs/apk/release/app-release.apk" `--app "1:659322080392:android:0fd47d83f3c55e7876e33d" --groups "testers" --release-notes "1.0.9 (10009) – improved navigation"
+firebase appdistribution:distribute "android/app/build/outputs/apk/release/app-release.apk" `--app "1:659322080392:android:0fd47d83f3c55e7876e33d" --groups "testers" --release-notes "1.0.10 (10010) – improved navigation"
 
 
 one liner!!

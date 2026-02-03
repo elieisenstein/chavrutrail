@@ -235,13 +235,31 @@ useEffect(() => {
   };
 }, [recenterTimeout]);
 
-// Auto-recenter when user starts moving (exits route preview mode automatically)
+// Track previous motion state to detect STATIONARY → MOVING transitions
+const prevMotionStateRef = useRef<string | undefined>(debugInfo?.motionState);
+
+// Auto-recenter when user STARTS moving (transition from STATIONARY to MOVING)
+// BUT only if user is INSIDE the route bounding box
 useEffect(() => {
-  if (debugInfo?.motionState === 'MOVING' && isRoutePreviewMode) {
-    // User started moving - exit preview mode and follow them
-    handleRecenter();
+  const prevState = prevMotionStateRef.current;
+  const currState = debugInfo?.motionState;
+
+  // Update ref for next comparison
+  prevMotionStateRef.current = currState;
+
+  // Only recenter on actual transition: STATIONARY → MOVING while in preview mode
+  // AND only if user is inside the route's bounding box (+2km margin)
+  if (isRoutePreviewMode && prevState === 'STATIONARY' && currState === 'MOVING') {
+    const isInsideBbox = routeMetrics && currentPosition
+      ? isNearRouteArea(currentPosition.coordinate, routeMetrics.bbox)
+      : false;
+
+    if (isInsideBbox) {
+      handleRecenter();
+    }
+    // If outside bbox, stay on bounding box view - user must manually recenter
   }
-}, [debugInfo?.motionState, isRoutePreviewMode]);
+}, [debugInfo?.motionState, isRoutePreviewMode, routeMetrics, currentPosition]);
 
 // Update last known heading only when moving (GPS heading is unreliable when stationary)
 useEffect(() => {
@@ -570,17 +588,18 @@ return (
       >
         <MapboxGL.Camera
           ref={cameraRef}
-          // Pick ONE camera mode: follow when we have position, controlled otherwise
           defaultSettings={{
             centerCoordinate: mapCenter!,
             zoomLevel: mapZoom,
             pitch: 0,
             heading: 0,
           }}
-          // Always provide a valid center - use currentPosition when following, mapCenter otherwise
-          // (followUserLocation is disabled, so we must set centerCoordinate explicitly)
-          centerCoordinate={shouldFollow ? currentPosition!.coordinate : mapCenter!}
-          zoomLevel={mapZoom}
+          // Only set centerCoordinate/zoomLevel when NOT in route preview mode
+          // In preview mode, fitBounds() controls the camera - don't override it with declarative props
+          {...(!isRoutePreviewMode && {
+            centerCoordinate: shouldFollow ? currentPosition!.coordinate : mapCenter!,
+            zoomLevel: mapZoom,
+          })}
           pitch={cameraPitch}
           heading={cameraBearing}
           animationDuration={300}

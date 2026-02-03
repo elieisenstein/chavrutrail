@@ -1292,5 +1292,176 @@ private fun emitNavCommitEvent(
 
 ---
 
+## Session Summary (v1.3.6)
+
+Bug fix for GPX bounding box auto-recenter behavior.
+
+### GPX Route Preview Auto-Recenter Fix
+
+**Problem:** When loading a GPX file during navigation, the camera should show the route's bounding box and stay there until the user presses recenter. Instead, it auto-recentered immediately if the user was already moving, or when the user started moving from STATIONARY.
+
+**Root Cause:** The auto-recenter logic fired on any STATIONARY→MOVING transition while in preview mode, without checking if the user was actually near the route.
+
+**Solution:** Add bounding box check - only auto-recenter if user is **inside** the route's bounding box (+2km margin):
+
+```typescript
+// Auto-recenter when user STARTS moving (transition from STATIONARY to MOVING)
+// BUT only if user is INSIDE the route bounding box
+useEffect(() => {
+  const prevState = prevMotionStateRef.current;
+  const currState = debugInfo?.motionState;
+  prevMotionStateRef.current = currState;
+
+  if (isRoutePreviewMode && prevState === 'STATIONARY' && currState === 'MOVING') {
+    const isInsideBbox = routeMetrics && currentPosition
+      ? isNearRouteArea(currentPosition.coordinate, routeMetrics.bbox)
+      : false;
+
+    if (isInsideBbox) {
+      handleRecenter();
+    }
+    // If outside bbox, stay on bounding box view - user must manually recenter
+  }
+}, [debugInfo?.motionState, isRoutePreviewMode, routeMetrics, currentPosition]);
+```
+
+### Camera State Machine
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         CAMERA STATE MACHINE                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  STATES:                                                                │
+│  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐   │
+│  │  FOLLOW MODE    │     │  PREVIEW MODE   │     │  INTERACTION    │   │
+│  │                 │     │                 │     │    MODE         │   │
+│  │ shouldFollow=T  │     │ isRoutePreview  │     │ isUserInteract  │   │
+│  │ Camera follows  │     │    Mode=T       │     │    ing=T        │   │
+│  │ user position   │     │ Shows route     │     │ User panning/   │   │
+│  │                 │     │ bounding box    │     │ zooming         │   │
+│  └────────┬────────┘     └────────┬────────┘     └────────┬────────┘   │
+│           │                       │                       │             │
+├───────────┴───────────────────────┴───────────────────────┴─────────────┤
+│                                                                         │
+│  TRANSITIONS:                                                           │
+│                                                                         │
+│  1. Load GPX/Route ──────────────────────► PREVIEW MODE                 │
+│     - fitBounds() to route bbox                                         │
+│     - isRoutePreviewMode = true                                         │
+│     - isUserInteracting = true                                          │
+│                                                                         │
+│  2. PREVIEW MODE + STATIONARY→MOVING + INSIDE BBOX ──► FOLLOW MODE      │
+│     - Auto-recenter when user starts riding on the route                │
+│     - handleRecenter() called                                           │
+│                                                                         │
+│  3. PREVIEW MODE + STATIONARY→MOVING + OUTSIDE BBOX ──► (stay PREVIEW)  │
+│     - User is far from route, keep showing bounding box                 │
+│     - Must manually press recenter button                               │
+│                                                                         │
+│  4. PREVIEW/INTERACT + Press Recenter Button ──────────► FOLLOW MODE    │
+│     - Manual recenter always works                                      │
+│     - isRoutePreviewMode = false                                        │
+│     - isUserInteracting = false                                         │
+│                                                                         │
+│  5. FOLLOW MODE + Touch Map ───────────────────────────► INTERACTION    │
+│     - isUserInteracting = true                                          │
+│     - Start 5-second auto-recenter timer                                │
+│                                                                         │
+│  6. INTERACTION + 5 seconds timeout ───────────────────► FOLLOW MODE    │
+│     - isUserInteracting = false                                         │
+│     - Resume following user                                             │
+│                                                                         │
+│  7. Clear Route ───────────────────────────────────────► FOLLOW MODE    │
+│     - isRoutePreviewMode = false                                        │
+│                                                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  KEY FLAGS:                                                             │
+│  • isRoutePreviewMode: True when showing route bbox, no auto-recenter   │
+│  • isUserInteracting: True when user touched map, 5s timer running      │
+│  • shouldFollow: Computed = mapReady && currentPosition && !interacting │
+│                           && !previewMode && accuracy < 50m             │
+│                                                                         │
+│  BBOX CHECK (isNearRouteArea):                                          │
+│  • Uses route bbox + 2km margin                                         │
+│  • Inside = user is near/on the route                                   │
+│  • Outside = user is far from route (e.g., at home viewing a trail)     │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `NavigationMapView.tsx` | Added `isNearRouteArea` bbox check to auto-recenter logic, added `prevMotionStateRef` for state transition detection |
+
+---
+
+## Session Summary (v1.3.7)
+
+Bug fix for Camera declarative props overriding fitBounds() in route preview mode.
+
+### Camera Props Override Fix
+
+**Problem:** When loading a GPX file, the camera briefly showed the route's bounding box but then immediately recentered to the user's location, even when far from the route. The v1.3.6 fix (bbox check + motion state transition) was correct but insufficient.
+
+**Root Cause:** The Camera component's **declarative props** were fighting with the imperative `fitBounds()` call:
+
+```tsx
+<MapboxGL.Camera
+  centerCoordinate={shouldFollow ? currentPosition!.coordinate : mapCenter!}  // ← Problem!
+  zoomLevel={mapZoom}
+  ...
+/>
+```
+
+Even when `shouldFollow=false` (in preview mode), the Camera had:
+- `centerCoordinate={mapCenter}` → user's initial position
+- `zoomLevel={mapZoom}` → default zoom (16)
+
+After `fitBounds()` set the camera to the route bbox, the next React render caused the Camera's declarative props to **override** it.
+
+**Solution:** Don't set `centerCoordinate`/`zoomLevel` props when in route preview mode. Let `fitBounds()` control the camera without interference:
+
+```tsx
+<MapboxGL.Camera
+  ref={cameraRef}
+  defaultSettings={{
+    centerCoordinate: mapCenter!,
+    zoomLevel: mapZoom,
+    pitch: 0,
+    heading: 0,
+  }}
+  // Only set centerCoordinate/zoomLevel when NOT in route preview mode
+  // In preview mode, fitBounds() controls the camera - don't override it with declarative props
+  {...(!isRoutePreviewMode && {
+    centerCoordinate: shouldFollow ? currentPosition!.coordinate : mapCenter!,
+    zoomLevel: mapZoom,
+  })}
+  pitch={cameraPitch}
+  heading={cameraBearing}
+  animationDuration={300}
+  followUserLocation={false}
+/>
+```
+
+### Camera Props by Mode
+
+| Mode | Camera Props | Behavior |
+|------|-------------|----------|
+| **Preview Mode** (`isRoutePreviewMode=true`) | No `centerCoordinate`/`zoomLevel` | `fitBounds()` controls camera freely |
+| **Follow Mode** (`shouldFollow=true`) | `centerCoordinate={currentPosition}` | Camera tracks user |
+| **Interaction Mode** (`isUserInteracting=true`) | `centerCoordinate={mapCenter}` | Camera stays where user panned |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `NavigationMapView.tsx` | Conditionally spread `centerCoordinate`/`zoomLevel` props based on `isRoutePreviewMode` |
+
+---
+
 **Last Updated:** 2025-02-03
-**Version:** 1.3.5
+**Version:** 1.3.7

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import MapboxGL from "@rnmapbox/maps";
 import { getIsraelHikingTiles } from "../../lib/mapbox";
 import { downloadGpxFile } from "../../lib/gpxDownload";
+import { useNavigation } from "../state/NavigationContext";
 
 type RoutePreviewParams = {
   RoutePreview: {
@@ -23,8 +24,10 @@ export default function RoutePreviewScreen() {
   const mapRef = useRef<MapboxGL.MapView>(null);
   const { i18n, t } = useTranslation();
   const theme = useTheme();
+  const { config } = useNavigation();
   const { baseTiles, trailTiles } = getIsraelHikingTiles(
-    i18n.language === "he" ? "he" : "en"
+    i18n.language === "he" ? "he" : "en",
+    config.mapStyle
   );
 
   // Extract start and end coordinates for markers
@@ -120,20 +123,22 @@ export default function RoutePreviewScreen() {
           <MapboxGL.RasterLayer id="ihm-base-layer" sourceID="ihm-base" />
         </MapboxGL.RasterSource>
 
-        {/* Trail overlay tiles */}
-        <MapboxGL.RasterSource
-          id="ihm-trails"
-          tileUrlTemplates={[trailTiles]}
-          tileSize={256}
-          maxZoomLevel={18}
-          minZoomLevel={7}
-        >
-          <MapboxGL.RasterLayer
-            id="ihm-trails-layer"
-            sourceID="ihm-trails"
-            style={{ rasterOpacity: 1.0 }}
-          />
-        </MapboxGL.RasterSource>
+        {/* Trail overlay tiles - only for hiking style */}
+        {config.mapStyle === 'hiking' && (
+          <MapboxGL.RasterSource
+            id="ihm-trails"
+            tileUrlTemplates={[trailTiles]}
+            tileSize={256}
+            maxZoomLevel={18}
+            minZoomLevel={7}
+          >
+            <MapboxGL.RasterLayer
+              id="ihm-trails-layer"
+              sourceID="ihm-trails"
+              style={{ rasterOpacity: 1.0 }}
+            />
+          </MapboxGL.RasterSource>
+        )}
 
         {/* GPX Route Line */}
         <MapboxGL.ShapeSource id="gpx-route-source" shape={geojson}>

@@ -100,7 +100,10 @@
       "title": "Navigation",
       "autoDim": "Auto-dim screen when stationary",
       "autoDimLevel": "Dim to",
-      "updateInterval": "Map update interval"
+      "updateInterval": "Map update interval",
+      "mapStyle": "Map style",
+      "mapStyleHiking": "Hiking",
+      "mapStyleMtb": "MTB"
     }
   },
   "feed": {

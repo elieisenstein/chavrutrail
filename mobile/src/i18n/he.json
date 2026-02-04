@@ -100,7 +100,10 @@
       "title": "ניווט",
       "autoDim": "עמעם מסך אוטומטית בעמידה",
       "autoDimLevel": "עמעם ל-",
-      "updateInterval": "תדירות עדכון מפה"
+      "updateInterval": "תדירות עדכון מפה",
+      "mapStyle": "סגנון מפה",
+      "mapStyleHiking": "הליכה",
+      "mapStyleMtb": "MTB"
     }
   },
   "feed": {

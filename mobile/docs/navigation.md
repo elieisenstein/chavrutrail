@@ -1535,5 +1535,141 @@ if ((needsStart || needsRestart) && isFocused) {
 
 ---
 
-**Last Updated:** 2025-02-03
-**Version:** 1.3.8
+## Session Summary (v1.3.9)
+
+Map style selection feature - allows switching between Hiking and MTB base maps.
+
+### Map Style Feature
+
+**Problem:** The Israel Hiking Map website offers separate MTB (Mountain Bike) tile layers, but the original overlay approach (`OverlayMTB`) was deprecated and returns 404. The working MTB tiles at `/mtbTiles/{z}/{x}/{y}.png` are a **full base map**, not a transparent overlay - overlaying them creates visual clutter (double contour lines, mixed styling).
+
+**Solution:** Implement MTB as an **alternative base map style** rather than an overlay. Users can switch between Hiking and MTB map styles in Settings.
+
+### Configuration Changes
+
+**navigationService.ts:**
+```typescript
+export type MapStyle = 'hiking' | 'mtb';
+
+export type NavigationConfig = {
+  // ... existing fields
+  mapStyle: MapStyle;  // NEW: replaces showMtbOverlay
+};
+
+export const DEFAULT_NAVIGATION_CONFIG: NavigationConfig = {
+  // ... existing fields
+  mapStyle: 'mtb',  // Default to MTB map style
+};
+```
+
+**mapbox.ts:**
+```typescript
+import type { MapStyle } from './navigationService';
+
+export const getIsraelHikingTiles = (language: 'he' | 'en', mapStyle: MapStyle = 'hiking') => {
+  // Hiking base tiles (topographic map with Hebrew/English labels)
+  const hikingBaseTiles = language === 'he'
+    ? 'https://israelhiking.osm.org.il/Hebrew/Tiles/{z}/{x}/{y}.png'
+    : 'https://israelhiking.osm.org.il/English/Tiles/{z}/{x}/{y}.png';
+
+  // MTB base tiles (full MTB map - not an overlay)
+  const mtbBaseTiles = 'https://israelhiking.osm.org.il/mtbTiles/{z}/{x}/{y}.png';
+
+  // Select base tiles based on map style
+  const baseTiles = mapStyle === 'mtb' ? mtbBaseTiles : hikingBaseTiles;
+
+  // Trail overlay tiles (hiking trails - only shown on hiking style)
+  const trailTiles = 'https://israelhiking.osm.org.il/OverlayTiles/{z}/{x}/{y}.png';
+
+  return { baseTiles, trailTiles };
+};
+```
+
+### Settings UI
+
+Changed from a toggle switch to segmented buttons:
+
+```typescript
+<View style={{ gap: 8, marginTop: 8 }}>
+  <Text>{t("settings.navigation.mapStyle")}</Text>
+  <SegmentedButtons
+    value={config.mapStyle}
+    onValueChange={(value) => updateConfig({ mapStyle: value as 'hiking' | 'mtb' })}
+    buttons={[
+      { value: 'hiking', label: t("settings.navigation.mapStyleHiking") },
+      { value: 'mtb', label: t("settings.navigation.mapStyleMtb") },
+    ]}
+  />
+</View>
+```
+
+### Map Layer Logic
+
+**Hiking style:**
+- Base tiles: Hebrew/English hiking topographic map
+- Trail overlay: OverlayTiles (hiking trail markings)
+
+**MTB style:**
+- Base tiles: MTB map (includes MTB trail difficulty ratings, bike-specific POIs)
+- Trail overlay: **Not shown** (MTB map has its own integrated trail styling)
+
+```tsx
+{/* Trail overlay tiles - only for hiking style */}
+{config.mapStyle === 'hiking' && (
+  <MapboxGL.RasterSource id="trails" tileUrlTemplates={[trailTiles]} ...>
+    <MapboxGL.RasterLayer id="trails-layer" ... />
+  </MapboxGL.RasterSource>
+)}
+```
+
+### Translations
+
+**English (en.json):**
+```json
+"settings": {
+  "navigation": {
+    "mapStyle": "Map style",
+    "mapStyleHiking": "Hiking",
+    "mapStyleMtb": "MTB"
+  }
+}
+```
+
+**Hebrew (he.json):**
+```json
+"settings": {
+  "navigation": {
+    "mapStyle": "סגנון מפה",
+    "mapStyleHiking": "הליכה",
+    "mapStyleMtb": "MTB"
+  }
+}
+```
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `navigationService.ts` | Added `MapStyle` type, changed `showMtbOverlay: boolean` → `mapStyle: MapStyle`, default: `'mtb'` |
+| `mapbox.ts` | Updated `getIsraelHikingTiles()` to accept `mapStyle` param, returns appropriate base tiles |
+| `SettingsScreen.tsx` | Changed MTB toggle to Map Style segmented buttons |
+| `en.json` / `he.json` | Added `mapStyle`, `mapStyleHiking`, `mapStyleMtb` translations |
+| `NavigationMapView.tsx` | Pass `config.mapStyle` to `getIsraelHikingTiles()`, conditional trail overlay |
+| `IsraelHikingMapView.tsx` | Same pattern as above |
+| `MapPickerModal.tsx` | Same pattern as above |
+| `RoutePreviewScreen.tsx` | Same pattern as above |
+
+### Israel Hiking Map Tile URLs Reference
+
+| URL Pattern | Description |
+|-------------|-------------|
+| `/Hebrew/Tiles/{z}/{x}/{y}.png` | Hiking base map (Hebrew labels) |
+| `/English/Tiles/{z}/{x}/{y}.png` | Hiking base map (English labels) |
+| `/OverlayTiles/{z}/{x}/{y}.png` | Hiking trail overlay (transparent) |
+| `/mtbTiles/{z}/{x}/{y}.png` | MTB full base map |
+| ~~/OverlayMTB/{z}/{x}/{y}.png~~ | **Deprecated** - returns 404 |
+
+---
+
+**Last Updated:** 2025-02-04
+**Version:** 1.3.9

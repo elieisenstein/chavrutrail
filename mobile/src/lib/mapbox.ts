@@ -29,14 +29,24 @@ export const USER_LOCATION_ZOOM = {
   longitudeDelta: 0.1,
 };
 
+import type { MapStyle } from './navigationService';
+
 // Israel Hiking Map tile URLs
-export const getIsraelHikingTiles = (language: 'he' | 'en') => {
-  const baseTiles = language === 'he'
+export const getIsraelHikingTiles = (language: 'he' | 'en', mapStyle: MapStyle = 'hiking') => {
+  // Hiking base tiles (topographic map with Hebrew/English labels)
+  const hikingBaseTiles = language === 'he'
     ? 'https://israelhiking.osm.org.il/Hebrew/Tiles/{z}/{x}/{y}.png'
     : 'https://israelhiking.osm.org.il/English/Tiles/{z}/{x}/{y}.png';
-  
+
+  // MTB base tiles (full MTB map - not an overlay)
+  const mtbBaseTiles = 'https://israelhiking.osm.org.il/mtbTiles/{z}/{x}/{y}.png';
+
+  // Select base tiles based on map style
+  const baseTiles = mapStyle === 'mtb' ? mtbBaseTiles : hikingBaseTiles;
+
+  // Trail overlay tiles (hiking trails - only shown on hiking style)
   const trailTiles = 'https://israelhiking.osm.org.il/OverlayTiles/{z}/{x}/{y}.png';
-  
+
   return { baseTiles, trailTiles };
 };
 

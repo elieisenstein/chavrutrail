@@ -7,6 +7,7 @@ import MapboxGL from "@rnmapbox/maps";
 import * as Location from "expo-location";
 import { useTranslation } from "react-i18next";
 import { getIsraelHikingTiles } from "../lib/mapbox";
+import { useNavigation } from "../app/state/NavigationContext";
 
 type MapPickerModalProps = {
   visible: boolean;
@@ -29,8 +30,10 @@ export default function MapPickerModal({
 }: MapPickerModalProps) {
   const theme = useTheme();
   const { i18n } = useTranslation();
+  const { config } = useNavigation();
   const { baseTiles, trailTiles } = getIsraelHikingTiles(
-    i18n.language === "he" ? "he" : "en"
+    i18n.language === "he" ? "he" : "en",
+    config.mapStyle
   );
 
   const [selectedLat, setSelectedLat] = useState<number | undefined>(initialLat);
@@ -156,20 +159,22 @@ export default function MapPickerModal({
                 />
               </MapboxGL.RasterSource>
 
-              {/* 2. TRAILS LAYER */}
-              <MapboxGL.RasterSource
-                id="israel-trails-modal"
-                tileUrlTemplates={[trailTiles]}
-                tileSize={256}
-                maxZoomLevel={18}
-                minZoomLevel={7}
-              >
-                <MapboxGL.RasterLayer
-                  id="trails-modal-layer"
-                  sourceID="israel-trails-modal"
-                  style={{ rasterOpacity: 1.0 }}
-                />
-              </MapboxGL.RasterSource>
+              {/* 2. TRAILS LAYER - only for hiking style */}
+              {config.mapStyle === 'hiking' && (
+                <MapboxGL.RasterSource
+                  id="israel-trails-modal"
+                  tileUrlTemplates={[trailTiles]}
+                  tileSize={256}
+                  maxZoomLevel={18}
+                  minZoomLevel={7}
+                >
+                  <MapboxGL.RasterLayer
+                    id="trails-modal-layer"
+                    sourceID="israel-trails-modal"
+                    style={{ rasterOpacity: 1.0 }}
+                  />
+                </MapboxGL.RasterSource>
+              )}
 
               {/* User Location */}
               <MapboxGL.UserLocation visible={true} showsUserHeadingIndicator={true} />

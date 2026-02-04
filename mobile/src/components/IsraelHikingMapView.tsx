@@ -4,6 +4,7 @@ import { View, StyleSheet } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
 import { useTranslation } from 'react-i18next';
 import { getIsraelHikingTiles } from '../lib/mapbox';
+import { useNavigation } from '../app/state/NavigationContext';
 
 type MapViewProps = {
   center?: [number, number]; // [longitude, latitude]
@@ -25,10 +26,12 @@ export default function IsraelHikingMapView({
   showUserLocation = false,
 }: MapViewProps) {
   const { i18n } = useTranslation();
-  
-  // We need BOTH baseTiles and trailTiles
+  const { config } = useNavigation();
+
+  // Get baseTiles based on mapStyle setting (hiking or mtb)
   const { baseTiles, trailTiles } = getIsraelHikingTiles(
-    i18n.language === 'he' ? 'he' : 'en'
+    i18n.language === 'he' ? 'he' : 'en',
+    config.mapStyle
   );
 
   return (
@@ -71,20 +74,22 @@ export default function IsraelHikingMapView({
           />
         </MapboxGL.RasterSource>
 
-        {/* 2. TRAILS LAYER: The hiking/MTB trail overlays */}
-        <MapboxGL.RasterSource
-          id="israel-trails-overlay"
-          tileUrlTemplates={[trailTiles]}
-          tileSize={256}
-          maxZoomLevel={18}
-          minZoomLevel={7}
-        >
-          <MapboxGL.RasterLayer
-            id="trails-overlay-layer"
-            sourceID="israel-trails-overlay"
-            style={{ rasterOpacity: 1.0 }}
-          />
-        </MapboxGL.RasterSource>
+        {/* 2. TRAILS LAYER: Only for hiking style (MTB map has its own trail styling) */}
+        {config.mapStyle === 'hiking' && (
+          <MapboxGL.RasterSource
+            id="israel-trails-overlay"
+            tileUrlTemplates={[trailTiles]}
+            tileSize={256}
+            maxZoomLevel={18}
+            minZoomLevel={7}
+          >
+            <MapboxGL.RasterLayer
+              id="trails-overlay-layer"
+              sourceID="israel-trails-overlay"
+              style={{ rasterOpacity: 1.0 }}
+            />
+          </MapboxGL.RasterSource>
+        )}
 
         {/* 3. USER LOCATION */}
         {showUserLocation && (

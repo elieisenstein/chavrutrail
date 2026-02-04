@@ -163,6 +163,20 @@ export default function SettingsScreen() {
             buttons={updateIntervalOptions}
           />
         </View>
+
+        <View style={{ gap: 8, marginTop: 8 }}>
+          <Text style={{ color: theme.colors.onSurface }}>
+            {t("settings.navigation.mapStyle")}
+          </Text>
+          <SegmentedButtons
+            value={config.mapStyle}
+            onValueChange={(value) => updateConfig({ mapStyle: value as 'hiking' | 'mtb' })}
+            buttons={[
+              { value: 'hiking', label: t("settings.navigation.mapStyleHiking") },
+              { value: 'mtb', label: t("settings.navigation.mapStyleMtb") },
+            ]}
+          />
+        </View>
       </View>
 
       <Text style={{ textAlign: "center", opacity: 0.5, marginTop: 24, paddingBottom: 24 }}>

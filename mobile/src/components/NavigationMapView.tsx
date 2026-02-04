@@ -10,7 +10,7 @@ import * as Location from 'expo-location';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Battery from 'expo-battery';
 import { getIsraelHikingTiles } from '../lib/mapbox';
-import { NavigationMode, NavigationPosition, DebugInfo } from '../app/state/NavigationContext';
+import { NavigationMode, NavigationPosition, DebugInfo, useNavigation } from '../app/state/NavigationContext';
 import {
   computeRouteMetrics,
   findRouteProgress,
@@ -48,12 +48,14 @@ export default function NavigationMapView({
 }: NavigationMapViewProps) {
   const { i18n, t } = useTranslation();
   const theme = useTheme();
+  const { config } = useNavigation();
   const [isLoadingGpx, setIsLoadingGpx] = useState(false);
 
   const [showSpeed, setShowSpeed] = useState(false);
 
 const { baseTiles, trailTiles } = getIsraelHikingTiles(
-  i18n.language === 'he' ? 'he' : 'en'
+  i18n.language === 'he' ? 'he' : 'en',
+  config.mapStyle
 );
 
 // Top info bar state
@@ -619,20 +621,22 @@ return (
           />
         </MapboxGL.RasterSource>
 
-        {/* Trail overlay tiles */}
-        <MapboxGL.RasterSource
-          id="navigation-ihm-trails"
-          tileUrlTemplates={[trailTiles]}
-          tileSize={256}
-          maxZoomLevel={18}
-          minZoomLevel={7}
-        >
-          <MapboxGL.RasterLayer
-            id="navigation-ihm-trails-layer"
-            sourceID="navigation-ihm-trails"
-            style={{ rasterOpacity: 1.0 }}
-          />
-        </MapboxGL.RasterSource>
+        {/* Trail overlay tiles - only for hiking style (MTB map has its own trail styling) */}
+        {config.mapStyle === 'hiking' && (
+          <MapboxGL.RasterSource
+            id="navigation-ihm-trails"
+            tileUrlTemplates={[trailTiles]}
+            tileSize={256}
+            maxZoomLevel={18}
+            minZoomLevel={7}
+          >
+            <MapboxGL.RasterLayer
+              id="navigation-ihm-trails-layer"
+              sourceID="navigation-ihm-trails"
+              style={{ rasterOpacity: 1.0 }}
+            />
+          </MapboxGL.RasterSource>
+        )}
 
         {/* Route LineLayer (if provided) */}
         {route && (

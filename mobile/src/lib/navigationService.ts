@@ -13,6 +13,8 @@ if (!BishvilNavigationModule) {
 
 const navigationEmitter = new NativeEventEmitter(BishvilNavigationModule);
 
+export type MapStyle = 'hiking' | 'mtb';
+
 export type NavigationConfig = {
   minDistanceMeters: number;
   minHeadingDegrees: number;
@@ -22,6 +24,8 @@ export type NavigationConfig = {
   // Auto-dim settings
   autoDimEnabled: boolean;
   autoDimLevel: number; // 0.0-1.0 dim factor of baseline (e.g., 0.8 = 80% of baseline)
+  // Map style settings
+  mapStyle: MapStyle;
 };
 
 export type NavCommitEvent = {
@@ -47,6 +51,8 @@ export const DEFAULT_NAVIGATION_CONFIG: NavigationConfig = {
   // Auto-dim defaults
   autoDimEnabled: true,     // Enabled by default
   autoDimLevel: 0.8,        // Dim to 80% of baseline brightness
+  // Map style defaults
+  mapStyle: 'mtb',          // Default to MTB map style
 };
 
 class NavigationService {

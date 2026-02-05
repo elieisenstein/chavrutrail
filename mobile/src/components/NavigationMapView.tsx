@@ -99,6 +99,9 @@ const lastMovingHeadingRef = useRef<number>(0);
 // Pulse animation for stationary state
 const pulseAnim = useRef(new Animated.Value(1)).current;
 
+// Crossfade animation for arrow ↔ rider transition (0=arrow, 1=rider)
+const crossfadeAnim = useRef(new Animated.Value(0)).current;
+
 useEffect(() => {
   return () => setMapReady(false);
 }, []);
@@ -297,6 +300,15 @@ useEffect(() => {
     pulseAnim.setValue(1);
   }
 }, [debugInfo?.motionState, pulseAnim]);
+
+// Crossfade between arrow and rider icons on motion state change
+useEffect(() => {
+  Animated.timing(crossfadeAnim, {
+    toValue: debugInfo?.motionState === 'STATIONARY' ? 1 : 0,
+    duration: 250,
+    useNativeDriver: true,
+  }).start();
+}, [debugInfo?.motionState, crossfadeAnim]);
 
 // Update current time every 30 seconds
 useEffect(() => {
@@ -748,19 +760,35 @@ return (
             allowOverlap={true}
             allowOverlapWithPuck={true}
           >
-            <Animated.View
-              style={[
-                styles.userHeadingMarker,
-                {
+            {/* Fixed-size container for crossfade between arrow and rider icons */}
+            <View style={styles.userHeadingMarker}>
+              {/* Arrow icon (moving state) - fades out when stationary */}
+              <Animated.View
+                style={{
+                  position: 'absolute',
+                  opacity: crossfadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 0],
+                  }),
                   transform: [
                     { rotate: mode === 'north-up' ? `${stableHeading}deg` : '0deg' },
-                    { scale: pulseAnim },
                   ],
-                },
-              ]}
-            >
-              <Icon source="navigation" size={35} color="#ff6b35" />
-            </Animated.View>
+                }}
+              >
+                <Icon source="navigation" size={35} color="#ff6b35" />
+              </Animated.View>
+
+              {/* Rider icon (stationary state) - fades in with pulse when stationary */}
+              <Animated.View
+                style={{
+                  position: 'absolute',
+                  opacity: crossfadeAnim,
+                  transform: [{ scale: pulseAnim }],
+                }}
+              >
+                <Icon source="bike" size={35} color="#ff6b35" />
+              </Animated.View>
+            </View>
           </MapboxGL.MarkerView>
         )}
       </MapboxGL.MapView>
@@ -889,6 +917,8 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-45deg' }],
   },
   userHeadingMarker: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },

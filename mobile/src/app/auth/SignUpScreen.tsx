@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "../../lib/supabase";
 import {
   isDisplayNameAvailable,
-  updateMyProfile,
+  updateProfileById,
   rideTypesToString
 } from "../../lib/profile";
 
@@ -23,10 +23,26 @@ export default function SignUpScreen({ onSignIn }: Props) {
   // Form state
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [selectedRideTypes, setSelectedRideTypes] = useState<string[]>([]);
   const [selectedGender, setSelectedGender] = useState<string | null>(null);
+
+  // Phone validation helpers
+  const normalizePhone = (input: string): string => {
+    return input.trim().replace(/[\s\-()]/g, '');
+  };
+
+  const isValidLocalPhone = (input: string): boolean => {
+    const normalized = normalizePhone(input);
+    return /^05\d{8}$/.test(normalized);
+  };
+
+  const toE164 = (localPhone: string): string => {
+    const normalized = normalizePhone(localPhone);
+    return '+972' + normalized.substring(1);
+  };
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -116,6 +132,7 @@ export default function SignUpScreen({ onSignIn }: Props) {
     nameCheckStatus === "available" &&
     email.trim().includes("@") &&
     email.trim().includes(".") &&
+    isValidLocalPhone(phone) &&
     password.length >= 6 &&
     confirmPassword === password &&
     selectedRideTypes.length > 0 &&
@@ -149,12 +166,17 @@ export default function SignUpScreen({ onSignIn }: Props) {
 
       if (authError) throw authError;
 
-      // Update profile with additional fields
+      // Get user ID from signup response (session may not be ready yet)
+      const userId = authData.user?.id;
+      if (!userId) throw new Error("No user ID returned from signup");
+
+      // Update profile with additional fields using userId directly
       // DB trigger creates empty profile, we populate it
-      await updateMyProfile({
+      await updateProfileById(userId, {
         display_name: displayName.trim(),
         ride_type: rideTypesToString(selectedRideTypes),
         gender: selectedGender,
+        phone_number: toE164(phone),
       });
 
       // Success - auth state listener will handle navigation
@@ -251,6 +273,32 @@ export default function SignUpScreen({ onSignIn }: Props) {
             contentStyle={dirText}
             error={!!error}
           />
+
+          {/* Phone Number */}
+          <TextInput
+            label={t("auth.phoneLabel") ?? "Phone Number"}
+            value={phone}
+            onChangeText={(text) => {
+              setPhone(text);
+              setError(null);
+            }}
+            placeholder="05XXXXXXXX"
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            disabled={loading}
+            mode="outlined"
+            style={styles.input}
+            contentStyle={dirText}
+            error={phone.length > 0 && !isValidLocalPhone(phone)}
+          />
+          {phone.length > 0 && !isValidLocalPhone(phone) && (
+            <Text style={[styles.helperText, { color: theme.colors.error }]}>
+              {t("auth.invalidPhone") ?? "Please enter a valid Israeli mobile number (05XXXXXXXX)"}
+            </Text>
+          )}
+          <Text style={[styles.helperText, { color: theme.colors.outline, marginTop: phone.length > 0 && !isValidLocalPhone(phone) ? 4 : -8 }]}>
+            {t("auth.phoneHelp") ?? "Your phone helps riders coordinate safely. It stays private and is only used for ride communication."}
+          </Text>
 
           {/* Password */}
           <TextInput

@@ -81,7 +81,9 @@
     "selectRideTypes": "What do you ride?",
     "selectGender": "Gender",
     "completeProfileToStart": "Complete your profile to get started",
-    "emailAlreadyRegistered": "This email is already registered"
+    "emailAlreadyRegistered": "This email is already registered",
+    "phoneHelp": "Your phone helps riders coordinate safely. It stays private and is only used for ride communication.",
+    "invalidPhone": "Please enter a valid Israeli mobile number (05XXXXXXXX)"
   },
   "settings": {
     "title": "Settings",

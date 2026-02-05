@@ -11,8 +11,6 @@ import { downloadGpxFile } from "../../lib/gpxDownload";
 import type { FeedStackParamList } from "../navigation/AppNavigator";
 import IsraelHikingMapView from "../../components/IsraelHikingMapView";
 import { ShareRideButton } from "../../components/ShareRideButton";
-import PhoneInputModal from "../../components/PhoneInputModal";
-import { fetchMyProfile, updateMyProfile } from "../../lib/profile";
 import {
   joinOrRequestRide,
   leaveRide,
@@ -46,7 +44,6 @@ export default function RideDetailsScreen() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [approvingUserId, setApprovingUserId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
-  const [phoneModalVisible, setPhoneModalVisible] = useState(false);
   const [editingWhatsapp, setEditingWhatsapp] = useState(false);
   const [whatsappDraft, setWhatsappDraft] = useState("");
   const [downloadingGpx, setDownloadingGpx] = useState(false);
@@ -198,15 +195,6 @@ export default function RideDetailsScreen() {
 
     try {
       setJoining(true);
-
-      // Check if user has a phone number before joining
-      const profile = await fetchMyProfile();
-      if (!profile?.phone_number) {
-        setPhoneModalVisible(true);
-        setJoining(false);
-        return;
-      }
-
       await joinOrRequestRide(ride.id, ride.join_mode);
       await loadRideData();
     } catch (e: any) {
@@ -215,23 +203,6 @@ export default function RideDetailsScreen() {
       setJoining(false);
     }
   }
-
-  async function handlePhoneSave(phoneNumber: string) {
-    try {
-      await updateMyProfile({ phone_number: phoneNumber });
-      setPhoneModalVisible(false);
-      // Now proceed with the join
-      if (!ride) return;
-      setJoining(true);
-      await joinOrRequestRide(ride.id, ride.join_mode);
-      await loadRideData();
-    } catch (e: any) {
-      console.log("Phone save/join error:", e?.message ?? e);
-    } finally {
-      setJoining(false);
-    }
-  }
-
 
   async function handleLeave() {
     if (!ride) return;
@@ -711,12 +682,6 @@ export default function RideDetailsScreen() {
         </Card.Content>
       </Card>
     </ScrollView>
-
-    <PhoneInputModal
-      visible={phoneModalVisible}
-      onClose={() => setPhoneModalVisible(false)}
-      onSave={handlePhoneSave}
-    />
     </>
   );
 }

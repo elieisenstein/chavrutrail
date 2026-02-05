@@ -56,6 +56,19 @@ export async function updateMyProfile(updates: ProfileUpdateInput): Promise<void
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Update profile by user ID directly (used during signup when session isn't ready)
+ */
+export async function updateProfileById(userId: string, updates: ProfileUpdateInput): Promise<void> {
+  const payload = { id: userId, ...updates };
+
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(payload, { onConflict: "id" });
+
+  if (error) throw new Error(error.message);
+}
+
 // Helper: Convert array of ride types to comma-separated string
 export function rideTypesToString(types: string[]): string {
   return types.join(",");

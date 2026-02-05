@@ -81,7 +81,9 @@
     "selectRideTypes": "מה אתה רוכב?",
     "selectGender": "מגדר",
     "completeProfileToStart": "השלם את הפרופיל שלך כדי להתחיל",
-    "emailAlreadyRegistered": "האימייל הזה כבר רשום"
+    "emailAlreadyRegistered": "האימייל הזה כבר רשום",
+    "phoneHelp": "מספר הטלפון שלך עוזר לרוכבים לתאם בביטחון. הוא נשאר פרטי ומשמש רק לתקשורת לגבי הרכיבות.",
+    "invalidPhone": "הזן מספר טלפון נייד ישראלי תקין (05XXXXXXXX)"
   },
   "settings": {
     "title": "הגדרות",

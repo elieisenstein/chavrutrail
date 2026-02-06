@@ -5,7 +5,7 @@ function versionCodeFrom(version) {
   return maj * 10000 + min * 100 + patch;
 }
 
-const APP_VERSION = "1.0.11";
+const APP_VERSION = "1.0.12";
 
 export default {
   name: "Bishvil",

@@ -257,10 +257,22 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
         return;
       }
 
-      await captureOriginalBrightness();
+      // Get CURRENT brightness as baseline (not stale originalBrightnessRef)
+      // This allows dimming relative to user's current brightness setting
+      let currentBrightness: number;
+      try {
+        currentBrightness = await Brightness.getSystemBrightnessAsync();
+      } catch (error) {
+        console.error('Error getting current brightness:', error);
+        return;
+      }
 
-      const baseline = originalBrightnessRef.current;
-      if (baseline === null) return;
+      // Capture original brightness only on first dim (for restoration when navigation ends)
+      if (originalBrightnessRef.current === null) {
+        originalBrightnessRef.current = currentBrightness;
+      }
+
+      const baseline = currentBrightness; // Use fresh reading, not originalBrightnessRef
 
       const minBrightness = 0.12; // optional floor, tweak later
       const target = Math.min(
@@ -355,23 +367,28 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       };
     });
 
+    // ALWAYS extract and propagate motion state (needed for UI regardless of auto-dim)
+    // NavigationMapView depends on this for:
+    // - Pulse animation when stationary
+    // - Heading stabilization (use last moving heading when stationary)
+    // - Auto-recenter on STATIONARY -> MOVING transition
+    const motionState = event.motionState;
+    const prevMotionState = lastMotionStateRef.current;
+    lastMotionStateRef.current = motionState;
+
+    // Update debug info - MUST happen regardless of auto-dim setting
+    setDebugInfo(prev => ({
+      ...prev,
+      motionState,
+    }));
+
     // Handle auto-dim based on motion state
     const currentConfig = configRef.current;
     if (!currentConfig.autoDimEnabled) {
       // If disabled, ensure brightness is restored and no pending timers
       if (isDimmedRef.current) restoreBrightness();
-      return;
+      return; // Safe to return now - motionState already propagated
     }
-
-    const motionState = event.motionState;
-    const prevMotionState = lastMotionStateRef.current;
-    lastMotionStateRef.current = motionState;
-
-    // Update debug info with motion state
-    setDebugInfo(prev => ({
-      ...prev,
-      motionState,
-    }));
 
     if (motionState === 'STATIONARY') {
       // Start dim timer if not already pending and not already dimmed
@@ -445,6 +462,24 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
         } catch (locError) {
           console.warn('Could not get initial position for navigation:', locError);
           // Continue anyway - native module will provide position eventually
+        }
+
+        // Capture brightness EARLY so we have a baseline for dimming/restoration
+        // This must happen before native tracking starts to avoid race conditions
+        // where restoreBrightness() is called before capture happened
+        if (config.autoDimEnabled) {
+          if (writeSettingsGrantedRef.current === null) {
+            await checkWriteSettingsPermission();
+          }
+          if (writeSettingsGrantedRef.current) {
+            try {
+              const brightness = await Brightness.getSystemBrightnessAsync();
+              originalBrightnessRef.current = brightness;
+              console.log(`Captured initial brightness: ${brightness.toFixed(2)}`);
+            } catch (error) {
+              console.error('Error capturing initial brightness:', error);
+            }
+          }
         }
 
         // Start native tracking

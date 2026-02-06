@@ -33,10 +33,12 @@ vercel --prod
 
 upload to firebase:
 per testers:
-firebase appdistribution:distribute "C:\Users\eliei\Documents\bishvil\mobile\android\app\build\outputs\apk\release\app-release.apk" --app "1:659322080392:android:0fd47d83f3c55e7876e33d" --testers "elisequr@gmail.com" --release-notes "Beta build"
+cd android
+firebase appdistribution:distribute "android\app\build\outputs\apk\release\app-release.apk" --app "1:659322080392:android:0fd47d83f3c55e7876e33d" --testers "elisequr@gmail.com" --release-notes "Beta build"
 
 per group (of testers), manage them on firebase (web console)
-firebase appdistribution:distribute "android/app/build/outputs/apk/release/app-release.apk" `--app "1:659322080392:android:0fd47d83f3c55e7876e33d" --groups "testers" --release-notes "1.0.11 (10011) – improved navigation"
+cd android
+firebase appdistribution:distribute "android/app/build/outputs/apk/release/app-release.apk" `--app "1:659322080392:android:0fd47d83f3c55e7876e33d" --groups "testers" --release-notes "1.0.12 (10012) – improved navigation mtb maps"
 
 
 one liner!!

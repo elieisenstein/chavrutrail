@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { parseGpxCoordinates, isValidGpx } from '../lib/gpx';
 
 /**
@@ -16,16 +16,25 @@ export function useGpxFileIntent() {
   const processingRef = useRef(false);
 
   const handleGpxUrl = async (url: string) => {
-    // Prevent duplicate processing
-    if (processingRef.current) return;
+    console.log('🔗 handleGpxUrl called with:', url);
 
-    // Only handle file:// and content:// URIs
-    if (!url.startsWith('file://') && !url.startsWith('content://')) {
+    // Prevent duplicate processing
+    if (processingRef.current) {
+      console.log('⏭️ Already processing, skipping');
       return;
     }
 
-    // Check if it's a .gpx file
-    if (!url.toLowerCase().endsWith('.gpx')) {
+    // Only handle file:// and content:// URIs
+    if (!url.startsWith('file://') && !url.startsWith('content://')) {
+      console.log('⏭️ Not a file:// or content:// URI, skipping');
+      return;
+    }
+
+    // For file:// URIs, check the .gpx extension
+    // For content:// URIs (e.g., from WhatsApp), skip extension check -
+    // Android's intent filter already matched on mimeType="application/gpx+xml"
+    // We'll validate GPX content after reading the file
+    if (url.startsWith('file://') && !url.toLowerCase().endsWith('.gpx')) {
       return;
     }
 
@@ -36,16 +45,17 @@ export function useGpxFileIntent() {
 
       // Read file content
       let fileContent: string;
+
       if (url.startsWith('content://')) {
-        // For content:// URIs, we need to use expo-file-system
-        fileContent = await FileSystem.readAsStringAsync(url, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
+        // For content:// URIs, copy to cache first then read
+        const cacheFile = `${FileSystem.cacheDirectory}temp_gpx_${Date.now()}.gpx`;
+        await FileSystem.copyAsync({ from: url, to: cacheFile });
+        fileContent = await FileSystem.readAsStringAsync(cacheFile);
+        // Clean up temp file
+        await FileSystem.deleteAsync(cacheFile, { idempotent: true });
       } else {
-        // For file:// URIs, use expo-file-system as well
-        fileContent = await FileSystem.readAsStringAsync(url, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
+        // For file:// URIs, read directly
+        fileContent = await FileSystem.readAsStringAsync(url);
       }
 
       // Validate GPX content
@@ -66,7 +76,11 @@ export function useGpxFileIntent() {
       console.log(`✅ Parsed ${coordinates.length} coordinates from GPX`);
 
       // Extract filename from URL
-      const filename = url.split('/').pop() || 'route.gpx';
+      // For content:// URIs, the path segment may not be a filename, use default
+      let filename = 'route.gpx';
+      if (url.startsWith('file://')) {
+        filename = url.split('/').pop() || 'route.gpx';
+      }
 
       // Navigate to NavigationMain with the route
       navigation.navigate('NavigationStack', {

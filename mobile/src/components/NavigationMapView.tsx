@@ -371,6 +371,11 @@ useEffect(() => {
   if (!mapReady) return;
   if (!currentPosition) return;
 
+  // Don't auto-follow if route exists but we haven't entered preview mode yet
+  // This prevents the race condition where auto-follow runs before fitBounds
+  // (e.g., when opening a GPX file from external intent)
+  if (route && !isRoutePreviewMode) return;
+
   // Only auto-follow when we are not in manual interaction / preview state
   if (isUserInteracting) return;
   if (isRoutePreviewMode) return;
@@ -389,7 +394,7 @@ useEffect(() => {
     },
     animationDuration: 300,
   });
-}, [currentPosition, mapReady, isUserInteracting, isRoutePreviewMode, cameraBearing, cameraPitch]);
+}, [currentPosition, mapReady, isUserInteracting, isRoutePreviewMode, cameraBearing, cameraPitch, route]);
 
 
 

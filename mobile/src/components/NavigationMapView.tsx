@@ -212,7 +212,12 @@ const handleRecenter = () => {
   // Use padding to position user at bottom 1/3 of screen
   // Restore heading/pitch based on current mode
   if (cameraRef.current && currentPosition) {
-    const heading = mode === 'heading-up' ? currentPosition.heading : 0;
+    // Use stable heading (last known good heading when stationary, current GPS heading when moving)
+    // This prevents random camera rotation when pressing recenter while stationary
+    const stableHeadingForRecenter = debugInfo?.motionState === 'MOVING'
+      ? currentPosition.heading
+      : lastMovingHeadingRef.current;
+    const heading = mode === 'heading-up' ? stableHeadingForRecenter : 0;
     const pitch = 0;
 
     cameraRef.current.setCamera({
@@ -613,16 +618,10 @@ return (
             pitch: 0,
             heading: 0,
           }}
-          // Only set centerCoordinate/zoomLevel when NOT in route preview mode
-          // In preview mode, fitBounds() controls the camera - don't override it with declarative props
-          {...(!isRoutePreviewMode && {
-            centerCoordinate: shouldFollow ? currentPosition!.coordinate : mapCenter!,
-            zoomLevel: mapZoom,
-          })}
-          pitch={cameraPitch}
-          heading={cameraBearing}
+          // Don't use declarative props (centerCoordinate, zoomLevel, heading, pitch)
+          // They override setCamera() calls which include proper padding/zoom
+          // All camera positioning is done via setCamera() to preserve user's zoom level
           animationDuration={300}
-          //followUserLocation={shouldFollow}
           followUserLocation={false}
         />
 

@@ -7,6 +7,8 @@ import {
   notifyParticipantsOfCancellation,
 } from './notificationHelpers';
 import { fetchMyProfile, updateMyProfile } from "./profile";
+import { setCache, getCache, getCacheAge, CACHE_KEYS } from "./cacheService";
+import { isOnline } from "./network";
 
 export type RideStatus = "draft" | "published" | "cancelled" | "completed";
 export type JoinMode = "express" | "approval";
@@ -806,4 +808,110 @@ export async function getUserJoinedRidesCount(userId: string): Promise<number> {
     return 0;
   }
   return count ?? 0;
+}
+
+// ============ CACHED VARIANTS FOR OFFLINE SUPPORT ============
+
+export type CachedResult<T> = {
+  data: T;
+  fromCache: boolean;
+  cacheAgeMinutes?: number;
+};
+
+/**
+ * List filtered rides with offline cache support
+ * Tries network first, falls back to cache if offline/error
+ */
+export async function listFilteredRidesWithCache(
+  filters: RideFilters,
+  userGender?: string | null,
+  limit = 50
+): Promise<CachedResult<Ride[]>> {
+  const online = await isOnline();
+
+  if (online) {
+    try {
+      const rides = await listFilteredRides(filters, userGender, limit);
+      // Cache the result
+      await setCache(CACHE_KEYS.feed, rides);
+      return { data: rides, fromCache: false };
+    } catch (error) {
+      console.warn("Feed fetch failed, trying cache:", error);
+      // Fall through to cache
+    }
+  }
+
+  // Try to load from cache
+  const cached = await getCache<Ride[]>(CACHE_KEYS.feed);
+  if (cached) {
+    const cacheAgeMinutes = await getCacheAge(CACHE_KEYS.feed);
+    return {
+      data: cached.data,
+      fromCache: true,
+      cacheAgeMinutes: cacheAgeMinutes ?? undefined,
+    };
+  }
+
+  // No cache available
+  throw new Error("Unable to load rides: offline and no cached data");
+}
+
+/**
+ * Get active my rides with offline cache support
+ */
+export async function getActiveMyRidesWithCache(): Promise<CachedResult<Ride[]>> {
+  const online = await isOnline();
+
+  if (online) {
+    try {
+      const rides = await getActiveMyRides();
+      await setCache(CACHE_KEYS.myRidesActive, rides);
+      return { data: rides, fromCache: false };
+    } catch (error) {
+      console.warn("Active rides fetch failed, trying cache:", error);
+    }
+  }
+
+  const cached = await getCache<Ride[]>(CACHE_KEYS.myRidesActive);
+  if (cached) {
+    const cacheAgeMinutes = await getCacheAge(CACHE_KEYS.myRidesActive);
+    return {
+      data: cached.data,
+      fromCache: true,
+      cacheAgeMinutes: cacheAgeMinutes ?? undefined,
+    };
+  }
+
+  throw new Error("Unable to load my rides: offline and no cached data");
+}
+
+/**
+ * Get ride history with offline cache support
+ */
+export async function getMyRideHistoryWithCache(
+  maxDaysHistory = 30
+): Promise<CachedResult<Ride[]>> {
+  const online = await isOnline();
+
+  if (online) {
+    try {
+      const rides = await getMyRideHistory(maxDaysHistory);
+      await setCache(CACHE_KEYS.myRidesHistory, rides);
+      return { data: rides, fromCache: false };
+    } catch (error) {
+      console.warn("Ride history fetch failed, trying cache:", error);
+    }
+  }
+
+  const cached = await getCache<Ride[]>(CACHE_KEYS.myRidesHistory);
+  if (cached) {
+    const cacheAgeMinutes = await getCacheAge(CACHE_KEYS.myRidesHistory);
+    return {
+      data: cached.data,
+      fromCache: true,
+      cacheAgeMinutes: cacheAgeMinutes ?? undefined,
+    };
+  }
+
+  throw new Error("Unable to load ride history: offline and no cached data");
 }

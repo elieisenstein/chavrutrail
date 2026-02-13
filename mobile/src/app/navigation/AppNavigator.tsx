@@ -17,6 +17,7 @@ import UserProfileScreen from "../screens/UserProfileScreen";
 import FollowingScreen from "../screens/FollowingScreen";
 import RoutePreviewScreen from "../screens/RoutePreviewScreen";
 import NavigationScreen from "../screens/NavigationScreen";
+import OfflineMapsScreen from "../screens/OfflineMapsScreen";
 
 export type AppTabsParamList = {
   FeedStack: undefined;
@@ -44,6 +45,7 @@ export type ProfileStackParamList = {
   Profile: undefined;
   Settings: undefined;
   Following: undefined;
+  OfflineMaps: undefined;
 };
 
 export type CreateRideStackParamList = {
@@ -165,6 +167,7 @@ function ProfileStack() {
       <ProfileStackNav.Screen name="Profile" component={ProfileScreen} options={{ title: t("tabs.profile") }} />
       <ProfileStackNav.Screen name="Settings" component={SettingsScreen} options={{ title: t("settings.title") }} />
       <ProfileStackNav.Screen name="Following" component={FollowingScreen} options={{ title: t("followingScreen.title") }} />
+      <ProfileStackNav.Screen name="OfflineMaps" component={OfflineMapsScreen} options={{ title: t("offlineMaps.title") }} />
     </ProfileStackNav.Navigator>
   );
 }

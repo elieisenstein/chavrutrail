@@ -7,10 +7,11 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 
 import type { Ride } from "../../lib/rides";
-import { getActiveMyRides, getMyRideHistory } from "../../lib/rides";
+import { getActiveMyRidesWithCache, getMyRideHistoryWithCache } from "../../lib/rides";
 import type { MyRidesStackParamList } from "../navigation/AppNavigator";
 import { supabase } from "../../lib/supabase";
 import { Chip } from "react-native-paper";
+import { StalenessIndicator } from "../../components/StalenessIndicator";
 
 type Section = "active" | "history";
 
@@ -24,15 +25,30 @@ export default function MyRidesScreen() {
   const [historyRides, setHistoryRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Offline cache state
+  const [fromCache, setFromCache] = useState(false);
+  const [cacheAgeMinutes, setCacheAgeMinutes] = useState<number | undefined>();
+
   const loadRides = useCallback(async () => {
     setLoading(true);
     try {
-      const [active, history] = await Promise.all([
-        getActiveMyRides(),
-        getMyRideHistory(),
+      const [activeResult, historyResult] = await Promise.all([
+        getActiveMyRidesWithCache(),
+        getMyRideHistoryWithCache(),
       ]);
-      setActiveRides(active);
-      setHistoryRides(history);
+      setActiveRides(activeResult.data);
+      setHistoryRides(historyResult.data);
+      // Show cache indicator if either result is from cache
+      const isFromCache = activeResult.fromCache || historyResult.fromCache;
+      setFromCache(isFromCache);
+      // Use the older cache age if both are cached
+      if (isFromCache) {
+        const activeAge = activeResult.cacheAgeMinutes ?? 0;
+        const historyAge = historyResult.cacheAgeMinutes ?? 0;
+        setCacheAgeMinutes(Math.max(activeAge, historyAge));
+      } else {
+        setCacheAgeMinutes(undefined);
+      }
     } catch (e: any) {
       console.log("Load my rides error:", e?.message ?? e);
     } finally {
@@ -182,6 +198,10 @@ export default function MyRidesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      {/* Offline Indicator */}
+      {fromCache && cacheAgeMinutes !== undefined && (
+        <StalenessIndicator cacheAgeMinutes={cacheAgeMinutes} onRefresh={loadRides} />
+      )}
 
       {/* Section Selector */}
       <View style={styles.segmentContainer}>

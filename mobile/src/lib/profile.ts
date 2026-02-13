@@ -1,4 +1,6 @@
 import { supabase } from "./supabase";
+import { setCache, getCache, getCacheAge, CACHE_KEYS } from "./cacheService";
+import { isOnline } from "./network";
 
 export type Profile = {
   id: string;
@@ -130,4 +132,46 @@ export async function isDisplayNameAvailable(displayName: string): Promise<boole
     console.error("Failed to check display name availability:", e);
     throw e;
   }
+}
+
+// ============ CACHED VARIANT FOR OFFLINE SUPPORT ============
+
+export type CachedProfileResult = {
+  data: Profile | null;
+  fromCache: boolean;
+  cacheAgeMinutes?: number;
+};
+
+/**
+ * Fetch my profile with offline cache support
+ * Tries network first, falls back to cache if offline/error
+ */
+export async function fetchMyProfileWithCache(): Promise<CachedProfileResult> {
+  const online = await isOnline();
+
+  if (online) {
+    try {
+      const profile = await fetchMyProfile();
+      if (profile) {
+        await setCache(CACHE_KEYS.profile, profile);
+      }
+      return { data: profile, fromCache: false };
+    } catch (error) {
+      console.warn("Profile fetch failed, trying cache:", error);
+    }
+  }
+
+  // Try to load from cache
+  const cached = await getCache<Profile>(CACHE_KEYS.profile);
+  if (cached) {
+    const cacheAgeMinutes = await getCacheAge(CACHE_KEYS.profile);
+    return {
+      data: cached.data,
+      fromCache: true,
+      cacheAgeMinutes: cacheAgeMinutes ?? undefined,
+    };
+  }
+
+  // No cache available - return null (not signed in or never cached)
+  return { data: null, fromCache: false };
 }

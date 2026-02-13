@@ -1,18 +1,22 @@
 import React from "react";
-import { View, Alert, ScrollView } from "react-native";
-import { Text, RadioButton, Switch, SegmentedButtons, IconButton } from "react-native-paper";
+import { View, Alert, ScrollView, TouchableOpacity } from "react-native";
+import { Text, RadioButton, Switch, SegmentedButtons, IconButton, Icon } from "react-native-paper";
 import Constants from "expo-constants";
 import { useTranslation } from "react-i18next";
 import { useAppSettings } from "../state/AppSettingsContext";
 import { useTheme } from "react-native-paper";
 import { changeLanguage } from "../../i18n";
 import { useNavigation } from "../state/NavigationContext";
+import { useNavigation as useStackNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { ProfileStackParamList } from "../navigation/AppNavigator";
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const { themeMode, setThemeMode } = useAppSettings();
   const theme = useTheme();
   const { config, updateConfig, checkAndRequestWriteSettingsPermission, resetWriteSettingsPromptFlag } = useNavigation();
+  const stackNavigation = useStackNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
 
   const handleLanguageChange = async (newLanguage: string) => {
     await changeLanguage(newLanguage);
@@ -177,6 +181,28 @@ export default function SettingsScreen() {
             ]}
           />
         </View>
+
+        {/* Offline Maps Link */}
+        <TouchableOpacity
+          onPress={() => stackNavigation.navigate("OfflineMaps")}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingVertical: 16,
+            marginTop: 8,
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.outline,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Icon source="map-marker-path" size={24} color={theme.colors.primary} />
+            <Text style={{ color: theme.colors.onSurface, fontSize: 16 }}>
+              {t("offlineMaps.title")}
+            </Text>
+          </View>
+          <Icon source="chevron-right" size={24} color={theme.colors.onSurfaceVariant} />
+        </TouchableOpacity>
       </View>
 
       <Text style={{ textAlign: "center", opacity: 0.5, marginTop: 24, paddingBottom: 24 }}>

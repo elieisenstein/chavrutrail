@@ -535,17 +535,179 @@ const [isRoutePreviewMode, setIsRoutePreviewMode] = useState(!!route);
 ```
 This ensures `shouldFollow = false` on first render, allowing `fitBounds` to work.
 
+## Offline Maps (Phase 2)
+
+Enables navigation in areas with poor/no connectivity by downloading map tiles for offline use.
+
+### Architecture
+
+The app uses raster tiles from Israel Hiking Map (`israelhiking.osm.org.il`), not Mapbox vector styles. Since MapboxGL's `OfflineManager.createPack()` requires a Mapbox `styleURL`, manual tile caching is used instead.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ GPX Loaded → Calculate bbox + 2km margin → Prompt user          │
+│                                                                 │
+│ User accepts → Download tiles z10-15 → Store in documentDir     │
+│                                                                 │
+│ Offline navigation → Check local cache → Fallback to network    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Tile Utilities (`tileUtils.ts`)
+
+**Functions:**
+- `latLngToTile(lat, lng, zoom)` - Convert coordinates to tile x/y at zoom level
+- `tileToLatLng(x, y, zoom)` - Convert tile coordinates back to lat/lng
+- `getTilesForBbox(bbox, marginKm, minZoom, maxZoom)` - Get all tiles for bounding box
+- `countTilesByZoom(bbox, marginKm, minZoom, maxZoom)` - Count tiles per zoom level
+- `estimateDownloadSize(tileCount)` - Estimate download size (~12KB/tile average)
+- `getTileUrl(tile, language, mapStyle)` - Generate Israel Hiking Map tile URL
+- `getTileLocalPath(packId, tile, baseDir)` - Get local file path for cached tile
+- `generatePackId(bbox)` - Generate unique pack ID
+
+### Offline Map Service (`offlineMapService.ts`)
+
+**Storage:**
+- Max storage: 500 MB total
+- Tiles stored in: `documentDirectory/offline_tiles/{packId}/{z}/{x}/{y}.png`
+- Metadata stored in AsyncStorage: `@bishvil_offline_map_packs`
+
+**Functions:**
+- `getOfflinePacks()` - Get all saved offline map packs
+- `getTotalStorageUsed()` - Calculate total storage used
+- `hasStorageSpace(requiredBytes)` - Check if enough space for download
+- `downloadOfflinePack(name, bbox, language, mapStyle, onProgress, abortSignal)` - Download tiles
+- `deleteOfflinePack(packId)` - Delete a specific pack
+- `deleteAllPacks()` - Delete all packs
+- `getOfflineTilePath(tile, language, mapStyle)` - Check if tile exists in cache
+- `formatBytes(bytes)` - Format bytes to human-readable string
+
+**OfflineMapPack Type:**
+```typescript
+type OfflineMapPack = {
+  id: string;
+  name: string;             // Route/file name
+  bbox: RouteBbox;
+  language: "he" | "en";
+  mapStyle: "hiking" | "mtb";
+  tileCount: number;
+  sizeBytes: number;
+  downloadedAt: number;
+  minZoom: number;          // 10
+  maxZoom: number;          // 15
+};
+```
+
+### Download Component (`OfflineMapDownload.tsx`)
+
+Shows after GPX load (when online) as a bottom sheet:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 🗺 Download for Offline?                                        │
+│                                                                 │
+│ Download map tiles (~25 MB, 2,100 tiles) for offline use?       │
+│                                                                 │
+│ [Not Now]                              [Download]               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**States:**
+- `prompt` - Initial download prompt
+- `downloading` - Progress bar with tile count
+- `success` - "Map is ready for offline use" (auto-dismiss after 3s)
+- `error` - Error message with retry option
+
+**Features:**
+- Shows estimated size and tile count
+- Warns if not enough storage space
+- Progress shows downloaded/total and percentage
+- Can cancel mid-download
+- Cleans up partial downloads on cancel/failure
+
+### Offline Maps Screen (`OfflineMapsScreen.tsx`)
+
+Accessed via Settings → Offline Maps. Shows:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Storage Used                                                    │
+│ 📀 45 MB / 500 MB (9%)                                         │
+│ [▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ Har Eitan Loop                                    [Delete]  │ │
+│ │ 25 MB · 2,100 tiles                                        │ │
+│ │ Downloaded: Feb 13, 2026                                   │ │
+│ │ MTB · עברית                                                │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│                     [Delete All]                                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Features:**
+- Storage bar showing used/total with percentage
+- List of downloaded packs with details
+- Delete individual packs (with confirmation)
+- Delete all packs (with confirmation)
+- Empty state with hint to load GPX
+
+### Integration
+
+**NavigationMapView.tsx:**
+- Shows download prompt 1.5s after GPX file is loaded (when online)
+- Passes route bbox, name, language, and map style to download component
+
+**SettingsScreen.tsx:**
+- Added "Offline Maps" link in navigation settings section
+- Navigates to OfflineMapsScreen
+
+**AppNavigator.tsx:**
+- Added OfflineMaps screen to ProfileStack
+
+### Download Parameters
+
+| Parameter | Value |
+|-----------|-------|
+| Zoom levels | 10-15 |
+| Margin around bbox | 2 km |
+| Average tile size | ~12 KB |
+| Max storage | 500 MB |
+| Typical route pack | 15-30 MB |
+
+### Tile URL Templates
+
+| Map Style | URL Pattern |
+|-----------|-------------|
+| Hiking (Hebrew) | `https://israelhiking.osm.org.il/Hebrew/Tiles/{z}/{x}/{y}.png` |
+| Hiking (English) | `https://israelhiking.osm.org.il/English/Tiles/{z}/{x}/{y}.png` |
+| MTB | `https://israelhiking.osm.org.il/mtbTiles/{z}/{x}/{y}.png` |
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/tileUtils.ts` | Tile coordinate math, URL generation |
+| `src/lib/offlineMapService.ts` | Download, storage, pack management |
+| `src/components/OfflineMapDownload.tsx` | Download prompt + progress UI |
+| `src/app/screens/OfflineMapsScreen.tsx` | Pack management screen |
+
+---
+
 ## Future Enhancements
 
 **Potential Improvements:**
 - [ ] Turn-by-turn voice guidance
 - [ ] Automatic rerouting
-- [ ] Offline map caching
+- [x] Offline map caching ← Implemented (Phase 2)
 - [ ] Background navigation (foreground service)
 - [ ] Breadcrumb export to GPX
 - [ ] Route deviation alerts
 - [ ] iOS implementation
 - [ ] Per-activity parameter tuning (walking vs cycling)
+- [ ] Use cached tiles in map component (currently downloads only)
 
 ## Testing Checklist
 
@@ -1671,5 +1833,77 @@ Changed from a toggle switch to segmented buttons:
 
 ---
 
-**Last Updated:** 2025-02-04
-**Version:** 1.3.9
+## Session Summary (v1.4.0)
+
+Offline Maps feature (Phase 2) for navigation in areas with poor connectivity.
+
+### Offline Maps Implementation
+
+**Problem:** Users experienced issues in areas with poor/no cellular connectivity:
+- App stuck spinning on load
+- Map tiles not loading during navigation
+- Israel Hiking Map uses raster tiles (not Mapbox vector styles), so MapboxGL OfflineManager won't work
+
+**Solution:** Manual tile caching system that downloads raster tiles directly to device storage.
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/tileUtils.ts` | Tile coordinate math (lat/lng ↔ tile x/y), bbox calculations, URL generation |
+| `src/lib/offlineMapService.ts` | Download service, storage management, pack metadata, 500MB limit |
+| `src/components/OfflineMapDownload.tsx` | Download prompt UI, progress bar, cancel/retry |
+| `src/app/screens/OfflineMapsScreen.tsx` | Pack management (list, delete, storage bar) |
+
+### Modified Files
+
+| File | Changes |
+|------|---------|
+| `NavigationMapView.tsx` | Shows download prompt after GPX load when online |
+| `SettingsScreen.tsx` | Added "Offline Maps" navigation link |
+| `AppNavigator.tsx` | Added OfflineMaps to ProfileStack |
+| `en.json` / `he.json` | Added offlineMaps translations |
+
+### Features
+
+1. **Download Prompt:**
+   - Appears 1.5s after loading GPX file (when online)
+   - Shows estimated size and tile count
+   - Warns if not enough storage
+   - Progress bar with cancel option
+
+2. **Pack Management:**
+   - Settings → Offline Maps
+   - Storage bar showing used/total (500MB limit)
+   - List packs with details (size, tiles, date, style)
+   - Delete individual or all packs
+
+3. **Download Parameters:**
+   - Zoom levels: 10-15
+   - Margin around route: 2km
+   - Average tile size: ~12KB
+   - Typical pack: 15-30 MB
+
+4. **Storage:**
+   - Location: `documentDirectory/offline_tiles/{packId}/{z}/{x}/{y}.png`
+   - Metadata: AsyncStorage key `@bishvil_offline_map_packs`
+   - Limit: 500 MB total
+
+### Technical Decisions
+
+- **Manual caching over OfflineManager:** MapboxGL requires Mapbox styleURL, won't work with external raster tiles
+- **Direct tile download:** Using `expo-file-system` downloadAsync for each tile
+- **Abort support:** Users can cancel mid-download, partial files cleaned up
+- **Failure threshold:** >10% failed tiles = pack considered failed
+- **Zoom levels 10-15:** Good detail balance vs storage (~15-30MB per route)
+
+### Future Work
+
+- [ ] Use cached tiles in map component (currently downloads only, integration pending)
+- [ ] Cache expiration/refresh mechanism
+- [ ] Background download support
+
+---
+
+**Last Updated:** 2026-02-13
+**Version:** 1.4.0

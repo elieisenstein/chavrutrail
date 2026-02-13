@@ -22,6 +22,8 @@ import {
   RouteMetrics,
 } from '../lib/routeMetrics';
 import { isValidGpx, parseGpxCoordinates, MAX_GPX_FILE_SIZE } from '../lib/gpx';
+import { OfflineMapDownload } from './OfflineMapDownload';
+import { isOnline } from '../lib/network';
 
 type NavigationMapViewProps = {
   currentPosition: NavigationPosition | null;
@@ -52,6 +54,10 @@ export default function NavigationMapView({
   const [isLoadingGpx, setIsLoadingGpx] = useState(false);
 
   const [showSpeed, setShowSpeed] = useState(false);
+
+  // Offline map download prompt state
+  const [showOfflinePrompt, setShowOfflinePrompt] = useState(false);
+  const [routeName, setRouteName] = useState<string>('Route');
 
 const { baseTiles, trailTiles } = getIsraelHikingTiles(
   i18n.language === 'he' ? 'he' : 'en',
@@ -579,6 +585,14 @@ const handleLoadGpx = async () => {
     const name = file.name?.replace(/\.gpx$/i, '') || undefined;
 
     onLoadRoute(coords, name);
+
+    // Show offline download prompt if online
+    setRouteName(name || 'Route');
+    const online = await isOnline();
+    if (online) {
+      // Small delay to let the route render first
+      setTimeout(() => setShowOfflinePrompt(true), 1500);
+    }
   } catch (error) {
     console.error('Error loading GPX:', error);
     Alert.alert(t('common.error'), t('createRide.where.gpxInvalid'));
@@ -906,6 +920,17 @@ return (
         </View>
       )
     }
+
+    {/* Offline Map Download Prompt */}
+    {showOfflinePrompt && routeMetrics && (
+      <OfflineMapDownload
+        bbox={routeMetrics.bbox}
+        routeName={routeName}
+        language={i18n.language === 'he' ? 'he' : 'en'}
+        mapStyle={config.mapStyle}
+        onDismiss={() => setShowOfflinePrompt(false)}
+      />
+    )}
   </View >
 );
 }

@@ -38,7 +38,9 @@
     "apply": "Apply",
     "edit": "Edit",
     "back": "Back",
-    "next": "Next"
+    "next": "Next",
+    "close": "Close",
+    "delete": "Delete"
   },
   "auth": {
     "title": "Sign In",
@@ -426,5 +428,32 @@
       "openSettings": "Open Settings",
       "notNow": "Not now"
     }
+  },
+  "offline": {
+    "offlineMode": "Offline Mode",
+    "lastUpdated": "Last updated"
+  },
+  "offlineMaps": {
+    "title": "Offline Maps",
+    "downloadPromptTitle": "Download for Offline?",
+    "downloadPromptMessage": "Download map tiles (~{{size}}, {{tiles}} tiles) for offline use?",
+    "notEnoughSpace": "Not enough storage. {{available}} available.",
+    "download": "Download",
+    "notNow": "Not Now",
+    "downloading": "Downloading Maps...",
+    "failedTiles": "{{count}} tiles failed",
+    "downloadComplete": "Download Complete",
+    "readyForOffline": "Map is ready for offline use",
+    "downloadFailed": "Download Failed",
+    "retry": "Retry",
+    "storageUsed": "Storage Used",
+    "noPacks": "No Offline Maps",
+    "noPacksHint": "Load a GPX route and tap 'Download' to save map tiles for offline use",
+    "tiles": "tiles",
+    "downloaded": "Downloaded",
+    "deletePack": "Delete Map Pack",
+    "deletePackConfirm": "Delete offline maps for \"{{name}}\"? This will free up storage space.",
+    "deleteAll": "Delete All",
+    "deleteAllConfirm": "Delete all offline map packs? This cannot be undone."
   }
 }

@@ -4,11 +4,12 @@ import { Card, Text, useTheme, Button, Portal, Modal, Divider, Icon, ActivityInd
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
-import { listFilteredRides, Ride, type RideFilters } from "../../lib/rides";
-import { fetchMyProfile } from "../../lib/profile";
+import { listFilteredRidesWithCache, Ride, type RideFilters } from "../../lib/rides";
+import { fetchMyProfileWithCache } from "../../lib/profile";
 import { formatDateTimeLocal } from "../../lib/datetime";
 import type { FeedStackParamList } from "../navigation/AppNavigator";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StalenessIndicator } from "../../components/StalenessIndicator";
 
 // Available options
 const RIDE_TYPES = ["XC", "Trail", "Enduro", "Gravel", "Road"];
@@ -22,6 +23,10 @@ export default function FeedScreen() {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const navigation = useNavigation<NativeStackNavigationProp<FeedStackParamList>>();
   const theme = useTheme();
+
+  // Offline cache state
+  const [fromCache, setFromCache] = useState(false);
+  const [cacheAgeMinutes, setCacheAgeMinutes] = useState<number | undefined>();
 
   // Current active filters
   const [filters, setFilters] = useState<RideFilters>({
@@ -54,21 +59,25 @@ export default function FeedScreen() {
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        const profile = await fetchMyProfile();
-        if (profile) {
-          // Set user gender for filtering
-          setUserGender(profile.gender);
+        try {
+          const result = await fetchMyProfileWithCache();
+          if (result.data) {
+            // Set user gender for filtering
+            setUserGender(result.data.gender);
 
-          // Set default ride type filters from profile (if they have preferences)
-          if (profile.ride_type) {
-            const preferredTypes = profile.ride_type.split(',').map(t => t.trim());
-            if (preferredTypes.length > 0) {
-              setFilters(prev => ({
-                ...prev,
-                rideTypes: preferredTypes,
-              }));
+            // Set default ride type filters from profile (if they have preferences)
+            if (result.data.ride_type) {
+              const preferredTypes = result.data.ride_type.split(',').map(t => t.trim());
+              if (preferredTypes.length > 0) {
+                setFilters(prev => ({
+                  ...prev,
+                  rideTypes: preferredTypes,
+                }));
+              }
             }
           }
+        } catch (e) {
+          console.log("Profile load error:", e);
         }
       })();
     }, [])
@@ -77,10 +86,13 @@ export default function FeedScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await listFilteredRides(filters, userGender, 50);
-      setRides(data);
+      const result = await listFilteredRidesWithCache(filters, userGender, 50);
+      setRides(result.data);
+      setFromCache(result.fromCache);
+      setCacheAgeMinutes(result.cacheAgeMinutes);
     } catch (e: any) {
       console.log("Feed load error:", e?.message ?? e);
+      // Keep existing data if load fails
     } finally {
       setLoading(false);
     }
@@ -172,9 +184,15 @@ export default function FeedScreen() {
     <>
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.background }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
       >
+        {/* Offline Indicator */}
+        {fromCache && cacheAgeMinutes !== undefined && (
+          <StalenessIndicator cacheAgeMinutes={cacheAgeMinutes} onRefresh={load} />
+        )}
+
+        <View style={{ padding: 16 }}>
         {/* Filter Summary */}
         <View style={{
           flexDirection: "row",
@@ -290,6 +308,7 @@ export default function FeedScreen() {
               </Card>
             ))
           )}
+        </View>
         </View>
       </ScrollView>
 

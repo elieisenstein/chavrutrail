@@ -38,7 +38,9 @@
     "apply": "החל",
     "edit": "ערוך",
     "back": "הקודם",
-    "next": "הבא"
+    "next": "הבא",
+    "close": "סגור",
+    "delete": "מחק"
   },
   "auth": {
     "title": "התחברות",
@@ -426,5 +428,32 @@
       "openSettings": "פתח הגדרות",
       "notNow": "לא עכשיו"
     }
+  },
+  "offline": {
+    "offlineMode": "מצב לא מקוון",
+    "lastUpdated": "עודכן לאחרונה"
+  },
+  "offlineMaps": {
+    "title": "מפות לא מקוונות",
+    "downloadPromptTitle": "להוריד לשימוש לא מקוון?",
+    "downloadPromptMessage": "להוריד אריחי מפה (~{{size}}, {{tiles}} אריחים) לשימוש לא מקוון?",
+    "notEnoughSpace": "אין מספיק מקום אחסון. {{available}} זמין.",
+    "download": "הורד",
+    "notNow": "לא עכשיו",
+    "downloading": "מוריד מפות...",
+    "failedTiles": "{{count}} אריחים נכשלו",
+    "downloadComplete": "ההורדה הושלמה",
+    "readyForOffline": "המפה מוכנה לשימוש לא מקוון",
+    "downloadFailed": "ההורדה נכשלה",
+    "retry": "נסה שוב",
+    "storageUsed": "שטח אחסון בשימוש",
+    "noPacks": "אין מפות לא מקוונות",
+    "noPacksHint": "טען מסלול GPX ולחץ על 'הורד' כדי לשמור אריחי מפה לשימוש לא מקוון",
+    "tiles": "אריחים",
+    "downloaded": "הורד",
+    "deletePack": "מחק חבילת מפה",
+    "deletePackConfirm": "למחוק מפות לא מקוונות עבור \"{{name}}\"? פעולה זו תשחרר מקום אחסון.",
+    "deleteAll": "מחק הכל",
+    "deleteAllConfirm": "למחוק את כל חבילות המפה הלא מקוונות? פעולה זו בלתי הפיכה."
   }
 }

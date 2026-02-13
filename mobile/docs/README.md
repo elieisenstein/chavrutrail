@@ -370,6 +370,42 @@ Fast, low-friction ride discovery and joining for Israeli cyclists, optimized fo
 * Light, Dark, and System theme modes
 * Optimized for dark mode (primary UI)
 
+### ✅ Offline Data Caching (Phase 1)
+
+Enables app usage in areas with poor/no connectivity by caching data locally.
+
+* **Cache Service:** Generic caching with timestamps for offline support
+  * Cache keys: `feed`, `my_rides_active`, `my_rides_history`, `profile`
+  * Cache version for migrations
+  * Staleness levels: fresh (<5 min), stale (<30 min), very-stale (<60 min), expired (>60 min)
+
+* **Network Detection:** Uses `expo-network` to detect online/offline status
+  * `isOnline()` function checks internet reachability
+  * `useNetworkState()` hook for reactive network state
+
+* **Cached Data Functions:**
+  * `listFilteredRidesWithCache()` - Feed rides with cache fallback
+  * `getActiveMyRidesWithCache()` - Active rides with cache fallback
+  * `getMyRideHistoryWithCache()` - Ride history with cache fallback
+  * `fetchMyProfileWithCache()` - User profile with cache fallback
+
+* **Staleness Indicator Component:**
+  * Shows "Offline Mode - Last updated X min ago" banner
+  * Color-coded by staleness level (green → yellow → orange → red)
+  * Tap to refresh when back online
+  * Displayed on FeedScreen and MyRidesScreen
+
+* **Cache Strategy:**
+  * Network first: Try to fetch fresh data
+  * On success: Update cache and show fresh data
+  * On failure/offline: Load from cache with staleness indicator
+
+* **Files:**
+  * `src/lib/cacheService.ts` - Generic cache with timestamps
+  * `src/lib/network.ts` - Network state detection
+  * `src/components/StalenessIndicator.tsx` - Offline indicator component
+  * Modified: `rides.ts`, `profile.ts`, `FeedScreen.tsx`, `MyRidesScreen.tsx`
+
 ---
 
 ## 5. Known Limitations
@@ -1139,7 +1175,7 @@ https://www.dropbox.com/scl/fi/fba7ss1yst4lci71euyx9/version.json?rlkey=dy6av1bn
 
 ---
 
-**Last Updated:** January 29, 2026
+**Last Updated:** February 13, 2026
 **Stage:** Production-ready MVP with self-service sign-up
 **Next Milestone:** Beta testing with self-registering users
 
@@ -1157,4 +1193,55 @@ next TODO list:
 
 ~~GPX route support~~ (Done - Jan 27, 2026)
 
+~~Offline data caching~~ (Done - Feb 13, 2026)
+
 Ride happened confirmation
+
+### Session: February 13, 2026 - Offline Data Caching (Phase 1)
+
+**Completed:**
+* **Cache Service (`cacheService.ts`):**
+  * Generic cache with timestamps for offline support
+  * Cache versioning for future migrations
+  * Staleness levels: fresh (<5 min), stale (<30 min), very-stale (<60 min), expired (>60 min)
+  * Functions: `setCache()`, `getCache()`, `getCacheAge()`, `formatCacheAge()`, `getStalenessLevel()`
+
+* **Network Detection (`network.ts`):**
+  * Uses `expo-network` for connectivity detection
+  * `isOnline()` async function checks internet reachability
+  * `useNetworkState()` hook for reactive network state
+
+* **Cached Data Functions:**
+  * `listFilteredRidesWithCache()` in rides.ts - Feed with cache fallback
+  * `getActiveMyRidesWithCache()` in rides.ts - Active rides with cache
+  * `getMyRideHistoryWithCache()` in rides.ts - History with cache
+  * `fetchMyProfileWithCache()` in profile.ts - Profile with cache
+
+* **Staleness Indicator Component:**
+  * Visual banner showing offline status and cache age
+  * Color-coded: green (<5 min), yellow (<30 min), orange (<60 min), red (>60 min)
+  * Tap to refresh when back online
+  * Used in FeedScreen and MyRidesScreen
+
+* **Screen Updates:**
+  * FeedScreen: Uses cached functions, shows staleness indicator
+  * MyRidesScreen: Uses cached functions, shows staleness indicator
+
+**Files Created:**
+* `mobile/src/lib/cacheService.ts`
+* `mobile/src/lib/network.ts`
+* `mobile/src/components/StalenessIndicator.tsx`
+
+**Files Modified:**
+* `mobile/src/lib/rides.ts` - Added cached variants
+* `mobile/src/lib/profile.ts` - Added `fetchMyProfileWithCache()`
+* `mobile/src/app/screens/FeedScreen.tsx` - Use cached data, show indicator
+* `mobile/src/app/screens/MyRidesScreen.tsx` - Use cached data, show indicator
+* `mobile/src/i18n/en.json` - Added offline translations
+* `mobile/src/i18n/he.json` - Added offline translations
+* `mobile/package.json` - Added `expo-network` dependency
+
+**Problem Solved:**
+* App stuck spinning in areas with poor connectivity
+* Users can now view cached feed, profile, and rides when offline
+* Clear visual indicator shows data freshness

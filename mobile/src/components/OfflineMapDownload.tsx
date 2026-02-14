@@ -23,6 +23,9 @@ import {
   formatBytes,
   type DownloadProgress,
   type DownloadResult,
+  OFFLINE_MIN_ZOOM,
+  OFFLINE_MAX_ZOOM,
+  OFFLINE_MARGIN_KM,
 } from "../lib/offlineMapService";
 
 type DownloadState = "prompt" | "downloading" | "success" | "error";
@@ -65,7 +68,7 @@ export function OfflineMapDownload({
   // Calculate tiles and check storage on mount
   useEffect(() => {
     const calculate = async () => {
-      const tiles = getTilesForBbox(bbox, 2, 10, 15);
+      const tiles = getTilesForBbox(bbox, OFFLINE_MARGIN_KM, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM);
       const estimate = estimateDownloadSize(tiles.length);
       setTileCount(tiles.length);
       setEstimatedSize(estimate.formatted);

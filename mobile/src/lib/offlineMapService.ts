@@ -1,7 +1,9 @@
 // offlineMapService.ts
 // Service for downloading and managing offline map tile packs
 
-import * as FileSystem from "expo-file-system";
+// Using legacy import for Expo SDK 54+ compatibility
+// getInfoAsync, downloadAsync, etc. moved to expo-file-system/legacy
+import * as FileSystem from "expo-file-system/legacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { RouteBbox } from "./routeMetrics";
 import {
@@ -15,6 +17,11 @@ import {
 
 // Storage limit: 500 MB
 export const MAX_STORAGE_BYTES = 500 * 1024 * 1024;
+
+// Download parameters (single source of truth)
+export const OFFLINE_MIN_ZOOM = 10;
+export const OFFLINE_MAX_ZOOM = 14;
+export const OFFLINE_MARGIN_KM = 2;
 
 // Keys for AsyncStorage
 const PACKS_METADATA_KEY = "@bishvil_offline_map_packs";
@@ -153,12 +160,8 @@ export async function downloadOfflinePack(
   onProgress?: (progress: DownloadProgress) => void,
   abortSignal?: { aborted: boolean }
 ): Promise<DownloadResult> {
-  const minZoom = 10;
-  const maxZoom = 15;
-  const marginKm = 2;
-
   // Get tiles to download
-  const tiles = getTilesForBbox(bbox, marginKm, minZoom, maxZoom);
+  const tiles = getTilesForBbox(bbox, OFFLINE_MARGIN_KM, OFFLINE_MIN_ZOOM, OFFLINE_MAX_ZOOM);
   const totalTiles = tiles.length;
 
   // Estimate size
@@ -245,8 +248,8 @@ export async function downloadOfflinePack(
     tileCount: downloaded,
     sizeBytes: totalSizeBytes,
     downloadedAt: Date.now(),
-    minZoom,
-    maxZoom,
+    minZoom: OFFLINE_MIN_ZOOM,
+    maxZoom: OFFLINE_MAX_ZOOM,
   };
 
   const existingPacks = await getOfflinePacks();

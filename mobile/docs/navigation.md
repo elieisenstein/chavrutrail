@@ -547,7 +547,7 @@ The app uses raster tiles from Israel Hiking Map (`israelhiking.osm.org.il`), no
 ┌─────────────────────────────────────────────────────────────────┐
 │ GPX Loaded → Calculate bbox + 2km margin → Prompt user          │
 │                                                                 │
-│ User accepts → Download tiles z10-15 → Store in documentDir     │
+│ User accepts → Download tiles z10-14 → Store in documentDir     │
 │                                                                 │
 │ Offline navigation → Check local cache → Fallback to network    │
 └─────────────────────────────────────────────────────────────────┘
@@ -594,7 +594,7 @@ type OfflineMapPack = {
   sizeBytes: number;
   downloadedAt: number;
   minZoom: number;          // 10
-  maxZoom: number;          // 15
+  maxZoom: number;          // 14
 };
 ```
 
@@ -671,11 +671,18 @@ Accessed via Settings → Offline Maps. Shows:
 
 | Parameter | Value |
 |-----------|-------|
-| Zoom levels | 10-15 |
+| Zoom levels | 10-14 |
 | Margin around bbox | 2 km |
 | Average tile size | ~12 KB |
 | Max storage | 500 MB |
-| Typical route pack | 15-30 MB |
+| Typical route pack | 3-5 MB |
+
+**Constants (single source of truth in `offlineMapService.ts`):**
+```typescript
+export const OFFLINE_MIN_ZOOM = 10;
+export const OFFLINE_MAX_ZOOM = 14;
+export const OFFLINE_MARGIN_KM = 2;
+```
 
 ### Tile URL Templates
 
@@ -1879,10 +1886,10 @@ Offline Maps feature (Phase 2) for navigation in areas with poor connectivity.
    - Delete individual or all packs
 
 3. **Download Parameters:**
-   - Zoom levels: 10-15
+   - Zoom levels: 10-14
    - Margin around route: 2km
    - Average tile size: ~12KB
-   - Typical pack: 15-30 MB
+   - Typical pack: 3-5 MB
 
 4. **Storage:**
    - Location: `documentDirectory/offline_tiles/{packId}/{z}/{x}/{y}.png`
@@ -1892,10 +1899,11 @@ Offline Maps feature (Phase 2) for navigation in areas with poor connectivity.
 ### Technical Decisions
 
 - **Manual caching over OfflineManager:** MapboxGL requires Mapbox styleURL, won't work with external raster tiles
-- **Direct tile download:** Using `expo-file-system` downloadAsync for each tile
+- **Direct tile download:** Using `expo-file-system/legacy` downloadAsync for each tile (SDK 54+ compatibility)
 - **Abort support:** Users can cancel mid-download, partial files cleaned up
 - **Failure threshold:** >10% failed tiles = pack considered failed
-- **Zoom levels 10-15:** Good detail balance vs storage (~15-30MB per route)
+- **Zoom levels 10-14:** Good detail balance vs storage (~3-5MB per route)
+- **Centralized constants:** `OFFLINE_MIN_ZOOM`, `OFFLINE_MAX_ZOOM`, `OFFLINE_MARGIN_KM` in `offlineMapService.ts`
 
 ### Future Work
 
@@ -1905,5 +1913,38 @@ Offline Maps feature (Phase 2) for navigation in areas with poor connectivity.
 
 ---
 
-**Last Updated:** 2026-02-13
-**Version:** 1.4.0
+## Session Summary (v1.4.1) - February 14, 2026
+
+Bug fixes for offline map download feature.
+
+### Issues Fixed
+
+1. **Download prompt not appearing after GPX load:**
+   - **Root cause:** `NavigationScreen.tsx` unmounted `NavigationMapView` during loading state, wiping all component state including the pending download bbox and setTimeout callback
+   - **Fix:** Changed from conditional rendering to overlay approach - `NavigationMapView` always renders, loading overlay shown on top with `zIndex: 100`
+
+2. **`isOnline()` returning false on Android:**
+   - **Root cause:** `expo-network`'s `isInternetReachable` can return `null` on some Android devices/networks
+   - **Fix:** Changed logic to trust `isConnected` and treat `isInternetReachable === null` as "probably online"
+
+3. **Download failing with "getInfoAsync deprecated" error:**
+   - **Root cause:** Expo SDK 54 moved `getInfoAsync`, `downloadAsync`, etc. to `expo-file-system/legacy`
+   - **Fix:** Changed import from `expo-file-system` to `expo-file-system/legacy`
+
+4. **Tile count mismatch between estimate and download:**
+   - **Root cause:** `OfflineMapDownload.tsx` had hardcoded `maxZoom=15` while `offlineMapService.ts` used `maxZoom=14`
+   - **Fix:** Created exported constants (`OFFLINE_MIN_ZOOM`, `OFFLINE_MAX_ZOOM`, `OFFLINE_MARGIN_KM`) as single source of truth
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `NavigationScreen.tsx` | Overlay approach instead of conditional rendering |
+| `network.ts` | `isOnline()` treats null `isInternetReachable` as online |
+| `offlineMapService.ts` | `expo-file-system/legacy` import, exported constants |
+| `OfflineMapDownload.tsx` | Import and use centralized constants |
+
+---
+
+**Last Updated:** 2026-02-14
+**Version:** 1.4.1

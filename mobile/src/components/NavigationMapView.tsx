@@ -20,6 +20,7 @@ import {
   computeDistanceToStart,
   formatDistanceToStart,
   RouteMetrics,
+  RouteBbox,
 } from '../lib/routeMetrics';
 import { isValidGpx, parseGpxCoordinates, MAX_GPX_FILE_SIZE } from '../lib/gpx';
 import { OfflineMapDownload } from './OfflineMapDownload';
@@ -58,6 +59,7 @@ export default function NavigationMapView({
   // Offline map download prompt state
   const [showOfflinePrompt, setShowOfflinePrompt] = useState(false);
   const [routeName, setRouteName] = useState<string>('Route');
+  const [pendingDownloadBbox, setPendingDownloadBbox] = useState<RouteBbox | null>(null);
 
 const { baseTiles, trailTiles } = getIsraelHikingTiles(
   i18n.language === 'he' ? 'he' : 'en',
@@ -581,6 +583,11 @@ const handleLoadGpx = async () => {
       return;
     }
 
+    // Compute bbox locally for offline download prompt (before onLoadRoute async chain)
+    const metrics = computeRouteMetrics(coords);
+    console.log('[GPX] Computed bbox:', metrics.bbox);
+    setPendingDownloadBbox(metrics.bbox);
+
     // Extract name from filename (remove .gpx extension)
     const name = file.name?.replace(/\.gpx$/i, '') || undefined;
 
@@ -589,9 +596,16 @@ const handleLoadGpx = async () => {
     // Show offline download prompt if online
     setRouteName(name || 'Route');
     const online = await isOnline();
+    console.log('[GPX] isOnline result:', online);
     if (online) {
       // Small delay to let the route render first
-      setTimeout(() => setShowOfflinePrompt(true), 1500);
+      console.log('[GPX] Scheduling offline prompt in 1.5s');
+      setTimeout(() => {
+        console.log('[GPX] Setting showOfflinePrompt = true');
+        setShowOfflinePrompt(true);
+      }, 1500);
+    } else {
+      console.log('[GPX] Skipping offline prompt - device appears offline');
     }
   } catch (error) {
     console.error('Error loading GPX:', error);
@@ -922,13 +936,16 @@ return (
     }
 
     {/* Offline Map Download Prompt */}
-    {showOfflinePrompt && routeMetrics && (
+    {showOfflinePrompt && pendingDownloadBbox && (
       <OfflineMapDownload
-        bbox={routeMetrics.bbox}
+        bbox={pendingDownloadBbox}
         routeName={routeName}
         language={i18n.language === 'he' ? 'he' : 'en'}
         mapStyle={config.mapStyle}
-        onDismiss={() => setShowOfflinePrompt(false)}
+        onDismiss={() => {
+          setShowOfflinePrompt(false);
+          setPendingDownloadBbox(null);
+        }}
       />
     )}
   </View >

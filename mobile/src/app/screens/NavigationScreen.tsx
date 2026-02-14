@@ -222,19 +222,10 @@ export default function NavigationScreen() {
     }
   }, [activeNavigation.state, stopNavigation, startNavigation]);
 
-  // Idle state - show loading (auto-starting)
-  if (activeNavigation.state === 'idle' || isStarting) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.idleContainer}>
-          <ActivityIndicator size="large" style={styles.loader} />
-          <Text style={styles.idleTitle}>Starting navigation...</Text>
-        </View>
-      </View>
-    );
-  }
+  // Show loading overlay while keeping NavigationMapView mounted
+  // This preserves NavigationMapView state (like pending offline download prompts)
+  const showLoadingOverlay = activeNavigation.state === 'idle' || isStarting;
 
-  // Active state - show map only (no controls)
   return (
     <View style={styles.container}>
       <NavigationMapView
@@ -248,6 +239,14 @@ export default function NavigationScreen() {
         debugInfo={debugInfo}
         onWakeBrightness={wakeBrightness}
       />
+
+      {/* Loading overlay - shown on top of map to preserve map state */}
+      {showLoadingOverlay && (
+        <View style={[styles.loadingOverlay, { backgroundColor: theme.colors.background }]}>
+          <ActivityIndicator size="large" style={styles.loader} />
+          <Text style={styles.idleTitle}>Starting navigation...</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -256,19 +255,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  idleContainer: {
-    flex: 1,
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+    zIndex: 100,
   },
   idleTitle: {
     fontSize: 16,
     color: '#888',
     textAlign: 'center',
-    marginBottom: 24,
+    marginTop: 16,
   },
   loader: {
-    marginTop: 24,
+    marginBottom: 8,
   },
 });

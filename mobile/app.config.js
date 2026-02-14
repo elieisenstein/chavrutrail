@@ -5,7 +5,7 @@ function versionCodeFrom(version) {
   return maj * 10000 + min * 100 + patch;
 }
 
-const APP_VERSION = "1.0.12";
+const APP_VERSION = "1.0.13";
 
 export default {
   name: "Bishvil",
@@ -89,7 +89,7 @@ export default {
     [
       "@rnmapbox/maps",
       {
-        accessToken: "pk.eyJ1IjoiZWxpZWlzZW5zdGVpbiIsImEiOiJjbWpwc21iOXEzaHZzM2Nxemhzb2VtNHA3In0.NCwfmHYdr7JE0vvKRL9pFw",
+        accessToken: process.env.MAPBOX_ACCESS_TOKEN,
       },
     ],
     // ADD THIS NEW SECTION BELOW

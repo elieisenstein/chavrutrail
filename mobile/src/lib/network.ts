@@ -48,11 +48,17 @@ export function useNetworkState(): NetworkState {
 
 /**
  * Check if device is online (one-time check)
+ * Note: isInternetReachable can be null on some Android devices/networks.
+ * We trust isConnected and treat null isInternetReachable as "probably online".
  */
 export async function isOnline(): Promise<boolean> {
   try {
     const state = await Network.getNetworkStateAsync();
-    return (state.isConnected ?? false) && (state.isInternetReachable ?? false);
+    // If connected, assume online unless isInternetReachable explicitly says false
+    if (state.isConnected) {
+      return state.isInternetReachable !== false;
+    }
+    return false;
   } catch {
     return false;
   }

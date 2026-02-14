@@ -25,6 +25,7 @@ npx expo prebuild -p android
 npx expo run:android --variant release OR (cd android;./gradlew assembleRelease)
 
 test version:
+cd mobile
 npx expo config --type public | findstr version
 
 upload index etc to vercel:
@@ -38,7 +39,7 @@ firebase appdistribution:distribute "android\app\build\outputs\apk\release\app-r
 
 per group (of testers), manage them on firebase (web console)
 cd android
-firebase appdistribution:distribute "android/app/build/outputs/apk/release/app-release.apk" `--app "1:659322080392:android:0fd47d83f3c55e7876e33d" --groups "testers" --release-notes "1.0.12 (10012) – improved navigation mtb maps"
+firebase appdistribution:distribute "android/app/build/outputs/apk/release/app-release.apk" `--app "1:659322080392:android:0fd47d83f3c55e7876e33d" --groups "testers" --release-notes "1.0.13 (10013) – off line maps when uploading gpx"
 
 
 one liner!!

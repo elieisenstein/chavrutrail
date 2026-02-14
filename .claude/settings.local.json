@@ -9,7 +9,11 @@
       "WebFetch(domain:israelhiking.osm.org.il)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:wiki.osgeo.org)",
-      "WebFetch(domain:wiki.openstreetmap.org)"
+      "WebFetch(domain:wiki.openstreetmap.org)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git remote set-url:*)"
     ]
   }
 }
